@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt - NuLabel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../Admin/css/setting.css">
+</head>
+<body>
+
+<main class="main-wrapper" id="mainWrapper">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-badge" id="sideProjectBadge">
+                <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
+                    <span class="badge-t1">PROJECT</span>
+                    <span class="badge-t2">NULABEL</span>
+                </div>
+            </div>
+            <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
+                <i class="fa-solid fa-chevron-left"></i>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" style="padding-top: 24px;">
+            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Dashboard</h2>
+            <a href="dashboard.html" class="nav-item" id="nav-dashboard">
+                <i class="fa-solid fa-house"></i>
+                <span>Trang chủ</span>
+            </a>
+            <a href="setting.html" class="nav-item active" id="nav-settings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Cài đặt</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="ManagerProject.html" class="nav-item exit-nav">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Thoát dự án</span>
+            </a>
+        </div>
+    </aside>
+
+    <header class="topnav">
+        <div class="topnav-brand">NuLabel</div>
+        <div class="topnav-right">
+            <i class="fa-regular fa-bell topnav-icon"></i>
+            <i class="fa-regular fa-circle-question topnav-icon"></i>
+            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
+                alt="Avatar" class="avatar">
+        </div>
+    </header>
+
+    <div class="settings-container">
+        <div class="page-header">
+            <h1>Cài đặt</h1>
+            <p>Cấu hình thông số AI cho phiên làm việc của bạn</p>
+        </div>
+
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-card-icon blue">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <div class="settings-card-title">Cài đặt AI</div>
+                    <div class="settings-card-desc">Điều chỉnh ngưỡng tin cậy cho mô hình YOLOv8 khi gán nhãn tự động</div>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <div class="setting-label-title">Ngưỡng phát hiện (Confidence Threshold)</div>
+                    <div class="setting-label-desc">Chỉ giữ lại các dự đoán có độ tin cậy cao hơn ngưỡng này. Giá trị thấp → phát hiện nhiều hơn nhưng có thể sai. Giá trị cao → ít nhưng chính xác hơn.</div>
+                </div>
+                <div class="setting-control">
+                    <div class="slider-wrap">
+                        <input type="range" id="aiThreshold" min="1" max="100" value="25"
+                            oninput="updateSlider('aiThreshold', 'aiThresholdVal', 100)">
+                        <span class="slider-value" id="aiThresholdVal">0.25</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button class="btn-save" onclick="saveSettings()">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt
+            </button>
+            <button class="btn-reset" onclick="resetSettings()">
+                <i class="fa-solid fa-rotate-left"></i> Khôi phục mặc định
+            </button>
+            <div class="saved-badge" id="savedBadge">
+                <i class="fa-solid fa-circle-check"></i> Đã lưu
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="../js/user-setting.js"></script>
+</body>
+</html>

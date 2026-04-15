@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - NuLabel</title>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4B638A; /* Muted navy blue as in image */
+            --primary-hover: #3A4F72;
+            --bg-page: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --text-title: #111827;
+            --text-subtitle: #64748B;
+            --text-label: #334155;
+            --text-input: #1E293B;
+            --text-placeholder: #94A3B8;
+            --border-color: #E2E8F0;
+            --input-bg: #F8FAFC;
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-title);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 460px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 40px;
+            width: 100%;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-container {
+            margin-bottom: 12px;
+        }
+
+        /* Adjusted SVG to match the image's bounding box / frame design */
+        .logo-container svg {
+            width: 72px;
+            height: 72px;
+            display: inline-block;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-title);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-subtitle);
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-label);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon-left {
+            position: absolute;
+            left: 14px;
+            color: var(--text-placeholder);
+            font-size: 15px;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .input-icon-right {
+            position: absolute;
+            right: 14px;
+            color: var(--text-placeholder);
+            font-size: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 0 4px;
+        }
+
+        .input-icon-right:hover {
+            color: var(--text-label);
+        }
+
+        .form-group input {
+            width: 100%;
+            height: 44px;
+            padding: 0 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            font-size: 14px;
+            color: var(--text-input);
+            outline: none;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-placeholder);
+            font-weight: 400;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(75, 99, 138, 0.1);
+            background-color: #fff;
+        }
+
+        .form-group input:focus ~ .input-icon-left {
+            color: var(--primary-color);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 500;
+            color: var(--text-label);
+        }
+
+        .checkbox-label input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-right: 8px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .checkbox-label:hover .checkmark {
+            border-color: #cbd5e1;
+        }
+
+        .checkbox-label input:checked ~ .checkmark {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .checkmark::after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 5px;
+            top: 2px;
+            width: 3px;
+            height: 7px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-label input:checked ~ .checkmark::after {
+            display: block;
+        }
+
+        .forgot-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+            color: var(--primary-hover);
+        }
+
+        .btn-submit {
+            width: 100%;
+            height: 44px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 24px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(75, 99, 138, 0.2);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider span {
+            padding: 0 16px;
+            color: var(--text-placeholder);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .btn-social {
+            flex: 1;
+            height: 44px;
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-label);
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-social:hover {
+            background-color: var(--bg-page);
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+
+        .btn-social img, .btn-social svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .login-footer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-subtitle);
+            font-weight: 500;
+        }
+
+        .login-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+            margin-left: 4px;
+            transition: var(--transition);
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+            color: var(--primary-hover);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 20px;
+            }
+            .social-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-container">
+                    <!-- SVG logo representing multiple labeling frames & data points matching NuLabel references -->
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Background Frames -->
+                        <path d="M22 46L46 46L46 22L22 22L22 46Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+                        <path d="M26 50L50 50L50 26L26 26L26 50Z" fill="#F1F5F9" stroke="#64748B" stroke-width="1.5"/>
+                        <path d="M18 42L42 42L42 18L18 18L18 42Z" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2"/>
+                        
+                        <!-- Network / Nodes inside front frame -->
+                        <path d="M24 24L36 28M36 28L32 36M36 28L40 22M24 24L22 34M32 36L40 38" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="24" cy="24" r="2.5" fill="#1D4ED8"/>
+                        <circle cx="36" cy="28" r="2.5" fill="#1D4ED8"/>
+                        <circle cx="32" cy="36" r="2.5" fill="#1D4ED8"/>
+                        <circle cx="40" cy="22" r="2.5" fill="#1D4ED8"/>
+                        <circle cx="22" cy="34" r="2.5" fill="#1D4ED8"/>
+                        <circle cx="40" cy="38" r="2.5" fill="#1D4ED8"/>
+                    </svg>
+                </div>
+                <h1 class="login-title">NuLabel</h1>
+                <p class="login-subtitle">Đăng nhập để tiếp tục quản lý nhãn dữ liệu của bạn</p>
+            </div>
+
+            <form action="#" method="POST" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Tên đăng nhập</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user input-icon-left"></i>
+                        <input type="text" id="username" name="username" placeholder="Nhập tên đăng nhập" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Mật khẩu</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon-left"></i>
+                        <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required>
+                        <i class="fa-regular fa-eye input-icon-right" id="togglePassword"></i>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label" for="remember">
+                        <input type="checkbox" id="remember" name="remember">
+                        <span class="checkmark"></span>
+                        Ghi nhớ đăng nhập
+                    </label>
+                    <a href="#" class="forgot-link">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="btn-submit">Đăng nhập</button>
+            </form>
+
+            <div class="login-footer">
+                Chưa có tài khoản? Liên hệ quản trị viên để được cấp quyền truy cập.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password toggle logic
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function () {
+            // Toggle type
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Form submit - gọi API đăng nhập
+        const loginForm = document.getElementById('loginForm');
+        const btnSubmit = loginForm.querySelector('.btn-submit');
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Đang đăng nhập...';
+
+            try {
+                const res = await fetch('http://localhost:8000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || 'Tên đăng nhập hoặc mật khẩu không đúng!');
+                    return;
+                }
+
+                const data = await res.json();
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('current_user', JSON.stringify(data.user));
+
+                if (data.user.role === 'admin') {
+                    window.location.href = 'Admin/ManagerProject.html';
+                } else {
+                    window.location.href = 'User/ManagerProject.html';
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến server. Vui lòng thử lại.');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Đăng nhập';
+            }
+        });
+    </script>
+</body>
+</html>

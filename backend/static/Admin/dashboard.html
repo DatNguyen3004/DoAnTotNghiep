@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NuLabel Admin</title>
+    <meta name="description"
+        content="Admin Dashboard - Quản lý và theo dõi tiến độ gán nhãn dữ liệu xe tự hành NuLabel">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+
+<body>
+
+
+    <!-- Main Wrapper -->
+    <main class="main-wrapper" id="mainWrapper">
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="sidebar-badge" id="sideProjectBadge">
+                    <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
+                        <span class="badge-t1">PROJECT</span>
+                        <span class="badge-t2">NULABEL</span>
+                    </div>
+                </div>
+                <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav" style="padding-top: 24px;">
+                <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Dashboard
+                </h2>
+                <a href="dashboard.html" class="nav-item active" id="nav-dashboard">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="ManagerUser.html" class="nav-item" id="nav-users">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Quản lý người dùng</span>
+                </a>
+                <a href="setting.html" class="nav-item" id="nav-settings">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Cài đặt</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <a href="ManagerProject.html" class="nav-item exit-nav">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Thoát dự án</span>
+                </a>
+            </div>
+        </aside>
+
+        <header class="topnav">
+            <div class="topnav-brand">NuLabel</div>
+            <div class="topnav-right">
+                <i class="fa-regular fa-bell topnav-icon"></i>
+                <i class="fa-regular fa-circle-question topnav-icon"></i>
+                <a href="Profile.html">
+                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
+                        alt="Avatar" class="avatar">
+                </a>
+            </div>
+        </header>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card stat-1">
+                <div class="stat-header">
+                    <div class="stat-icon-wrap">
+                        <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+                        <div class="stat-title">TỔNG KHUNG HÌNH</div>
+                    </div>
+                </div>
+                <div class="stat-value-wrap">
+                    <div class="stat-value" id="statTotalFrames">—</div>
+                    <div class="stat-change" id="statTotalScenesText"></div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-2">
+                <div class="stat-header">
+                    <div class="stat-icon-wrap">
+                        <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
+                        <div class="stat-title">HOÀN THÀNH</div>
+                    </div>
+                </div>
+                <div class="stat-value-wrap">
+                    <div class="stat-value" id="statCompleted">—</div>
+                    <div class="stat-change" id="statCompletedPct"></div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-3">
+                <div class="stat-header">
+                    <div class="stat-icon-wrap">
+                        <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="stat-title">CẦN CHÚ Ý</div>
+                    </div>
+                </div>
+                <div class="stat-value-wrap">
+                    <div class="stat-value" id="statNeedAttention">—</div>
+                    <div class="stat-change" id="statNeedAttentionText"></div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-4">
+                <div class="stat-header">
+                    <div class="stat-icon-wrap">
+                        <div class="stat-icon"><i class="fa-regular fa-clock"></i></div>
+                        <div class="stat-title">HIỆU SUẤT TRUNG BÌNH</div>
+                    </div>
+                </div>
+                <div class="stat-value-wrap">
+                    <div class="stat-value" id="statAvgTime">—</div>
+                    <div class="stat-change" id="statAvgTimeUnit">Phút / Ảnh</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Section -->
+        <div class="tabs-section">
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="switchTab(event, 'tab-tasks')" id="tabBtnTasks">
+                    <i class="fa-solid fa-list-check"></i>
+                    Nhiệm vụ gán nhãn
+                    <span class="tab-badge badge-blue" id="tabBadgeTasks">0</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tab-members')" id="tabBtnMembers">
+                    <i class="fa-solid fa-user-group"></i>
+                    Thành viên dự án
+                    <span class="tab-badge badge-amber" id="tabBadgeMembers">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Tasks -->
+        <div id="tab-tasks" class="tab-content active">
+            <section class="data-section">
+                <div class="data-header">
+                    <div class="data-title">
+                        <h2>Dữ liệu nuScenes</h2>
+                        <p>Quản lý và theo dõi tiến độ gán nhãn dữ liệu xe tự hành</p>
+                    </div>
+                    <div class="data-actions">
+                        <div class="search-input">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" placeholder="Tìm kiếm nhiệm vụ..." id="searchTasks">
+                        </div>
+                        <button class="btn-assign-task" id="btnAssignTask" onclick="openAssignModal()">
+                            <i class="fa-solid fa-user-plus"></i> Phân công
+                        </button>
+                    </div>
+                </div>
+
+                <table id="tasksTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 48px; text-align: center;">STT</th>
+                            <th>TÊN NHIỆM VỤ</th>
+                            <th>NGƯỜI THỰC HIỆN</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>TIẾN ĐỘ</th>
+                            <th>HÀNH ĐỘNG</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+
+                <div class="table-footer" id="tableFooter">
+                    <div class="showing-text" id="showingText">Đang tải...</div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab 2: Members -->
+        <div id="tab-members" class="tab-content">
+            <section class="data-section">
+                <div class="data-header">
+                    <div class="data-title">
+                        <h2>Thành viên dự án</h2>
+                        <p>Quản lý cộng tác viên gán nhãn trong dự án</p>
+                    </div>
+                    <button class="btn-assign-task" onclick="openAddMemberModal()">
+                        <i class="fa-solid fa-user-plus"></i> Thêm thành viên
+                    </button>
+                </div>
+                <div class="members-grid" id="membersGrid">
+                    <!-- Dynamic members -->
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Assign Task Modal -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-user-plus" style="color:var(--primary-blue);margin-right:8px"></i>Phân
+                        công nhiệm vụ</h3>
+                    <p>Chọn nhiệm vụ và người thực hiện để phân công gán nhãn</p>
+                </div>
+                <button class="modal-close" onclick="closeAssignModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nhiệm vụ</label>
+                    <select id="selectScene">
+                        <option value="">-- Chọn nhiệm vụ --</option>
+                    </select>
+                    <div class="helper-text" id="sceneHelper">Chỉ hiển thị các nhiệm vụ chưa được phân công</div>
+                </div>
+                <div class="form-group">
+                    <label>Phân công cho</label>
+                    <select id="selectLabeler">
+                        <option value="">-- Chọn người thực hiện --</option>
+                    </select>
+                    <div class="helper-text">Chọn người thực hiện gán nhãn</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAssignModal()">Hủy</button>
+                <button class="btn-primary" id="btnSubmitAssign" onclick="submitAssign()">
+                    <i class="fa-solid fa-check"></i> Phân công
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div class="modal-overlay" id="addMemberModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-user-plus" style="color:var(--primary-blue);margin-right:8px"></i>Thêm
+                        thành viên</h3>
+                    <p>Chọn người dùng để thêm vào dự án</p>
+                </div>
+                <button class="modal-close" onclick="closeAddMemberModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tìm kiếm người dùng</label>
+                    <div style="position:relative">
+                        <i class="fa-solid fa-magnifying-glass"
+                            style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:14px"></i>
+                        <input type="text" id="memberSearchInput" placeholder="Tìm theo tên hoặc username..."
+                            style="width:100%;height:44px;padding:0 16px 0 40px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;"
+                            oninput="filterUserList(this.value)">
+                    </div>
+                </div>
+                <div id="userPickerList"
+                    style="max-height:280px;overflow-y:auto;border:1px solid var(--border-light);border-radius:10px;margin-top:4px">
+                    <div style="text-align:center;padding:32px;color:#94A3B8">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                    </div>
+                </div>
+                <div class="helper-text" id="memberPickerHelper" style="margin-top:8px">Chỉ hiển thị người dùng chưa
+                    trong dự án</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAddMemberModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/dashboard.js"></script>
+
+</body>
+
+</html>
