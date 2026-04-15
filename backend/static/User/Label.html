@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Workspace - NuLabel</title>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/Label.css">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <div class="nav-brand">NuLabel</div>
+        </div>
+        <div class="nav-right">
+            <i class="fa-regular fa-bell" style="color:#64748B;font-size:18px;cursor:pointer"></i>
+            <i class="fa-regular fa-circle-question" style="color:#64748B;font-size:18px;cursor:pointer"></i>
+            <div class="user-avatar" id="userAvatar">NL</div>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left-btn-container">
+            <button class="btn-phe-duyet" onclick="window.location.href='Test.html#pending'"><i class="bi bi-send-fill"></i> Nộp</button>
+        </div>
+
+        <div class="toolbar-center-area">
+            <div class="pagination-control">
+                <i class="fa-solid fa-angles-left"></i>
+                <i class="fa-solid fa-angle-left"></i>
+                <div class="page-number">1</div>
+                <i class="fa-solid fa-angle-right"></i>
+                <i class="fa-solid fa-angles-right"></i>
+            </div>
+            <div class="center-right-controls">
+                <div class="timer-pill">
+                    <i class="fa-regular fa-clock"></i> 00:00:00
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar-right-area">
+            <div class="tool-icons">
+                <div class="zoom-control">
+                    <i class="fa-solid fa-magnifying-glass-minus" onclick="zoomOut()" title="Thu nhỏ" style="cursor:pointer"></i>
+                    <span id="zoomLevel">100%</span>
+                    <i class="fa-solid fa-magnifying-glass-plus" onclick="zoomIn()" title="Phóng to" style="cursor:pointer"></i>
+                </div>
+                <i class="bi bi-archive-fill"></i>
+                <i class="bi bi-card-heading"></i>
+                <i class="fa-solid fa-gear" title="Settings"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace">
+
+        <!-- Left Panel: Cams View -->
+        <aside class="panel-left">
+            <div class="panel-header">CAMERA</div>
+            <div class="cam-list" id="camList">
+                <!-- Rendered by JS -->
+            </div>
+        </aside>
+
+        <!-- Center Canvas -->
+        <main class="center-canvas">
+            <div class="canvas-container">
+                <img src="" alt="Frame" id="mainImage" style="display:none">
+            </div>
+        </main>
+
+        <!-- Right Panel: Tools & Results -->
+        <aside class="panel-right">
+
+            <div class="tools-section">
+                <div class="section-header">
+                    <div class="section-title">Công cụ</div>
+                    <div class="section-meta">TOOLS</div>
+                </div>
+                <div class="toolbar-grid">
+                    <button class="tool-btn active" title="Pointer"><i class="fa-solid fa-arrow-pointer"></i></button>
+                    <div class="tool-item-with-dropdown">
+                        <button class="tool-btn" id="btn-box" title="Box"><i class="fa-regular fa-square"></i></button>
+                        <div class="label-dropdown" id="box-dropdown">
+                            <div class="dropdown-item" data-label="Xe con"><i class="fa-solid fa-car"></i> Xe con</div>
+                            <div class="dropdown-item" data-label="Xe tải"><i class="fa-solid fa-truck"></i> Xe tải
+                            </div>
+                            <div class="dropdown-item" data-label="Xe buýt"><i class="fa-solid fa-bus"></i> Xe buýt
+                            </div>
+                            <div class="dropdown-item" data-label="Xe máy"><i class="fa-solid fa-motorcycle"></i> Xe máy
+                            </div>
+                            <div class="dropdown-item" data-label="Người đi bộ"><i
+                                    class="fa-solid fa-person-walking"></i> Người đi bộ</div>
+                            <div class="dropdown-item" data-label="Xe đạp"><i class="fa-solid fa-bicycle"></i> Xe đạp
+                            </div>
+                        </div>
+                    </div>
+                    <button class="tool-btn" title="Clone" id="btn-clone"><i class="fa-solid fa-clone"></i></button>
+                    <button class="tool-btn" title="Resize" id="btn-resize"><i class="bi bi-arrows-move"></i></button>
+                    <button class="tool-btn" title="Pan"><i class="fa-regular fa-hand"></i></button>
+                </div>
+                <button class="btn-ai-auto">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>AI TỰ ĐỘNG GÁN NHÃN</span>
+                </button>
+            </div>
+
+            <div class="results-section">
+                <div class="section-header">
+                    <div class="section-title">Kết quả</div>
+                    <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
+                </div>
+
+                <div class="label-list" id="labelList">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <button class="btn-submit"><i class="bi bi-floppy2-fill"></i>   Lưu</button>
+                <a href="dashboard.html" class="link-home">
+                    <i class="fa-solid fa-house"></i> Trở về trang chủ
+                </a>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <script>
+        // Inline script chỉ giữ lại logic dropdown cơ bản
+        // label.js sẽ override setupDropdownItems() sau khi load
+        const _btnBox = document.getElementById('btn-box');
+        const _boxDropdown = document.getElementById('box-dropdown');
+
+        _btnBox?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            _boxDropdown?.classList.toggle('show');
+        });
+
+        window.addEventListener('click', () => {
+            _boxDropdown?.classList.remove('show');
+        });
+    </script>
+    <script src="../js/label.js"></script>
+</body>
+
+</html>

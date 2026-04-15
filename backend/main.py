@@ -25,5 +25,11 @@ app.include_router(tasks.router,       prefix="/api/tasks",       tags=["tasks"]
 app.include_router(annotations.router, prefix="/api",             tags=["annotations"])
 app.include_router(ai.router,          prefix="/api/ai",          tags=["ai"])
 
+# Redirect root → login page
+@app.get("/")
+def root():
+    return RedirectResponse(url="/login.html")
+
 # Serve frontend static files
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/", StaticFiles(directory="static", html=True), name="static-html")

@@ -132,6 +132,15 @@ def create_task(
         status="pending",
     )
     db.add(task)
+
+    # Tự động thêm user vào project nếu chưa là member
+    from models.project import ProjectMember
+    existing_member = db.query(ProjectMember).filter_by(
+        project_id=body.project_id, user_id=body.assigned_to
+    ).first()
+    if not existing_member:
+        db.add(ProjectMember(project_id=body.project_id, user_id=body.assigned_to))
+
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
