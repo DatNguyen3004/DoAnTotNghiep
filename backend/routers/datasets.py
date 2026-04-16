@@ -30,6 +30,32 @@ CAMERA_CHANNEL_MAP = {
 
 
 # ───────────────────────────────────────────────
+# PUT /api/scenes/{scene_id}  (Admin only)
+# ───────────────────────────────────────────────
+@router.put("/scenes/{scene_id}")
+def update_scene(
+    scene_id: int,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin cập nhật tên và mô tả scene."""
+    from routers.auth import require_admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền sửa")
+    scene = db.query(Scene).filter(Scene.id == scene_id).first()
+    if not scene:
+        raise HTTPException(status_code=404, detail="Không tìm thấy scene")
+    if "name" in body:
+        scene.name = body["name"]
+    if "description" in body:
+        scene.description = body["description"]
+    db.commit()
+    db.refresh(scene)
+    return {"id": scene.id, "name": scene.name, "description": scene.description}
+
+
+# ───────────────────────────────────────────────
 # GET /api/projects/{project_id}/scenes
 # ───────────────────────────────────────────────
 @router.get("/projects/{project_id}/scenes", response_model=List[SceneOut])

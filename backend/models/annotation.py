@@ -19,5 +19,7 @@ class Annotation(Base):
     confidence      = Column(Float, nullable=True)        # NULL = manual, 0-1 = AI
     is_ai_generated = Column(Boolean, default=False)
     needs_review    = Column(Boolean, default=False)
+    track_id        = Column(Integer, nullable=True)
+    custom_name     = Column(Unicode(200), nullable=True)
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())

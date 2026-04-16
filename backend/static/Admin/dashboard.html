@@ -136,6 +136,11 @@
                     Thành viên dự án
                     <span class="tab-badge badge-amber" id="tabBadgeMembers">0</span>
                 </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tab-all-tasks')" id="tabBtnAllTasks">
+                    <i class="fa-solid fa-list"></i>
+                    Tất cả các nhiệm vụ
+                </button>
+
             </div>
         </div>
 
@@ -166,7 +171,7 @@
                             <th>NGƯỜI THỰC HIỆN</th>
                             <th>TRẠNG THÁI</th>
                             <th>TIẾN ĐỘ</th>
-                            <th>HÀNH ĐỘNG</th>
+                            <th>THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody id="tasksBody">
@@ -199,7 +204,71 @@
             </section>
         </div>
 
+
+
+        <!-- Tab 3: All Tasks -->
+        <div id="tab-all-tasks" class="tab-content">
+            <section class="data-section">
+                <div class="data-header">
+                    <div class="data-title">
+                        <h2>Tất cả các nhiệm vụ</h2>
+                        <p>Danh sách tất cả task trong dự án</p>
+                    </div>
+                </div>
+                <table id="allTasksTable">
+                    <thead>
+                        <tr>
+                            <th style="width:48px;text-align:center">STT</th>
+                            <th>TÊN NHIỆM VỤ</th>
+                            <th style="width:100px">KHUNG HÌNH</th>
+                            <th style="width:120px;text-align:center">THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allTasksBody">
+                        <tr><td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">Nhấn vào tab để tải dữ liệu</td></tr>
+                    </tbody>
+                </table>
+                <div class="table-footer">
+                    <div class="showing-text" id="showingAllTasks"></div>
+                </div>
+            </section>
+        </div>
+
     </main>
+
+    <!-- Scene Preview & Edit Modal -->
+    <div class="modal-overlay" id="sceneEditModal">
+        <div class="modal" style="width:640px">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-film" style="color:var(--primary-blue);margin-right:8px"></i>Xem & Sửa tên nhiệm vụ</h3>
+                    <p>Xem ảnh preview rồi đặt tên phù hợp</p>
+                </div>
+                <button class="modal-close" onclick="closeSceneEditModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="border-radius:8px;overflow:hidden;margin-bottom:16px;background:#0F172A;height:200px;display:flex;align-items:center;justify-content:center">
+                    <img id="scenePreviewImg" src="" alt="Preview"
+                        style="max-width:100%;max-height:200px;object-fit:contain;display:block">
+                </div>
+                <div class="form-group">
+                    <label>Tên nhiệm vụ</label>
+                    <input type="text" id="sceneEditName" style="width:100%;height:44px;padding:0 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;">
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea id="sceneEditDesc" rows="3" style="width:100%;padding:12px 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;resize:vertical;font-family:Inter,sans-serif"></textarea>
+                </div>
+                <input type="hidden" id="sceneEditId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeSceneEditModal()">Hủy</button>
+                <button class="btn-primary" onclick="saveSceneEdit()">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Assign Task Modal -->
     <div class="modal-overlay" id="assignModal">
@@ -274,7 +343,7 @@
         </div>
     </div>
 
-    <script src="../js/dashboard.js"></script>
+    <script src="../js/dashboard.js?v=3"></script>
 
 </body>
 

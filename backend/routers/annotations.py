@@ -102,6 +102,8 @@ def save_annotations(
             confidence=ann.confidence,
             is_ai_generated=ann.is_ai_generated,
             needs_review=ann.needs_review,
+            track_id=ann.track_id,
+            custom_name=ann.custom_name,
         )
         db.add(db_ann)
         new_annotations.append(db_ann)

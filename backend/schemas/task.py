@@ -72,6 +72,8 @@ class AnnotationItem(BaseModel):
     confidence: Optional[float] = None
     is_ai_generated: bool = False
     needs_review: bool = False
+    track_id: Optional[int] = None
+    custom_name: Optional[str] = None
 
 
 class AnnotationSave(BaseModel):
@@ -92,6 +94,8 @@ class AnnotationOut(BaseModel):
     confidence: Optional[float] = None
     is_ai_generated: bool = False
     needs_review: bool = False
+    track_id: Optional[int] = None
+    custom_name: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

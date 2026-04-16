@@ -41,6 +41,10 @@ function switchTab(evt, tabId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     evt.currentTarget.classList.add('active');
+    if (tabId === 'tab-all-tasks') {
+        console.log('Loading all tasks...');
+        loadAllTasks();
+    }
 }
 
 // ============= STATUS HELPERS =============
@@ -535,6 +539,201 @@ async function deleteTask(taskId) {
         }
     } catch (e) {
         showToast('Lỗi kết nối server', 'error');
+    }
+}
+
+// ============= ALL TASKS TAB =============
+async function loadAllTasks() {
+    const tbody = document.getElementById('allTasksBody');
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
+    </td></tr>`;
+
+    try {
+        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!res.ok) throw new Error();
+        const scenes = await res.json();
+
+        if (!scenes.length) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">Chưa có nhiệm vụ nào</td></tr>`;
+            document.getElementById('showingAllTasks').textContent = '';
+            return;
+        }
+
+        tbody.innerHTML = scenes.map((scene, idx) => {
+            const name = scene.name || scene.scene_token || `Scene #${scene.id}`;
+            const desc = scene.description || '—';
+            return `<tr>
+                <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
+                <td>
+                    <div class="scene-name">
+                        <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
+                        <div>
+                            <div>${name}</div>
+                            <div class="scene-meta">${desc}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} frames</span></td>
+                <td>
+                    <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g,'\\"')}",scene_description:"${(scene.description||'').replace(/"/g,'\\"')}",_previewSceneId:${scene.id}})'
+                        class="action-link" style="font-size:12px">
+                        <i class="fa-solid fa-pen"></i> Sửa tên
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('showingAllTasks').textContent = `${scenes.length} nhiệm vụ`;
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
+    }
+}
+
+// ============= SCENE EDIT MODAL =============
+let allScenesData = [];
+
+async function loadAllScenes() {
+    const grid = document.getElementById('scenesGrid');
+    console.log('loadAllScenes called, grid:', grid, 'projectId:', projectId);
+    if (!grid) return;
+    if (!projectId) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:#EF4444;padding:24px">Không có projectId</div>`;
+        return;
+    }
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94A3B8">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
+    </div>`;
+
+    try {
+        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!res.ok) throw new Error();
+        allScenesData = await res.json();
+        renderScenesGrid(allScenesData);
+    } catch (e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:#EF4444;padding:24px">Không thể tải danh sách nhiệm vụ</div>`;
+    }
+}
+
+function renderScenesGrid(scenes) {
+    const grid = document.getElementById('scenesGrid');
+    if (!scenes.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94A3B8">Chưa có nhiệm vụ nào</div>`;
+        return;
+    }
+    grid.innerHTML = scenes.map(scene => `
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;transition:box-shadow 0.2s"
+             onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
+            <div style="height:140px;background:#0F172A;position:relative;cursor:pointer" onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name||'').replace(/'/g,"\\'")}',scene_description:'${(scene.description||'').replace(/'/g,"\\'")}',_previewSceneId:${scene.id}})">
+                <img id="sceneThumb_${scene.id}" src="" alt="${scene.name}"
+                    style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#475569;font-size:12px" id="sceneThumbLoading_${scene.id}">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+            </div>
+            <div style="padding:14px">
+                <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${scene.name || 'Chưa đặt tên'}</div>
+                <div style="font-size:12px;color:#64748B;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${scene.description || '—'}</div>
+                <button onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name||'').replace(/'/g,"\\'")}',scene_description:'${(scene.description||'').replace(/'/g,"\\'")}',_previewSceneId:${scene.id}})"
+                    style="width:100%;height:34px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:700;color:#475569;cursor:pointer;transition:all 0.2s"
+                    onmouseover="this.style.background='#2563EB';this.style.color='#fff'" onmouseout="this.style.background='#F1F5F9';this.style.color='#475569'">
+                    <i class="fa-solid fa-pen" style="margin-right:6px"></i>Sửa tên & mô tả
+                </button>
+            </div>
+        </div>`).join('');
+
+    // Load thumbnails
+    scenes.forEach(scene => loadSceneThumb(scene.id));
+}
+
+async function loadSceneThumb(sceneId) {
+    try {
+        const framesRes = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!framesRes.ok) return;
+        const frames = await framesRes.json();
+        if (!frames.length) return;
+
+        const imgRes = await fetch(`${BASE_URL}/frames/${frames[0].id}/image/CAM_FRONT`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!imgRes.ok) return;
+        const blob = await imgRes.blob();
+        const img = document.getElementById(`sceneThumb_${sceneId}`);
+        const loading = document.getElementById(`sceneThumbLoading_${sceneId}`);
+        if (img) { img.src = URL.createObjectURL(blob); img.style.opacity = '1'; }
+        if (loading) loading.style.display = 'none';
+    } catch (e) { /* silent */ }
+}
+
+// ============= SCENE EDIT MODAL =============
+async function openSceneEditModal(task) {
+    const sceneId = task.scene_id || task._previewSceneId;
+    document.getElementById('sceneEditId').value = sceneId;
+    document.getElementById('sceneEditName').value = task.scene_name || '';
+    document.getElementById('sceneEditDesc').value = task.scene_description || '';
+
+    // Load preview ảnh CAM_FRONT của frame đầu tiên
+    const previewImg = document.getElementById('scenePreviewImg');
+    previewImg.src = '';
+    try {
+        const framesRes = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (framesRes.ok) {
+            const frames = await framesRes.json();
+            if (frames.length > 0) {
+                const imgRes = await fetch(`${BASE_URL}/frames/${frames[0].id}/image/CAM_FRONT`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (imgRes.ok) {
+                    const blob = await imgRes.blob();
+                    previewImg.src = URL.createObjectURL(blob);
+                }
+            }
+        }
+    } catch (e) { /* silent */ }
+
+    document.getElementById('sceneEditModal').classList.add('active');
+}
+
+function closeSceneEditModal() {
+    document.getElementById('sceneEditModal').classList.remove('active');
+}
+
+document.getElementById('sceneEditModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSceneEditModal();
+});
+
+async function saveSceneEdit() {
+    const sceneId = document.getElementById('sceneEditId').value;
+    const name = document.getElementById('sceneEditName').value.trim();
+    const description = document.getElementById('sceneEditDesc').value.trim();
+
+    if (!name) { showToast('Tên không được để trống', 'error'); return; }
+
+    try {
+        const res = await fetch(`${BASE_URL}/scenes/${sceneId}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description })
+        });
+        if (res.ok) {
+            showToast('Đã cập nhật tên nhiệm vụ', 'success');
+            closeSceneEditModal();
+            loadTasks();
+            // Reload scenes grid nếu đang ở tab đó
+            if (allScenesData.length > 0) loadAllScenes();
+        } else {
+            showToast('Lỗi cập nhật', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi kết nối', 'error');
     }
 }
 
