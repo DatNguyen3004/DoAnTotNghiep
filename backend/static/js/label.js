@@ -73,7 +73,10 @@ function getTrackName(category, trackId) {
 function setTrackName(category, trackId, name) {
     if (name) trackNames[`${category}_${trackId}`] = name;
     else delete trackNames[`${category}_${trackId}`];
-} // { 'vehicle.car': 3, 'human.pedestrian': 1, ... }
+}
+
+// Track ID counter per class
+const trackCounters = {};
 
 function getNextTrackId(category) {
     trackCounters[category] = (trackCounters[category] || 0) + 1;
@@ -141,7 +144,11 @@ async function loadTask() {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+            const errText = await res.text().catch(() => res.status);
+            showToast(`Lỗi tải task: ${res.status} - ${errText}`, 'error');
+            return;
+        }
         task = await res.json();
 
         // Update user avatar initials
@@ -170,7 +177,11 @@ async function loadFrames(sceneId) {
         const res = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+            const errText = await res.text().catch(() => res.status);
+            showToast(`Lỗi tải frames: ${res.status} - ${errText}`, 'error');
+            return;
+        }
         frames = await res.json();
         if (!frames.length) { showToast('Scene không có frame', 'error'); return; }
 
@@ -181,7 +192,7 @@ async function loadFrames(sceneId) {
         const startFrame = Math.min(savedFrame, frames.length - 1);
         await goToFrame(startFrame);
     } catch (e) {
-        showToast('Không thể tải frames', 'error');
+        showToast(`Không thể tải frames: ${e.message}`, 'error');
     }
 }
 
