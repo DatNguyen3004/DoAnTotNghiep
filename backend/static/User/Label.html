@@ -93,17 +93,12 @@
                     <div class="tool-item-with-dropdown">
                         <button class="tool-btn" id="btn-box" title="Box"><i class="fa-regular fa-square"></i></button>
                         <div class="label-dropdown" id="box-dropdown">
-                            <div class="dropdown-item" data-label="Xe con"><i class="fa-solid fa-car"></i> Xe con</div>
-                            <div class="dropdown-item" data-label="Xe tải"><i class="fa-solid fa-truck"></i> Xe tải
-                            </div>
-                            <div class="dropdown-item" data-label="Xe buýt"><i class="fa-solid fa-bus"></i> Xe buýt
-                            </div>
-                            <div class="dropdown-item" data-label="Xe máy"><i class="fa-solid fa-motorcycle"></i> Xe máy
-                            </div>
-                            <div class="dropdown-item" data-label="Người đi bộ"><i
-                                    class="fa-solid fa-person-walking"></i> Người đi bộ</div>
-                            <div class="dropdown-item" data-label="Xe đạp"><i class="fa-solid fa-bicycle"></i> Xe đạp
-                            </div>
+                            <div class="dropdown-item" data-label="Xe con" data-action="new"><i class="fa-solid fa-car"></i> Xe con</div>
+                            <div class="dropdown-item" data-label="Xe tải" data-action="new"><i class="fa-solid fa-truck"></i> Xe tải</div>
+                            <div class="dropdown-item" data-label="Xe buýt" data-action="new"><i class="fa-solid fa-bus"></i> Xe buýt</div>
+                            <div class="dropdown-item" data-label="Xe máy" data-action="new"><i class="fa-solid fa-motorcycle"></i> Xe máy</div>
+                            <div class="dropdown-item" data-label="Người đi bộ" data-action="new"><i class="fa-solid fa-person-walking"></i> Người đi bộ</div>
+                            <div class="dropdown-item" data-label="Xe đạp" data-action="new"><i class="fa-solid fa-bicycle"></i> Xe đạp</div>
                         </div>
                     </div>
                     <button class="tool-btn" title="Clone" id="btn-clone"><i class="fa-solid fa-clone"></i></button>
@@ -136,6 +131,23 @@
 
         </aside>
 
+    </div>
+
+    <!-- Track ID Modal -->
+    <div id="trackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
+            <div style="font-size:15px;font-weight:800;color:#1E293B;margin-bottom:6px">Đây là đối tượng nào?</div>
+            <div style="font-size:13px;color:#64748B;margin-bottom:16px" id="trackModalDesc"></div>
+            <div id="trackOptions" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;margin-bottom:16px"></div>
+            <div style="display:flex;gap:8px">
+                <button onclick="confirmTrack('new')" style="flex:1;height:36px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                    + Đối tượng mới
+                </button>
+                <button onclick="closeTrackModal()" style="height:36px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                    Hủy
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>

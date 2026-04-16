@@ -63,6 +63,41 @@ let imgNaturalW = 1, imgNaturalH = 1;
 let timerSeconds = 0;
 let timerInterval = null;
 
+// Map toàn cục lưu custom_name theo track: 'category_trackId' → name
+const trackNames = {};
+
+function getTrackName(category, trackId) {
+    return trackNames[`${category}_${trackId}`] || null;
+}
+
+function setTrackName(category, trackId, name) {
+    if (name) trackNames[`${category}_${trackId}`] = name;
+    else delete trackNames[`${category}_${trackId}`];
+} // { 'vehicle.car': 3, 'human.pedestrian': 1, ... }
+
+function getNextTrackId(category) {
+    trackCounters[category] = (trackCounters[category] || 0) + 1;
+    return trackCounters[category];
+}
+
+function initTrackCounters() {
+    // Khởi tạo counter từ annotations đã load
+    Object.keys(trackCounters).forEach(k => delete trackCounters[k]);
+    Object.values(annotations).forEach(frameAnns => {
+        Object.values(frameAnns).forEach(camAnns => {
+            camAnns.forEach(ann => {
+                if (ann.track_id) {
+                    const cat = ann.category;
+                    trackCounters[cat] = Math.max(trackCounters[cat] || 0, ann.track_id);
+                }
+            });
+        });
+    });
+}
+
+// Alias để gọi sau khi xóa
+const recalcTrackCounters = initTrackCounters;
+
 // ============= INIT =============
 async function init() {
     startTimer();
@@ -140,7 +175,11 @@ async function loadFrames(sceneId) {
         if (!frames.length) { showToast('Scene không có frame', 'error'); return; }
 
         await loadAllAnnotations();
-        await goToFrame(0);
+        initTrackCounters();
+        // Khôi phục frame đã lưu gần nhất
+        const savedFrame = parseInt(localStorage.getItem(`lastFrame_${taskId}`) || '0');
+        const startFrame = Math.min(savedFrame, frames.length - 1);
+        await goToFrame(startFrame);
     } catch (e) {
         showToast('Không thể tải frames', 'error');
     }
@@ -167,6 +206,7 @@ async function loadAllAnnotations() {
                 is_ai_generated: ann.is_ai_generated || false,
                 needs_review: ann.needs_review || false,
                 hidden: false,
+                track_id: ann.track_id || null,
             });
         });
     } catch (e) { /* silent */ }
@@ -175,9 +215,28 @@ async function loadAllAnnotations() {
 // ============= FRAME NAVIGATION =============
 async function goToFrame(idx) {
     if (idx < 0 || idx >= frames.length) return;
-    // Không auto-save khi chuyển frame
+    const prevIdx = currentFrameIdx;
     currentFrameIdx = idx;
     updatePageNumber();
+
+    // Nếu frame mới chưa có annotations → copy từ frame trước (chỉ khi chuyển tiến)
+    if (idx > 0 && idx !== prevIdx) {
+        const newFrame = frames[idx];
+        const prevFrame = frames[idx - 1]; // luôn copy từ frame liền trước, không phải prevIdx
+        if (prevFrame && newFrame && prevFrame.id !== newFrame.id) {
+            CAMERAS.forEach(cam => {
+                const existing = getFrameAnns(newFrame.id, cam);
+                if (existing.length === 0) {
+                    const prevAnns = getFrameAnns(prevFrame.id, cam);
+                    if (prevAnns.length > 0) {
+                        const copied = prevAnns.map(a => ({ ...a, id: genId() }));
+                        setFrameAnns(newFrame.id, cam, copied);
+                    }
+                }
+            });
+        }
+    }
+
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
 }
@@ -452,10 +511,10 @@ function onMouseUp(e) {
         drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         return;
     }
-    const frame = frames[currentFrameIdx];
     const ann = {
         id: genId(),
         category: selectedClass,
+        track_id: null, // sẽ được set qua modal
         bbox_x: Math.max(0, drawRect.x / imgDisplayW),
         bbox_y: Math.max(0, drawRect.y / imgDisplayH),
         bbox_w: Math.min(1 - drawRect.x / imgDisplayW, drawRect.w / imgDisplayW),
@@ -463,12 +522,22 @@ function onMouseUp(e) {
         confidence: null,
         is_ai_generated: false,
         needs_review: false,
+        hidden: false,
     };
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+    // Nếu đã chọn thực thể cụ thể từ submenu → dùng track_id đó
+    // Ngược lại tự động tạo track_id mới (kế tiếp toàn task)
+    const trackId = (window._forceTrackId !== undefined) ? window._forceTrackId : getNextTrackId(selectedClass);
+    window._forceTrackId = undefined;
+
+    ann.track_id = trackId;
+
+    const frame = frames[currentFrameIdx];
     const anns = currentAnns();
     anns.push(ann);
     setFrameAnns(frame.id, currentCamera, anns);
     selectedAnnId = ann.id;
-    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     redrawAnnotations();
     renderLabelList();
     updateCamBadge();
@@ -505,6 +574,8 @@ function renderDrawing() {
 function redrawAnnotations() {
     if (!annCtx) return;
     annCtx.clearRect(0, 0, annCanvas.width, annCanvas.height);
+
+    // Vẽ annotations hiện tại
     currentAnns().forEach(ann => {
         if (ann.hidden) return; // Bỏ qua nhãn đang ẩn
         const cls = CLASS_MAP[ann.category];
@@ -523,17 +594,23 @@ function redrawAnnotations() {
         annCtx.fillRect(x, y, w, h);
         annCtx.setLineDash([]);
 
-        // Label tag
+        // Label tag trên canvas: [class] [id] - [tên mới] nếu có
         const cls2 = CLASS_MAP[ann.category];
-        const label = cls2 ? cls2.name : ann.category;
+        const baseLbl = cls2 ? cls2.name : ann.category;
+        const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
+        const resolvedCanvasName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
+        const canvasLabel = resolvedCanvasName
+            ? `${baseLbl} ${tNum} - ${resolvedCanvasName}`
+            : `${baseLbl} ${tNum}`;
         const conf = ann.confidence != null ? ` ${Math.round(ann.confidence * 100)}%` : '';
+        const displayLabel = canvasLabel + conf;
         annCtx.font = 'bold 11px Inter, sans-serif';
-        const tw = annCtx.measureText(label + conf).width + 8;
+        const tw = annCtx.measureText(displayLabel).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
         annCtx.fillStyle = color;
         annCtx.fillRect(x, tagY, tw, 16);
         annCtx.fillStyle = '#fff';
-        annCtx.fillText(label + conf, x + 4, tagY + 11);
+        annCtx.fillText(displayLabel, x + 4, tagY + 11);
     });
 }
 
@@ -560,6 +637,7 @@ function deleteSelected() {
     const frame = frames[currentFrameIdx];
     setFrameAnns(frame.id, currentCamera, currentAnns().filter(a => a.id !== selectedAnnId));
     selectedAnnId = null;
+    recalcTrackCounters();
     redrawAnnotations();
     renderLabelList();
     updateCamBadge();
@@ -576,11 +654,102 @@ function setupDropdownItems() {
             const found = CLASSES.find(c => c.name === label);
             if (found) {
                 selectedClass = found.id;
-                // Toast màu theo nhãn
                 showToast(`Nhãn: ${found.name}`, 'custom', found.color);
             }
             document.getElementById('box-dropdown')?.classList.remove('show');
             setActiveTool('box');
+        });
+
+        // Hover → hiện submenu "Tạo mới" / "Thực thể đã có"
+        item.addEventListener('mouseenter', e => {
+            // Xóa submenu cũ
+            document.querySelectorAll('.sub-menu').forEach(s => s.remove());
+
+            const label = item.getAttribute('data-label');
+            const found = CLASSES.find(c => c.name === label);
+            if (!found) return;
+
+            // Lấy track_id đã có cho class này trong toàn task
+            const allTracks = new Set();
+            Object.values(annotations).forEach(frameAnns => {
+                Object.values(frameAnns).forEach(camAnns => {
+                    camAnns.forEach(a => {
+                        if (a.category === found.id && a.track_id) allTracks.add(a.track_id);
+                    });
+                });
+            });
+
+            // Lọc bỏ track_id đã có trong frame/camera hiện tại
+            const usedInFrame = new Set(
+                currentAnns()
+                    .filter(a => a.category === found.id && a.track_id)
+                    .map(a => a.track_id)
+            );
+            const availableTracks = [...allTracks].filter(tid => !usedInFrame.has(tid));
+
+            const sub = document.createElement('div');
+            sub.className = 'sub-menu';
+            sub.style.cssText = `position:absolute;right:100%;top:0;background:#fff;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.1);min-width:180px;padding:6px;z-index:1001`;
+
+            // Tạo mới
+            const newBtn = document.createElement('div');
+            newBtn.className = 'dropdown-item';
+            newBtn.innerHTML = '<i class="fa-solid fa-plus" style="color:#2563EB"></i> Tạo mới';
+            newBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                selectedClass = found.id;
+                document.getElementById('box-dropdown')?.classList.remove('show');
+                sub.remove();
+                setActiveTool('box');
+                showToast(`Nhãn mới: ${found.name}`, 'custom', found.color);
+            });
+            sub.appendChild(newBtn);
+
+            // Thực thể đã có (chưa xuất hiện trong frame này)
+            if (availableTracks.length > 0) {
+                const divider = document.createElement('div');
+                divider.style.cssText = 'height:1px;background:#F1F5F9;margin:4px 0';
+                sub.appendChild(divider);
+
+                const header = document.createElement('div');
+                header.style.cssText = 'font-size:10px;font-weight:700;color:#94A3B8;padding:4px 14px;text-transform:uppercase;letter-spacing:0.5px';
+                header.textContent = 'Thực thể đã có';
+                sub.appendChild(header);
+
+                [...availableTracks].sort((a,b) => a-b).forEach(tid => {
+                    // Đọc custom_name từ map toàn cục
+                    const customName = getTrackName(found.id, tid);
+                    const displayName = customName
+                        ? `${found.name} ${String(tid).padStart(2,'0')} - ${customName}`
+                        : `${found.name} ${String(tid).padStart(2,'0')}`;
+
+                    const btn = document.createElement('div');
+                    btn.className = 'dropdown-item';
+                    btn.innerHTML = `<i class="fa-solid fa-link" style="color:#64748B;font-size:11px"></i> ${displayName}`;
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        selectedClass = found.id;
+                        // Đặt track_id cụ thể cho lần vẽ tiếp theo
+                        window._forceTrackId = tid;
+                        document.getElementById('box-dropdown')?.classList.remove('show');
+                        sub.remove();
+                        setActiveTool('box');
+                        showToast(`Thực thể: ${displayName}`, 'custom', found.color);
+                    });
+                    sub.appendChild(btn);
+                });
+            }
+
+            item.style.position = 'relative';
+            item.appendChild(sub);
+        });
+
+        item.addEventListener('mouseleave', e => {
+            // Chỉ xóa nếu không hover vào submenu
+            setTimeout(() => {
+                const sub = item.querySelector('.sub-menu');
+                if (sub && !sub.matches(':hover')) sub.remove();
+            }, 100);
         });
     });
 
@@ -665,14 +834,16 @@ function renderLabelList() {
     }
 
     list.innerHTML = (() => {
-        // Đếm số thứ tự theo từng class
-        const classCounters = {};
         return anns.map((ann) => {
             const cls = CLASS_MAP[ann.category];
             const color = cls ? cls.color : '#14B8A6';
             const baseName = cls ? cls.name : ann.category;
-            classCounters[ann.category] = (classCounters[ann.category] || 0) + 1;
-            const label = `${baseName} ${String(classCounters[ann.category]).padStart(2, '0')}`;
+            const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
+            // Ưu tiên trackNames map, fallback về ann.custom_name
+            const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
+            const label = resolvedName
+                ? `${baseName} ${trackNum} - ${resolvedName}`
+                : `${baseName} ${trackNum}`;
             const conf = ann.confidence != null ? ` (${Math.round(ann.confidence * 100)}%)` : '';
             const aiMark = ann.is_ai_generated ? ' <span style="font-size:10px;color:#9333EA">AI</span>' : '';
             const sel = ann.id === selectedAnnId;
@@ -682,7 +853,9 @@ function renderLabelList() {
                 <div class="label-info">
                     <div class="label-dot" style="background:${color};opacity:${hidden ? 0.3 : 1}"></div>
                     <div class="label-text">
-                        <span class="label-name" style="opacity:${hidden ? 0.4 : 1}">${label}${aiMark}${conf}</span>
+                        <span class="label-name" style="opacity:${hidden ? 0.4 : 1};cursor:pointer" 
+                              ondblclick="renameAnn('${ann.id}');event.stopPropagation()" 
+                              title="Nhấp đúp để đổi tên">${label}${aiMark}${conf}</span>
                         <div class="label-actions">
                             <i class="${hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
                                title="${hidden ? 'Hiện nhãn' : 'Ẩn nhãn'}" 
@@ -702,6 +875,27 @@ function selectAnn(id) {
     renderLabelList();
 }
 
+function renameAnn(id) {
+    const anns = currentAnns();
+    const ann = anns.find(a => a.id === id);
+    if (!ann) return;
+    const cls = CLASS_MAP[ann.category];
+    const baseName = cls ? cls.name : ann.category;
+    const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
+    const current = getTrackName(ann.category, ann.track_id) || ann.custom_name || '';
+    const newName = prompt(`Đổi tên cho "${baseName} ${trackNum}":\n(Để trống để dùng tên mặc định)`, current);
+    if (newName === null) return;
+    const trimmed = newName.trim() || null;
+    ann.custom_name = trimmed;
+    // Lưu vào map toàn cục để các camera/frame khác cùng track_id cũng thấy
+    setTrackName(ann.category, ann.track_id, trimmed);
+    const frame = frames[currentFrameIdx];
+    setFrameAnns(frame.id, currentCamera, anns);
+    redrawAnnotations();
+    renderLabelList();
+    markUnsaved();
+}
+
 function toggleAnnVisibility(id) {
     const frame = frames[currentFrameIdx];
     const anns = currentAnns();
@@ -716,6 +910,7 @@ function deleteAnn(id) {
     const frame = frames[currentFrameIdx];
     setFrameAnns(frame.id, currentCamera, currentAnns().filter(a => a.id !== id));
     if (selectedAnnId === id) selectedAnnId = null;
+    recalcTrackCounters(); // Reset counter dựa trên annotations còn lại
     redrawAnnotations();
     renderLabelList();
     updateCamBadge();
@@ -792,6 +987,8 @@ async function saveAnnotations(showMsg = true) {
         } catch (e) { /* silent */ }
     }
     unsaved = false;
+    // Lưu vị trí frame hiện tại
+    localStorage.setItem(`lastFrame_${taskId}`, currentFrameIdx);
     if (showMsg) showToast('Đã lưu tất cả nhãn', 'success');
 }
 
@@ -811,7 +1008,8 @@ async function submitTask() {
         });
         if (res.ok) {
             clearInterval(timerInterval);
-            localStorage.removeItem(`timer_${taskId}`); // Xóa timer sau khi nộp
+            localStorage.removeItem(`timer_${taskId}`);
+            localStorage.removeItem(`lastFrame_${taskId}`);
             showToast('Nộp bài thành công!', 'success');
             setTimeout(() => window.location.href = 'dashboard.html', 1800);
         } else {
@@ -957,7 +1155,98 @@ function onPanEnd(e) {
     if (currentTool === 'pan') e.currentTarget.style.cursor = 'grab';
 }
 
-// ============= CLONE =============
+// ============= TRACK ID MODAL =============
+let pendingAnn = null; // annotation đang chờ chọn track_id
+
+function showTrackModal(ann) {
+    // Nếu đã chọn thực thể cụ thể từ dropdown
+    if (window._forceTrackId !== undefined) {
+        pendingAnn = ann;
+        confirmTrack(window._forceTrackId);
+        window._forceTrackId = undefined;
+        return;
+    }
+    pendingAnn = ann;
+    const cls = CLASS_MAP[ann.category];
+    const clsName = cls ? cls.name : ann.category;
+
+    // Lấy tất cả track_id đã dùng cho class này trong toàn bộ task
+    const allTracks = new Set();
+    Object.values(annotations).forEach(frameAnns => {
+        Object.values(frameAnns).forEach(camAnns => {
+            camAnns.forEach(a => {
+                if (a.category === ann.category && a.track_id) allTracks.add(a.track_id);
+            });
+        });
+    });
+
+    // Lấy track_id đã dùng trong frame/camera HIỆN TẠI (không cho chọn lại)
+    const usedInCurrentFrame = new Set(
+        currentAnns()
+            .filter(a => a.category === ann.category && a.track_id)
+            .map(a => a.track_id)
+    );
+
+    // Chỉ hiện track_id chưa xuất hiện trong frame này
+    const availableTracks = [...allTracks].filter(tid => !usedInCurrentFrame.has(tid));
+
+    // Nếu không có track nào khả dụng → tự động tạo mới
+    if (availableTracks.length === 0) {
+        confirmTrack('new');
+        return;
+    }
+
+    document.getElementById('trackModalDesc').textContent = `"${clsName}" này là thực thể nào?`;
+
+    const opts = document.getElementById('trackOptions');
+    opts.innerHTML = availableTracks.sort((a,b) => a-b).map(tid => {
+        // Tìm custom_name nếu có
+        let customName = null;
+        Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
+            if (a.category === ann.category && a.track_id === tid && a.custom_name) customName = a.custom_name;
+        })));
+        const displayName = customName
+            ? `${clsName} ${String(tid).padStart(2,'0')} - ${customName}`
+            : `${clsName} ${String(tid).padStart(2,'0')}`;
+        return `
+        <button onclick="confirmTrack(${tid})"
+            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px;transition:background 0.15s"
+            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
+            ${displayName}
+        </button>`;
+    }).join('');
+
+    document.getElementById('trackModal').style.display = 'flex';
+}
+
+function confirmTrack(trackId) {
+    if (!pendingAnn) return;
+    const frame = frames[currentFrameIdx];
+
+    if (trackId === 'new') {
+        pendingAnn.track_id = getNextTrackId(pendingAnn.category);
+    } else {
+        pendingAnn.track_id = trackId;
+    }
+
+    const anns = currentAnns();
+    anns.push(pendingAnn);
+    setFrameAnns(frame.id, currentCamera, anns);
+    selectedAnnId = pendingAnn.id;
+    pendingAnn = null;
+
+    closeTrackModal();
+    redrawAnnotations();
+    renderLabelList();
+    updateCamBadge();
+    markUnsaved();
+}
+
+function closeTrackModal() {
+    document.getElementById('trackModal').style.display = 'none';
+    pendingAnn = null;
+    if (drawCtx) drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
 function cloneSelected() {
     if (!selectedAnnId) {
         showToast('Chọn một nhãn trước khi sao chép', 'info');
