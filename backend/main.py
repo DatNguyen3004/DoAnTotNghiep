@@ -2,10 +2,26 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from routers import auth, projects, users, datasets, tasks, annotations, ai
+from services.ai_service import get_model
 
-app = FastAPI(title="NuLabel API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Preload AI model khi server khởi động
+    print("Loading YOLOv8 model...")
+    model = get_model()
+    if model:
+        print("YOLOv8 model loaded successfully")
+    else:
+        from services.ai_service import get_model_error
+        print(f"YOLOv8 model load failed: {get_model_error()}")
+    yield
+
+
+app = FastAPI(title="NuLabel API", version="1.0.0", lifespan=lifespan)
 
 # CORS
 app.add_middleware(

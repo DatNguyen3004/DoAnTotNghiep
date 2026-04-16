@@ -194,11 +194,60 @@ async function goToFrame(idx) {
         const newFrame = frames[idx];
         const prevFrame = frames[idx - 1];
         if (prevFrame && newFrame && prevFrame.id !== newFrame.id) {
+            // Tính optical flow để dịch chuyển bbox
+            let flowData = null;
+            try {
+                // Lấy annotations của camera hiện tại từ frame trước (chỉ AI)
+                const prevCamAnns = getFrameAnns(prevFrame.id, currentCamera).filter(a => a.is_ai_generated);
+                const bboxes = prevCamAnns.map(a => ({
+                    bbox_x: a.bbox_x, bbox_y: a.bbox_y,
+                    bbox_w: a.bbox_w, bbox_h: a.bbox_h
+                }));
+
+                const flowRes = await fetch(`${BASE_URL}/ai/flow`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frame_id_prev: prevFrame.id,
+                        frame_id_next: newFrame.id,
+                        camera: currentCamera,
+                        bboxes: bboxes.length > 0 ? bboxes : null
+                    })
+                });
+                if (flowRes.ok) flowData = await flowRes.json();
+            } catch (e) { /* silent */ }
+
             CAMERAS.forEach(cam => {
                 if (getFrameAnns(newFrame.id, cam).length === 0) {
                     const prevAnns = getFrameAnns(prevFrame.id, cam);
                     if (prevAnns.length > 0) {
-                        setFrameAnns(newFrame.id, cam, prevAnns.map(a => ({ ...a, id: genId() })));
+                        const shifted = prevAnns
+                            .filter(a => a.is_ai_generated) // Chỉ copy nhãn AI, bỏ nhãn thủ công
+                            .map((a, i) => {
+                            // Dùng per-bbox flow nếu có (chỉ cho camera hiện tại)
+                            let dx = 0, dy = 0;
+                            if (cam === currentCamera && flowData?.per_bbox?.[i]) {
+                                dx = flowData.per_bbox[i].dx;
+                                dy = flowData.per_bbox[i].dy;
+                            } else if (flowData?.dx !== undefined) {
+                                dx = flowData.dx;
+                                dy = flowData.dy;
+                            }
+                            return {
+                                ...a,
+                                id: genId(),
+                                bbox_x: a.bbox_x + dx,
+                                bbox_y: a.bbox_y + dy,
+                            };
+                        }).filter(a =>
+                            a.bbox_x >= -0.05 && a.bbox_x + a.bbox_w <= 1.05 &&
+                            a.bbox_y >= -0.05 && a.bbox_y + a.bbox_h <= 1.05
+                        ).map(a => ({
+                            ...a,
+                            bbox_x: Math.max(0, Math.min(1 - a.bbox_w, a.bbox_x)),
+                            bbox_y: Math.max(0, Math.min(1 - a.bbox_h, a.bbox_y)),
+                        }));
+                        setFrameAnns(newFrame.id, cam, shifted);
                     }
                 }
             });
@@ -550,11 +599,9 @@ function redrawAnnotations() {
 
         annCtx.strokeStyle = color;
         annCtx.lineWidth = sel ? 2.5 : 1.5;
-        annCtx.setLineDash(ann.is_ai_generated ? [4, 3] : []);
         annCtx.strokeRect(x, y, w, h);
         annCtx.fillStyle = color + (sel ? '30' : '18');
         annCtx.fillRect(x, y, w, h);
-        annCtx.setLineDash([]);
 
         // Label tag: [class] [id] - [tên tùy chỉnh] nếu có
         const cls2 = CLASS_MAP[ann.category];
@@ -562,8 +609,7 @@ function redrawAnnotations() {
         const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
         const canvasLabel = resolvedName ? `${baseLbl} ${tNum} - ${resolvedName}` : `${baseLbl} ${tNum}`;
-        const conf = ann.confidence != null ? ` ${Math.round(ann.confidence * 100)}%` : '';
-        const displayLabel = canvasLabel + conf;
+        const displayLabel = canvasLabel;
         annCtx.font = 'bold 11px Inter, sans-serif';
         const tw = annCtx.measureText(displayLabel).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
@@ -571,6 +617,20 @@ function redrawAnnotations() {
         annCtx.fillRect(x, tagY, tw, 16);
         annCtx.fillStyle = '#fff';
         annCtx.fillText(displayLabel, x + 4, tagY + 11);
+
+        // Cờ đỏ nếu confidence thấp hơn threshold
+        const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+        if (ann.is_ai_generated && ann.confidence != null && ann.confidence < reviewThreshold) {
+            annCtx.fillStyle = '#EF4444';
+            annCtx.beginPath();
+            annCtx.moveTo(x + w - 2, y + 2);
+            annCtx.lineTo(x + w - 14, y + 2);
+            annCtx.lineTo(x + w - 14, y + 10);
+            annCtx.lineTo(x + w - 8, y + 7);
+            annCtx.lineTo(x + w - 2, y + 10);
+            annCtx.closePath();
+            annCtx.fill();
+        }
     });
 }
 
@@ -807,8 +867,10 @@ function renderLabelList() {
             const label = resolvedName
                 ? `${baseName} ${trackNum} - ${resolvedName}`
                 : `${baseName} ${trackNum}`;
-            const conf = ann.confidence != null ? ` (${Math.round(ann.confidence * 100)}%)` : '';
             const aiMark = ann.is_ai_generated ? ' <span style="font-size:10px;color:#9333EA">AI</span>' : '';
+            const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+            const needsFlag = ann.is_ai_generated && ann.confidence != null && ann.confidence < reviewThreshold;
+            const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
             const sel = ann.id === selectedAnnId;
             const hidden = ann.hidden || false;
             return `
@@ -816,13 +878,19 @@ function renderLabelList() {
                 <div class="label-info">
                     <div class="label-dot" style="background:${color};opacity:${hidden ? 0.3 : 1}"></div>
                     <div class="label-text">
-                        <span class="label-name" style="opacity:${hidden ? 0.4 : 1};cursor:pointer"
+                        <span class="label-name" style="opacity:${hidden ? 0.4 : 1};cursor:pointer${needsFlag ? ';border-left:3px solid #EF4444;padding-left:6px' : ''}"
                               ondblclick="renameAnn('${ann.id}');event.stopPropagation()"
-                              title="Nhấp đúp để đổi tên">${label}${aiMark}${conf}</span>
+                              title="Nhấp đúp để đổi tên">${label}${aiMark}${flagMark}</span>
                         <div class="label-actions">
                             <i class="${hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
                                title="${hidden ? 'Hiện nhãn' : 'Ẩn nhãn'}" 
                                onclick="toggleAnnVisibility('${ann.id}');event.stopPropagation()"></i>
+                            <i class="fa-solid fa-arrows-rotate" title="Đổi thực thể"
+                               onclick="changeAnnEntity('${ann.id}');event.stopPropagation()"
+                               style="color:#7C3AED"></i>
+                            <i class="fa-solid fa-tag" title="Đổi loại"
+                               onclick="changeAnnCategory('${ann.id}');event.stopPropagation()"
+                               style="color:#0891B2"></i>
                             <i class="fa-regular fa-trash-can" title="Xóa" onclick="deleteAnn('${ann.id}');event.stopPropagation()"></i>
                         </div>
                     </div>
@@ -836,6 +904,188 @@ function selectAnn(id) {
     selectedAnnId = id;
     redrawAnnotations();
     renderLabelList();
+    // Scroll danh sách nhãn tới item được chọn
+    setTimeout(() => {
+        const el = document.querySelector(`.label-item.active`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+}
+
+// ============= TRACK MODAL =============
+let pendingAnn = null;
+
+function closeTrackModal() {
+    document.getElementById('trackModal').style.display = 'none';
+    pendingAnn = null;
+    if (drawCtx) drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function confirmTrack(trackId) {
+    if (!pendingAnn) return;
+    // Nếu là đổi thực thể → dùng confirmChangeEntity
+    if (pendingAnn._changeId) { confirmChangeEntity(trackId); return; }
+
+    const frame = frames[currentFrameIdx];
+    if (trackId === 'new') {
+        pendingAnn.track_id = getNextTrackId(pendingAnn.category);
+    } else {
+        pendingAnn.track_id = trackId;
+    }
+    const anns = currentAnns();
+    anns.push(pendingAnn);
+    setFrameAnns(frame.id, currentCamera, anns);
+    selectedAnnId = pendingAnn.id;
+    pendingAnn = null;
+    closeTrackModal();
+    redrawAnnotations();
+    renderLabelList();
+    updateCamBadge();
+    markUnsaved();
+}
+
+function showTrackModal(ann) {
+    if (window._forceTrackId !== undefined) {
+        pendingAnn = ann;
+        confirmTrack(window._forceTrackId);
+        window._forceTrackId = undefined;
+        return;
+    }
+    pendingAnn = ann;
+    const cls = CLASS_MAP[ann.category];
+    const clsName = cls ? cls.name : ann.category;
+
+    const allTracks = new Set();
+    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
+        if (a.category === ann.category && a.track_id) allTracks.add(a.track_id);
+    })));
+    const usedInCurrentFrame = new Set(
+        currentAnns().filter(a => a.category === ann.category && a.track_id).map(a => a.track_id)
+    );
+    const availableTracks = [...allTracks].filter(tid => !usedInCurrentFrame.has(tid));
+
+    if (availableTracks.length === 0) { confirmTrack('new'); return; }
+
+    document.getElementById('trackModalDesc').textContent = `"${clsName}" này là thực thể nào?`;
+    const opts = document.getElementById('trackOptions');
+    opts.innerHTML = availableTracks.sort((a,b) => a-b).map(tid => {
+        const customName = getTrackName(ann.category, tid);
+        const displayName = customName
+            ? `${clsName} ${String(tid).padStart(2,'0')} - ${customName}`
+            : `${clsName} ${String(tid).padStart(2,'0')}`;
+        return `<button onclick="confirmTrack(${tid})"
+            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
+            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
+            ${displayName}</button>`;
+    }).join('');
+    document.getElementById('trackModal').style.display = 'flex';
+}
+
+function changeAnnCategory(id) {
+    const anns = currentAnns();
+    const ann = anns.find(a => a.id === id);
+    if (!ann) return;
+    const cls = CLASS_MAP[ann.category];
+    const currentName = cls ? cls.name : ann.category;
+
+    document.getElementById('changeCatDesc').textContent = `Đổi loại của "${currentName}"`;
+    const opts = document.getElementById('changeCatOptions');
+    opts.innerHTML = CLASSES.filter(c => c.id !== ann.category).map(c => `
+        <button onclick="confirmChangeCategory('${id}','${c.id}')"
+            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px;display:flex;align-items:center;gap:8px"
+            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
+            <span style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></span>
+            ${c.name}
+        </button>`).join('');
+    document.getElementById('changeCatModal').style.display = 'flex';
+}
+
+function confirmChangeCategory(annId, newCategory) {
+    const frame = frames[currentFrameIdx];
+    const anns = currentAnns();
+    const ann = anns.find(a => a.id === annId);
+    if (ann) {
+        ann.category = newCategory;
+        ann.track_id = getNextTrackId(newCategory);
+        setFrameAnns(frame.id, currentCamera, anns);
+        redrawAnnotations();
+        renderLabelList();
+        markUnsaved();
+        showToast('Đã đổi loại đối tượng', 'success');
+    }
+    document.getElementById('changeCatModal').style.display = 'none';
+}
+
+function changeAnnEntity(id) {
+    const anns = currentAnns();
+    const ann = anns.find(a => a.id === id);
+    if (!ann) return;
+
+    const cls = CLASS_MAP[ann.category];
+    const clsName = cls ? cls.name : ann.category;
+    const currentTrackNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '??';
+
+    // Lấy tất cả track_id đã có cho class này trong toàn task
+    const allTracks = new Set();
+    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
+        if (a.category === ann.category && a.track_id && a.track_id !== ann.track_id) {
+            allTracks.add(a.track_id);
+        }
+    })));
+
+    if (allTracks.size === 0) {
+        showToast('Không có thực thể nào khác để đổi', 'info');
+        return;
+    }
+
+    // Dùng trackModal để chọn
+    pendingAnn = { ...ann, _changeId: id };
+    const clsNameDisp = clsName;
+    document.getElementById('trackModalDesc').textContent =
+        `Đổi "${clsNameDisp} ${currentTrackNum}" thành thực thể nào?`;
+
+    const opts = document.getElementById('trackOptions');
+    opts.innerHTML = [...allTracks].sort((a,b) => a-b).map(tid => {
+        const customName = getTrackName(ann.category, tid);
+        const displayName = customName
+            ? `${clsNameDisp} ${String(tid).padStart(2,'0')} - ${customName}`
+            : `${clsNameDisp} ${String(tid).padStart(2,'0')}`;
+        return `
+        <button onclick="confirmChangeEntity(${tid})"
+            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
+            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
+            ${displayName}
+        </button>`;
+    }).join('');
+
+    // Nút tạo đối tượng mới với id tiếp theo
+    const nextId = getNextTrackId(ann.category);
+    if (trackCounters[ann.category]) trackCounters[ann.category]--; // rollback
+    opts.innerHTML += `
+        <button onclick="confirmChangeEntity('new')"
+            style="width:100%;height:36px;background:#EEF2FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-weight:700;color:#2563EB;cursor:pointer;text-align:left;padding:0 14px"
+            onmouseover="this.style.background='#DBEAFE'" onmouseout="this.style.background='#EEF2FF'">
+            + ${clsNameDisp} ${String(nextId).padStart(2,'0')} (đối tượng mới)
+        </button>`;
+
+    document.getElementById('trackModal').style.display = 'flex';
+}
+
+function confirmChangeEntity(newTrackId) {
+    if (!pendingAnn || !pendingAnn._changeId) return;
+    const frame = frames[currentFrameIdx];
+    const anns = currentAnns();
+    const ann = anns.find(a => a.id === pendingAnn._changeId);
+    if (ann) {
+        // 'new' → tạo track_id mới
+        ann.track_id = (newTrackId === 'new') ? getNextTrackId(ann.category) : newTrackId;
+        setFrameAnns(frame.id, currentCamera, anns);
+        redrawAnnotations();
+        renderLabelList();
+        markUnsaved();
+        showToast('Đã đổi thực thể', 'success');
+    }
+    pendingAnn = null;
+    closeTrackModal();
 }
 
 function toggleAnnVisibility(id) {
@@ -1003,19 +1253,73 @@ async function runAI() {
         const preds = result.predictions || [];
         if (!preds.length) { showToast('AI không phát hiện đối tượng', 'info'); return; }
 
-        const anns = currentAnns();
+        // Xóa các nhãn AI cũ của frame/camera hiện tại trước khi thêm mới
+        const existingManualAnns = currentAnns().filter(a => !a.is_ai_generated);
+        const existingAiAnns = currentAnns().filter(a => a.is_ai_generated);
+
+        // Tính max track_id hiện có trong toàn task
+        const classMaxId = {};
+        Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
+            if (a.track_id && a.category) {
+                classMaxId[a.category] = Math.max(classMaxId[a.category] || 0, a.track_id);
+            }
+        })));
+        existingManualAnns.forEach(a => {
+            if (a.track_id && a.category) {
+                classMaxId[a.category] = Math.max(classMaxId[a.category] || 0, a.track_id);
+            }
+        });
+
+        const newAnns = [...existingManualAnns];
+
+        // Hàm tính IoU giữa 2 bbox
+        function bboxIoU(a, b) {
+            const ax2 = a.bbox_x + a.bbox_w, ay2 = a.bbox_y + a.bbox_h;
+            const bx2 = b.bbox_x + b.bbox_w, by2 = b.bbox_y + b.bbox_h;
+            const ix1 = Math.max(a.bbox_x, b.bbox_x), iy1 = Math.max(a.bbox_y, b.bbox_y);
+            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+            if (ix2 <= ix1 || iy2 <= iy1) return 0;
+            const inter = (ix2 - ix1) * (iy2 - iy1);
+            const union = a.bbox_w * a.bbox_h + b.bbox_w * b.bbox_h - inter;
+            return union > 0 ? inter / union : 0;
+        }
+
+        const usedOldIds = new Set();
         preds.forEach(p => {
-            anns.push({
+            // Tìm nhãn AI cũ cùng category có IoU cao nhất
+            let bestMatch = null, bestIou = 0.3; // threshold
+            existingAiAnns.forEach(old => {
+                if (old.category === p.category && !usedOldIds.has(old.id)) {
+                    const iouVal = bboxIoU(p, old);
+                    if (iouVal > bestIou) { bestIou = iouVal; bestMatch = old; }
+                }
+            });
+
+            let trackId;
+            if (bestMatch) {
+                // Cùng đối tượng → giữ track_id cũ
+                trackId = bestMatch.track_id;
+                usedOldIds.add(bestMatch.id);
+            } else {
+                // Đối tượng mới → tạo track_id mới
+                classMaxId[p.category] = (classMaxId[p.category] || 0) + 1;
+                trackId = classMaxId[p.category];
+            }
+
+            newAnns.push({
                 id: genId(),
                 category: p.category,
+                track_id: trackId,
                 bbox_x: p.bbox_x, bbox_y: p.bbox_y,
                 bbox_w: p.bbox_w, bbox_h: p.bbox_h,
                 confidence: p.confidence,
                 is_ai_generated: true,
                 needs_review: p.confidence < reviewThreshold,
+                hidden: false,
+                custom_name: null,
             });
         });
-        setFrameAnns(frame.id, currentCamera, anns);
+        setFrameAnns(frame.id, currentCamera, newAnns);
         redrawAnnotations();
         renderLabelList();
         updateCamBadge();

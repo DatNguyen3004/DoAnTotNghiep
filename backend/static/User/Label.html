@@ -138,6 +138,33 @@
 
     </div>
 
+    <!-- Track ID Modal -->
+    <div id="trackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:24px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
+            <div style="font-size:15px;font-weight:800;color:#1E293B;margin-bottom:6px">Đây là thực thể nào?</div>
+            <div style="font-size:13px;color:#64748B;margin-bottom:16px" id="trackModalDesc"></div>
+            <div id="trackOptions" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:16px"></div>
+            <div style="display:flex;gap:8px">
+                <button onclick="confirmTrack('new')" style="flex:1;height:36px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                    + Đối tượng mới
+                </button>
+                <button onclick="closeTrackModal()" style="height:36px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                    Hủy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Category Modal -->
+    <div id="changeCatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
+            <div style="font-size:15px;font-weight:800;color:#1E293B;margin-bottom:6px">Đổi loại đối tượng</div>
+            <div style="font-size:13px;color:#64748B;margin-bottom:16px" id="changeCatDesc"></div>
+            <div id="changeCatOptions" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+            <button onclick="document.getElementById('changeCatModal').style.display='none'" style="width:100%;height:36px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Hủy</button>
+        </div>
+    </div>
+
     <script>
         // Inline script chỉ giữ lại logic dropdown cơ bản
         // label.js sẽ override setupDropdownItems() sau khi load
@@ -153,7 +180,7 @@
             _boxDropdown?.classList.remove('show');
         });
     </script>
-    <script src="../js/label.js"></script>
+    <script src="../js/label.js?v=5"></script>
 </body>
 
 </html>

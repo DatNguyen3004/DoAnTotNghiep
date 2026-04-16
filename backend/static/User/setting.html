@@ -76,14 +76,14 @@
 
             <div class="setting-row">
                 <div class="setting-label">
-                    <div class="setting-label-title">Ngưỡng phát hiện (Confidence Threshold)</div>
-                    <div class="setting-label-desc">Chỉ giữ lại các dự đoán có độ tin cậy cao hơn ngưỡng này. Giá trị thấp → phát hiện nhiều hơn nhưng có thể sai. Giá trị cao → ít nhưng chính xác hơn.</div>
+                    <div class="setting-label-title">Ngưỡng cần kiểm tra (Review Threshold)</div>
+                    <div class="setting-label-desc">Nhãn AI có độ tin cậy thấp hơn ngưỡng này sẽ được gắn cờ đỏ để ưu tiên kiểm tra lại.</div>
                 </div>
                 <div class="setting-control">
                     <div class="slider-wrap">
-                        <input type="range" id="aiThreshold" min="1" max="100" value="25"
-                            oninput="updateSlider('aiThreshold', 'aiThresholdVal', 100)">
-                        <span class="slider-value" id="aiThresholdVal">0.25</span>
+                        <input type="range" id="aiReviewThreshold" min="1" max="100" value="85"
+                            oninput="updateSlider('aiReviewThreshold', 'aiReviewThresholdVal', 100)">
+                        <span class="slider-value" id="aiReviewThresholdVal">0.85</span>
                     </div>
                 </div>
             </div>
@@ -104,6 +104,6 @@
 
 </main>
 
-<script src="../js/user-setting.js"></script>
+<script src="../js/user-setting.js?v=2"></script>
 </body>
 </html>

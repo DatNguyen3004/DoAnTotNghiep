@@ -12,19 +12,25 @@ const projectId = sessionStorage.getItem('projectId');
 const projectName = sessionStorage.getItem('projectName') || 'Dashboard';
 if (!projectId) window.location.href = 'ManagerProject.html';
 
-const sideProjectNameEl = document.getElementById('sideProjectName');
-if (sideProjectNameEl) sideProjectNameEl.textContent = projectName;
+document.addEventListener('DOMContentLoaded', () => {
+    // Set project name in sidebar
+    const sideProjectNameEl = document.getElementById('sideProjectName');
+    if (sideProjectNameEl) sideProjectNameEl.textContent = projectName;
 
-// Sidebar toggle
-const toggleBtn = document.getElementById('toggleSidebar');
-const sidebar = document.getElementById('sidebar');
-const mainWrapper = document.getElementById('mainWrapper');
-if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        mainWrapper.classList.toggle('expanded');
-    });
-}
+    // Sidebar toggle
+    const toggleBtn = document.getElementById('toggleSidebar');
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainWrapper.classList.toggle('expanded');
+        });
+    }
+
+    loadSidebarProject();
+    loadSettings();
+});
 
 // Load sidebar project info
 async function loadSidebarProject() {
@@ -36,38 +42,47 @@ async function loadSidebarProject() {
         const project = await res.json();
         if (project.cover_image) {
             const logo = document.getElementById('sideProjectLogo');
-            logo.src = project.cover_image;
-            logo.style.display = 'block';
-            document.getElementById('sideProjectText').style.display = 'none';
+            if (logo) {
+                logo.src = project.cover_image;
+                logo.style.display = 'block';
+                document.getElementById('sideProjectText').style.display = 'none';
+            }
         }
-        document.getElementById('sideProjectName').textContent = project.name || projectName;
+        const nameEl = document.getElementById('sideProjectName');
+        if (nameEl) nameEl.textContent = project.name || projectName;
     } catch (e) { /* silent */ }
 }
 
 function updateSlider(sliderId, valueId, divisor) {
-    const val = document.getElementById(sliderId).value;
-    document.getElementById(valueId).textContent = (val / divisor).toFixed(2);
+    const el = document.getElementById(sliderId);
+    const valEl = document.getElementById(valueId);
+    if (el && valEl) valEl.textContent = (el.value / divisor).toFixed(2);
 }
 
 function loadSettings() {
-    const aiThreshold = parseFloat(localStorage.getItem('ai_threshold') || '0.25');
-    document.getElementById('aiThreshold').value = Math.round(aiThreshold * 100);
-    document.getElementById('aiThresholdVal').textContent = aiThreshold.toFixed(2);
+    const aiReviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+    const slider = document.getElementById('aiReviewThreshold');
+    const valEl = document.getElementById('aiReviewThresholdVal');
+    if (slider) slider.value = Math.round(aiReviewThreshold * 100);
+    if (valEl) valEl.textContent = aiReviewThreshold.toFixed(2);
 }
 
 function saveSettings() {
-    const aiThreshold = document.getElementById('aiThreshold').value / 100;
-    localStorage.setItem('ai_threshold', aiThreshold.toString());
+    const slider = document.getElementById('aiReviewThreshold');
+    if (!slider) return;
+    const aiReviewThreshold = slider.value / 100;
+    localStorage.setItem('ai_review_threshold', aiReviewThreshold.toString());
 
     const badge = document.getElementById('savedBadge');
-    badge.classList.add('show');
-    setTimeout(() => badge.classList.remove('show'), 2500);
+    if (badge) {
+        badge.classList.add('show');
+        setTimeout(() => badge.classList.remove('show'), 2500);
+    }
 }
 
 function resetSettings() {
-    document.getElementById('aiThreshold').value = 25;
-    document.getElementById('aiThresholdVal').textContent = '0.25';
+    const slider = document.getElementById('aiReviewThreshold');
+    const valEl = document.getElementById('aiReviewThresholdVal');
+    if (slider) slider.value = 85;
+    if (valEl) valEl.textContent = '0.85';
 }
-
-loadSidebarProject();
-loadSettings();
