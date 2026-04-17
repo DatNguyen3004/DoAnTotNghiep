@@ -10,7 +10,7 @@
     <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="css/Label.css">
+    <link rel="stylesheet" href="css/Label.css?v=2">
 </head>
 
 <body>
@@ -116,13 +116,28 @@
                 </button>
             </div>
 
-            <div class="results-section">
+            <!-- Tab switcher -->
+            <div class="results-tabs" id="resultsTabs">
+                <button class="results-tab active" id="tabResults" onclick="switchResultTab('results')">Kết quả</button>
+                <button class="results-tab" id="tabAttention" onclick="switchResultTab('attention')">
+                    Cần chú ý <span class="attention-count" id="attentionCount" style="display:none">0</span>
+                </button>
+            </div>
+
+            <div class="results-section" id="panelResults">
                 <div class="section-header">
-                    <div class="section-title">Kết quả</div>
                     <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
                 </div>
-
                 <div class="label-list" id="labelList">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="results-section" id="panelAttention" style="display:none">
+                <div class="section-header">
+                    <div class="labels-badge" style="background:#FEE2E2;color:#DC2626">CẦN KIỂM TRA</div>
+                </div>
+                <div class="label-list" id="attentionList">
                     <!-- Rendered by JS -->
                 </div>
             </div>
@@ -180,7 +195,7 @@
             _boxDropdown?.classList.remove('show');
         });
     </script>
-    <script src="../js/label.js?v=5"></script>
+    <script src="../js/label.js?v=17"></script>
 </body>
 
 </html>

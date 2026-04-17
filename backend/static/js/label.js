@@ -48,6 +48,9 @@ let currentTool = 'pointer'; // mặc định là con trỏ
 // annotations[frameId][camera] = [{id, category, bbox_x, bbox_y, bbox_w, bbox_h, confidence, is_ai_generated}]
 let annotations = {};
 
+// Set lưu id các nhãn vừa được review trong session (chưa lưu) — vẫn hiển thị ở tab Cần chú ý
+const sessionReviewedIds = new Set();
+
 // Drawing state
 let isDrawing = false;
 let drawStart = null;
@@ -163,7 +166,7 @@ async function loadAllAnnotations() {
             if (!annotations[fid]) annotations[fid] = {};
             if (!annotations[fid][cam]) annotations[fid][cam] = [];
             annotations[fid][cam].push({
-                id: String(ann.id || genId()), // ép thành string để so sánh nhất quán
+                id: String(ann.id || genId()),
                 category: ann.category,
                 bbox_x: ann.bbox_x, bbox_y: ann.bbox_y,
                 bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
@@ -174,7 +177,6 @@ async function loadAllAnnotations() {
                 track_id: ann.track_id || null,
                 custom_name: ann.custom_name || null,
             });
-            // Khôi phục trackNames map từ DB
             if (ann.track_id && ann.custom_name) {
                 setTrackName(ann.category, ann.track_id, ann.custom_name);
             }
@@ -187,6 +189,7 @@ async function goToFrame(idx) {
     if (idx < 0 || idx >= frames.length) return;
     const prevIdx = currentFrameIdx;
     currentFrameIdx = idx;
+    sessionReviewedIds.clear(); // Reset khi chuyển frame
     updatePageNumber();
 
     // Copy annotations từ frame liền trước nếu frame mới chưa có
@@ -350,6 +353,7 @@ async function loadImage(frame, cam) {
             setupCanvas(container, mainImg);
             redrawAnnotations();
             renderLabelList();
+            renderAttentionList();
         });
     } catch (e) {
         mainImg.style.opacity = '1';
@@ -432,10 +436,16 @@ function onMouseDown(e) {
     }
     if (currentTool === 'pointer') {
         const pos = getPos(e);
-        // Thử chọn annotation tại vị trí click
         const anns = currentAnns();
+        const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+        const attentionMode = window._currentResultTab === 'attention';
+
         for (let i = anns.length - 1; i >= 0; i--) {
             const a = anns[i];
+            if (attentionMode) {
+                const flagged = a.needs_review === true;
+                if (!flagged) continue;
+            }
             const x = a.bbox_x * imgDisplayW, y = a.bbox_y * imgDisplayH;
             const w = a.bbox_w * imgDisplayW, h = a.bbox_h * imgDisplayH;
             if (pos.x >= x && pos.x <= x + w && pos.y >= y && pos.y <= y + h) {
@@ -507,19 +517,32 @@ function onMouseMove(e) {
 
 function onMouseUp(e) {
     if (currentTool === 'resize' && resizeHandle) {
+        if (resizeAnn) {
+            resizeAnn.needs_review = false;
+            sessionReviewedIds.add(resizeAnn.id);
+        }
         resizeHandle = null;
         resizeAnn = null;
         resizeStart = null;
         markUnsaved();
+        redrawAnnotations();
         renderLabelList();
+        renderAttentionList();
         return;
     }
     if (currentTool === 'pointer' && isDragging) {
+        const movedAnn = currentAnns().find(a => a.id === selectedAnnId);
+        if (movedAnn) {
+            movedAnn.needs_review = false;
+            sessionReviewedIds.add(movedAnn.id);
+        }
         isDragging = false;
         dragAnn = null;
         drawCanvas.style.cursor = 'default';
         markUnsaved();
+        redrawAnnotations();
         renderLabelList();
+        renderAttentionList();
         return;
     }
     if (!isDrawing) return;
@@ -587,10 +610,23 @@ function renderDrawing() {
 function redrawAnnotations() {
     if (!annCtx) return;
     annCtx.clearRect(0, 0, annCanvas.width, annCanvas.height);
+
+    const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+    const attentionMode = window._currentResultTab === 'attention';
+
     currentAnns().forEach(ann => {
-        if (ann.hidden) return; // Bỏ qua nhãn đang ẩn
+        if (ann.hidden) return;
+
+        const needsFlag = ann.needs_review === true;
+
+        // Ở tab "Cần chú ý": chỉ vẽ nhãn có cờ đỏ hoặc nhãn vừa review trong session
+        if (attentionMode && !needsFlag && !sessionReviewedIds.has(ann.id)) return;
+
         const cls = CLASS_MAP[ann.category];
-        const color = cls ? cls.color : '#14B8A6';
+        const baseColor = cls ? cls.color : '#14B8A6';
+        // Nhãn có cờ đỏ → dùng màu đỏ; ngược lại màu gốc
+        const color = needsFlag ? '#EF4444' : baseColor;
+
         const x = ann.bbox_x * imgDisplayW;
         const y = ann.bbox_y * imgDisplayH;
         const w = ann.bbox_w * imgDisplayW;
@@ -603,24 +639,21 @@ function redrawAnnotations() {
         annCtx.fillStyle = color + (sel ? '30' : '18');
         annCtx.fillRect(x, y, w, h);
 
-        // Label tag: [class] [id] - [tên tùy chỉnh] nếu có
-        const cls2 = CLASS_MAP[ann.category];
-        const baseLbl = cls2 ? cls2.name : ann.category;
+        // Label tag
+        const baseLbl = cls ? cls.name : ann.category;
         const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
         const canvasLabel = resolvedName ? `${baseLbl} ${tNum} - ${resolvedName}` : `${baseLbl} ${tNum}`;
-        const displayLabel = canvasLabel;
         annCtx.font = 'bold 11px Inter, sans-serif';
-        const tw = annCtx.measureText(displayLabel).width + 8;
+        const tw = annCtx.measureText(canvasLabel).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
         annCtx.fillStyle = color;
         annCtx.fillRect(x, tagY, tw, 16);
         annCtx.fillStyle = '#fff';
-        annCtx.fillText(displayLabel, x + 4, tagY + 11);
+        annCtx.fillText(canvasLabel, x + 4, tagY + 11);
 
-        // Cờ đỏ nếu confidence thấp hơn threshold
-        const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
-        if (ann.is_ai_generated && ann.confidence != null && ann.confidence < reviewThreshold) {
+        // Cờ đỏ
+        if (needsFlag) {
             annCtx.fillStyle = '#EF4444';
             annCtx.beginPath();
             annCtx.moveTo(x + w - 2, y + 2);
@@ -636,8 +669,15 @@ function redrawAnnotations() {
 
 function selectAt(px, py) {
     const anns = currentAnns();
+    const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+    const attentionMode = window._currentResultTab === 'attention';
+
     for (let i = anns.length - 1; i >= 0; i--) {
         const a = anns[i];
+        if (attentionMode) {
+                const flagged = a.needs_review === true;
+                if (!flagged) continue;
+            }
         const x = a.bbox_x * imgDisplayW, y = a.bbox_y * imgDisplayH;
         const w = a.bbox_w * imgDisplayW, h = a.bbox_h * imgDisplayH;
         if (px >= x && px <= x + w && py >= y && py <= y + h) {
@@ -869,7 +909,7 @@ function renderLabelList() {
                 : `${baseName} ${trackNum}`;
             const aiMark = ann.is_ai_generated ? ' <span style="font-size:10px;color:#9333EA">AI</span>' : '';
             const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
-            const needsFlag = ann.is_ai_generated && ann.confidence != null && ann.confidence < reviewThreshold;
+            const needsFlag = ann.needs_review === true;
             const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
             const sel = ann.id === selectedAnnId;
             const hidden = ann.hidden || false;
@@ -898,6 +938,9 @@ function renderLabelList() {
             </div>`;
         }).join('');
     })();
+
+    // Cập nhật attention list đồng thời
+    renderAttentionList();
 }
 
 function selectAnn(id) {
@@ -1151,6 +1194,8 @@ async function saveCurrentFrame(showMsg) {
                 confidence: ann.confidence,
                 is_ai_generated: ann.is_ai_generated || false,
                 needs_review: ann.needs_review || false,
+                track_id: ann.track_id || null,
+                custom_name: ann.custom_name || null,
             });
         });
     });
@@ -1167,7 +1212,6 @@ async function saveCurrentFrame(showMsg) {
 }
 
 async function saveAnnotations(showMsg = true) {
-    // Lưu tất cả frames có annotation
     const frameIds = Object.keys(annotations);
     for (const fid of frameIds) {
         const frame = frames.find(f => f.id === parseInt(fid));
@@ -1175,6 +1219,7 @@ async function saveAnnotations(showMsg = true) {
         const allAnns = [];
         CAMERAS.forEach(cam => {
             getFrameAnns(frame.id, cam).forEach(ann => {
+                // needs_review đã được cập nhật trực tiếp khi kéo/resize/markReviewed
                 allAnns.push({
                     camera: cam,
                     category: ann.category,
@@ -1197,7 +1242,6 @@ async function saveAnnotations(showMsg = true) {
         } catch (e) { /* silent */ }
     }
     unsaved = false;
-    // Lưu vị trí frame hiện tại
     localStorage.setItem(`lastFrame_${taskId}`, currentFrameIdx);
     if (showMsg) showToast('Đã lưu tất cả nhãn', 'success');
 }
@@ -1555,6 +1599,91 @@ function renameAnn(id) {
     redrawAnnotations();
     renderLabelList();
     markUnsaved();
+}
+
+// ============= ATTENTION LIST =============
+function renderAttentionList() {
+    const list = document.getElementById('attentionList');
+    const countEl = document.getElementById('attentionCount');
+    if (!list) return;
+
+    const flagged = currentAnns().filter(ann => ann.needs_review === true);
+
+    // Cập nhật badge số lượng
+    if (countEl) {
+        if (flagged.length > 0) {
+            countEl.textContent = flagged.length;
+            countEl.style.display = 'inline-block';
+        } else {
+            countEl.style.display = 'none';
+        }
+    }
+
+    if (!flagged.length) {
+        list.innerHTML = '<div style="color:#94A3B8;font-size:13px;padding:8px 0">Không có nhãn nào cần chú ý.</div>';
+        return;
+    }
+
+    list.innerHTML = flagged.map(ann => {
+        const cls = CLASS_MAP[ann.category];
+        const color = cls ? cls.color : '#14B8A6';
+        const baseName = cls ? cls.name : ann.category;
+        const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
+        const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
+        const label = resolvedName ? `${baseName} ${trackNum} - ${resolvedName}` : `${baseName} ${trackNum}`;
+        const conf = ann.confidence != null ? `${Math.round(ann.confidence * 100)}%` : '';
+        const sel = ann.id === selectedAnnId;
+        return `
+        <div class="label-item ${sel ? 'active' : ''}" onclick="selectAnn('${ann.id}')" style="border-left:3px solid #EF4444">
+            <div class="label-info">
+                <div class="label-dot" style="background:${color}"></div>
+                <div class="label-text">
+                    <span class="label-name" style="cursor:pointer">
+                        ${label} <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px"></i>
+                        <span style="font-size:10px;color:#EF4444;margin-left:4px">${conf}</span>
+                    </span>
+                    <div class="label-actions">
+                        <i class="fa-solid fa-check" title="Đánh dấu đã kiểm tra"
+                           onclick="markReviewed('${ann.id}');event.stopPropagation()"
+                           style="color:#10B981"></i>
+                        <i class="fa-regular fa-trash-can" title="Xóa" onclick="deleteAnn('${ann.id}');event.stopPropagation()"></i>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function markReviewed(id) {
+    const ann = currentAnns().find(a => a.id === id);
+    if (!ann) return;
+    ann.needs_review = false;
+    sessionReviewedIds.add(id);
+    redrawAnnotations();
+    renderLabelList();
+    renderAttentionList();
+    markUnsaved();
+}
+
+function switchResultTab(tab) {
+    window._currentResultTab = tab;
+    const panelResults = document.getElementById('panelResults');
+    const panelAttention = document.getElementById('panelAttention');
+    const tabResults = document.getElementById('tabResults');
+    const tabAttention = document.getElementById('tabAttention');
+    if (tab === 'results') {
+        panelResults.style.display = '';
+        panelAttention.style.display = 'none';
+        tabResults.classList.add('active');
+        tabAttention.classList.remove('active');
+    } else {
+        panelResults.style.display = 'none';
+        panelAttention.style.display = '';
+        tabResults.classList.remove('active');
+        tabAttention.classList.add('active');
+        renderAttentionList();
+    }
+    redrawAnnotations();
 }
 
 // ============= TOAST =============
