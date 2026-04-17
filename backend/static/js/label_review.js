@@ -110,7 +110,7 @@ async function loadTask() {
         const isAdmin = currentUser.role === 'admin';
 
         if (!isReviewer && !isLabeler && !isAdmin) {
-            showToast('Bạn không có quyền xem task này', 'error');
+            showToast('Bạn không có quyền xem nhiệm vụ này', 'error');
             setTimeout(() => window.location.href = 'dashboard.html', 2000);
             return;
         }
@@ -127,7 +127,7 @@ async function loadTask() {
 
         await loadFrames(task.scene_id);
     } catch (e) {
-        showToast('Không thể tải task', 'error');
+        showToast('Không thể tải nhiệm vụ', 'error');
     }
 }
 
@@ -138,14 +138,14 @@ async function loadFrames(sceneId) {
         });
         if (!res.ok) throw new Error();
         frames = await res.json();
-        if (!frames.length) { showToast('Scene không có frame', 'error'); return; }
+        if (!frames.length) { showToast('Nhiệm vụ không có khung hình', 'error'); return; }
 
         await loadAllAnnotations();
         const savedFrame = parseInt(localStorage.getItem(`review_frame_${taskId}`) || '0');
         const startFrame = Math.min(Math.max(0, savedFrame), frames.length - 1);
         await goToFrame(startFrame);
     } catch (e) {
-        showToast('Không thể tải frames', 'error');
+        showToast('Không thể tải khung hình', 'error');
     }
 }
 
@@ -470,7 +470,7 @@ function updateActionButtons(status) {
 function updateProgress() {
     const total = frames.length;
     const done = Object.values(frameReviews).filter(r => r.status !== null).length;
-    document.getElementById('progressText').textContent = `${done} / ${total} frame`;
+    document.getElementById('progressText').textContent = `${done} / ${total} khung hình`;
     document.getElementById('progressFill').style.width = `${total ? (done / total * 100) : 0}%`;
 }
 
@@ -479,7 +479,7 @@ async function submitReview() {
     const total = frames.length;
     const done = Object.values(frameReviews).filter(r => r.status !== null).length;
     if (done < total) {
-        showConfirm(`Còn ${total - done} frame chưa đánh giá. Vẫn muốn nộp?`, () => _doSubmitReview(), { title: 'Xác nhận nộp', confirmText: 'Nộp', type: 'warning' });
+        showConfirm(`Còn ${total - done} khung hình chưa đánh giá. Vẫn muốn nộp?`, () => _doSubmitReview(), { title: 'Xác nhận nộp', confirmText: 'Nộp', type: 'warning' });
         return;
     }
     _doSubmitReview();
@@ -491,7 +491,7 @@ async function _doSubmitReview() {
         .map(f => {
             const frameNum = frames.indexOf(f) + 1;
             const desc = frameReviews[f.id]?.feedback?.trim() || 'Có lỗi cần sửa';
-            return `Frame ${frameNum}: ${desc}`;
+            return `Khung hình ${frameNum}: ${desc}`;
         })
         .join('\n');
 
@@ -507,16 +507,17 @@ async function _doSubmitReview() {
                 body: JSON.stringify({ feedback: allFeedbacks })
             });
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
-            showToast('Đã gửi phản hồi về cho labeler', 'success');
+            showToast('Đã gửi phản hồi về cho người gán nhãn', 'success');
             localStorage.removeItem(`review_${taskId}`);
             localStorage.removeItem(`review_frame_${taskId}`);
         } else {
             const res = await fetch(`${BASE_URL}/tasks/${taskId}/review/approve`, {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${getToken()}` }
+                headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reviewer_time_spent: timerSeconds })
             });
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
-            showToast('Đã xác nhận — task chờ admin phê duyệt', 'success');
+            showToast('Đã xác nhận — nhiệm vụ chờ admin phê duyệt', 'success');
             localStorage.removeItem(`review_${taskId}`);
             localStorage.removeItem(`review_frame_${taskId}`);
         }

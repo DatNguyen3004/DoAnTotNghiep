@@ -10,7 +10,7 @@ if (!getToken() || currentUser.role !== 'admin') {
 
 // Project context
 const projectId = sessionStorage.getItem('projectId');
-const projectName = sessionStorage.getItem('projectName') || 'Dashboard';
+const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 if (!projectId) {
     window.location.href = 'ManagerProject.html';
 }
@@ -260,10 +260,6 @@ async function deleteUser(userId, name) {
             showToast('Lỗi kết nối server', 'error');
         }
     }, { title: 'Xóa tài khoản', confirmText: 'Xóa', type: 'danger' });
-}
-    } catch (e) {
-        showToast('Lỗi kết nối server', 'error');
-    }
 }
 
 // ============= ADD USER MODAL =============

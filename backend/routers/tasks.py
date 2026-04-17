@@ -10,14 +10,14 @@ from models.scene import Scene
 from models.annotation import Annotation
 from schemas.task import (
     TaskCreate, TaskOut, TaskUserInfo, TaskStatusUpdate,
-    TaskSubmit, ReviewReject, AdminOverride,
+    TaskSubmit, ReviewSubmit, ReviewReject, AdminOverride,
 )
 from routers.auth import get_current_user, require_admin
 from services.task_service import assign_reviewer
 
 router = APIRouter()
 
-VALID_STATUSES = {"pending", "in_progress", "submitted", "under_review", "approved", "rejected"}
+VALID_STATUSES = {"pending", "in_progress", "submitted", "under_review", "reviewed", "approved", "rejected"}
 
 
 def _enrich_task(task: Task, db: Session) -> dict:
@@ -43,6 +43,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
         status=task.status,
         feedback=task.feedback,
         time_spent=task.time_spent or 0,
+        reviewer_time_spent=task.reviewer_time_spent or 0,
         created_at=task.created_at,
         updated_at=task.updated_at,
         scene_name=scene.name or scene.scene_token if scene else None,
@@ -252,6 +253,7 @@ def submit_task(
 @router.post("/{task_id}/review/approve")
 def approve_task(
     task_id: int,
+    body: ReviewSubmit = ReviewSubmit(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -263,11 +265,12 @@ def approve_task(
     if task.reviewer_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Bạn không phải reviewer của task này")
 
-    if task.status not in ("under_review", "submitted"):
+    if task.status not in ("under_review", "submitted", "reviewed"):
         raise HTTPException(status_code=400, detail=f"Không thể approve task ở trạng thái '{task.status}'")
 
-    task.status = "approved"
-    task.feedback = None  # Xóa feedback khi approve thành công
+    task.status = "reviewed"
+    if body.reviewer_time_spent is not None:
+        task.reviewer_time_spent = (task.reviewer_time_spent or 0) + body.reviewer_time_spent
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
@@ -325,6 +328,8 @@ def admin_override(
     task.status = body.status
     if body.feedback:
         task.feedback = body.feedback
+    elif body.status == "approved":
+        task.feedback = None  # Xóa feedback khi admin phê duyệt cuối
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)

@@ -820,7 +820,7 @@
                             <div class="card-footer">
                                 <i class="fa-regular fa-calendar"></i>
                                 <span>${formatDate(p.created_at)}</span>
-                                ${hasData ? `<span style="margin-left:8px;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${p.scene_count} scenes</span>` : `<span style="margin-left:8px;background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">Chưa có data</span>`}
+                                ${hasData ? `<span style="margin-left:8px;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${p.scene_count} nhiệm vụ</span>` : `<span style="margin-left:8px;background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">Chưa có dữ liệu</span>`}
                             </div>
                             <div style="display:flex;gap:8px">
                                 <button onclick="openEditModal(${p.id},'${p.name.replace(/'/g, "\\'")}','${(p.description || '').replace(/'/g, "\\'")}')" 

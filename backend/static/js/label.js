@@ -128,7 +128,7 @@ async function loadTask() {
             }).catch(() => {});
         }
     } catch (e) {
-        showToast('Không thể tải task', 'error');
+        showToast('Không thể tải nhiệm vụ', 'error');
     }
 }
 
@@ -140,7 +140,7 @@ async function loadFrames(sceneId) {
         });
         if (!res.ok) throw new Error();
         frames = await res.json();
-        if (!frames.length) { showToast('Scene không có frame', 'error'); return; }
+        if (!frames.length) { showToast('Nhiệm vụ không có khung hình', 'error'); return; }
 
         await loadAllAnnotations();
         initTrackCounters();
@@ -152,7 +152,7 @@ async function loadFrames(sceneId) {
             : Math.min(Math.max(0, savedFrame), frames.length - 1);
         await goToFrame(startFrame);
     } catch (e) {
-        showToast('Không thể tải frames', 'error');
+        showToast('Không thể tải khung hình', 'error');
     }
 }
 
@@ -1258,7 +1258,7 @@ async function saveAnnotations(showMsg = true) {
 
 // ============= SUBMIT =============
 async function submitTask() {
-    showConfirm('Nộp bài? Bài sẽ được giao cho người review.', async () => {
+    showConfirm('Nộp bài? Bài sẽ được giao cho người kiểm tra.', async () => {
         await saveAnnotations(false);
 
         const btn = document.querySelector('.btn-phe-duyet');

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../Admin/css/dashboard.css">
     <script src="../js/confirm.js"></script>
     <style>
+        .content-area { flex:1; overflow-y:auto; padding:32px; background:#F8FAFC; }
         .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
         .page-title { font-size:20px; font-weight:800; color:#1E293B; }
         .page-subtitle { font-size:13px; color:#64748B; margin-top:4px; }
@@ -70,7 +71,7 @@
             <div class="btn-toggle-sidebar" id="toggleSidebar"><i class="fa-solid fa-chevron-left"></i></div>
         </div>
         <nav class="sidebar-nav" style="padding-top:24px;">
-            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom:16px;padding:0 16px;">Dashboard</h2>
+            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom:16px;padding:0 16px;">Trang chủ</h2>
             <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
             <a href="setting.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></a>
         </nav>
@@ -123,7 +124,7 @@ const mode = params.get('mode') || 'fix';
 if (!taskId) window.location.href = 'dashboard.html';
 
 const projectId = sessionStorage.getItem('projectId');
-const projectName = sessionStorage.getItem('projectName') || 'Dashboard';
+const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 const storageKey = 'framelist_done_' + mode + '_' + taskId;
 const reviewKey = 'framelist_review_' + taskId;
 
@@ -174,7 +175,8 @@ function renderPage() {
     const feedback = task.feedback || '';
     frameEntries = [];
     feedback.split('\n').filter(l => l.trim()).forEach(line => {
-        const m = line.match(/Frame\s+(\d+)[:：](.*)/i);
+        // Match cả "Frame X:" và "Khung hình X:"
+        const m = line.match(/(?:Frame|Khung hình)\s+(\d+)[:：](.*)/i);
         if (m) frameEntries.push({ frameNum: parseInt(m[1]), desc: m[2].trim() });
     });
 
@@ -193,7 +195,7 @@ function renderPage() {
     }
 
     if (!frameEntries.length) {
-        document.getElementById('frameGrid').innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#10B981"></i><h3>Không có khung hình nào cần xử lý</h3><p>Không có phản hồi lỗi từ reviewer.</p></div>';
+        document.getElementById('frameGrid').innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#10B981"></i><h3>Không có khung hình nào cần xử lý</h3><p>Không có phản hồi lỗi từ người kiểm tra.</p></div>';
         return;
     }
     document.getElementById('bottomBar').style.display = 'flex';
@@ -213,8 +215,8 @@ function renderCards() {
         if (mode === 'fix') {
             return '<div class="frame-card ' + (isDone ? 'done' : '') + '" id="card_' + frameNum + '">' +
                 '<div class="frame-thumb">' +
-                '<img id="thumb_' + frameNum + '" src="" alt="Frame ' + frameNum + '">' +
-                '<div class="frame-num-badge">Frame ' + frameNum + '</div>' +
+                '<img id="thumb_' + frameNum + '" src="" alt="Khung hình ' + frameNum + '">' +
+                '<div class="frame-num-badge">Khung hình ' + frameNum + '</div>' +
                 (isDone ? '<div class="status-badge-img" style="background:#10B981"><i class="fa-solid fa-check"></i> Đã sửa</div>' : '') +
                 '</div>' +
                 '<div class="frame-body">' +
@@ -227,8 +229,8 @@ function renderCards() {
             const cardClass = correctActive ? 'done-correct' : (wrongActive ? 'done-wrong' : '');
             return '<div class="frame-card ' + cardClass + '" id="card_' + frameNum + '">' +
                 '<div class="frame-thumb">' +
-                '<img id="thumb_' + frameNum + '" src="" alt="Frame ' + frameNum + '">' +
-                '<div class="frame-num-badge">Frame ' + frameNum + '</div>' +
+                '<img id="thumb_' + frameNum + '" src="" alt="Khung hình ' + frameNum + '">' +
+                '<div class="frame-num-badge">Khung hình ' + frameNum + '</div>' +
                 (correctActive ? '<div class="status-badge-img" style="background:#10B981"><i class="fa-solid fa-check"></i> Đúng</div>' : '') +
                 (wrongActive ? '<div class="status-badge-img" style="background:#EF4444"><i class="fa-solid fa-xmark"></i> Sai</div>' : '') +
                 '</div>' +
@@ -337,13 +339,13 @@ async function _doFrameListSubmit(autoApprove) {
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi nộp bài');
             localStorage.removeItem(storageKey);
             localStorage.removeItem(reviewKey);
-            showToast('Đã nộp lại — reviewer sẽ kiểm tra', 'success');
+            showToast('Đã nộp lại — người kiểm tra sẽ xem xét', 'success');
         } else {
             const wrongFrames = frameEntries.filter(function(e) { return reviewStates[e.frameNum] === 'wrong'; });
             if (wrongFrames.length > 0) {
                 const feedbackLines = wrongFrames.map(function(e) {
                     const fb = (reviewStates['fb_' + e.frameNum] || '').trim() || 'Có lỗi cần sửa';
-                    return 'Frame ' + e.frameNum + ': ' + fb;
+                    return 'Khung hình ' + e.frameNum + ': ' + fb;
                 }).join('\n');
                 const res = await fetch(BASE_URL + '/tasks/' + taskId + '/review/reject', {
                     method: 'POST',
@@ -353,16 +355,18 @@ async function _doFrameListSubmit(autoApprove) {
                 if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
                 localStorage.removeItem(storageKey);
                 localStorage.removeItem(reviewKey);
-                showToast('Đã gửi phản hồi — ' + wrongFrames.length + ' frame cần sửa lại', 'success');
+                showToast('Đã gửi phản hồi — ' + wrongFrames.length + ' khung hình cần sửa lại', 'success');
             } else {
+                const reviewerTime = parseInt(localStorage.getItem('review_timer_' + taskId) || '0');
                 const res = await fetch(BASE_URL + '/tasks/' + taskId + '/review/approve', {
                     method: 'POST',
-                    headers: { Authorization: 'Bearer ' + getToken() }
+                    headers: { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewer_time_spent: reviewerTime })
                 });
                 if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
                 localStorage.removeItem(storageKey);
                 localStorage.removeItem(reviewKey);
-                showToast(autoApprove ? 'Tất cả frame đều đúng — đã xác nhận!' : 'Đã xác nhận — task chờ admin phê duyệt', 'success');
+                showToast(autoApprove ? 'Tất cả khung hình đều đúng — đã xác nhận!' : 'Đã xác nhận — nhiệm vụ chờ admin phê duyệt', 'success');
             }
         }
         setTimeout(function() { window.location.href = 'dashboard.html'; }, 2000);

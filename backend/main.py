@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from routers import auth, projects, users, datasets, tasks, annotations, ai
+from routers import auth, projects, users, datasets, tasks, annotations, ai, export
 from services.ai_service import get_model
 
 
@@ -40,6 +40,7 @@ app.include_router(datasets.router,    prefix="/api",             tags=["dataset
 app.include_router(tasks.router,       prefix="/api/tasks",       tags=["tasks"])
 app.include_router(annotations.router, prefix="/api",             tags=["annotations"])
 app.include_router(ai.router,          prefix="/api/ai",          tags=["ai"])
+app.include_router(export.router,      prefix="/api/projects",    tags=["export"])
 
 # Redirect root → login page
 @app.get("/")

@@ -8,7 +8,7 @@ if (!getToken() || currentUser.role !== 'user') {
 }
 
 const projectId = sessionStorage.getItem('projectId');
-const projectName = sessionStorage.getItem('projectName') || 'Dashboard';
+const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 if (!projectId) window.location.href = 'ManagerProject.html';
 
 const sideProjectNameEl = document.getElementById('sideProjectName');
@@ -53,12 +53,13 @@ function switchTab(evt, tabId) {
 
 // ============= STATUS HELPERS =============
 const STATUS_MAP = {
-    pending:      { label: 'Chờ xử lý',    cls: 'st-pending' },
-    in_progress:  { label: 'Đang làm',      cls: 'st-in_progress' },
-    submitted:    { label: 'Đã nộp',        cls: 'st-submitted' },
-    under_review: { label: 'Đang kiểm tra', cls: 'st-under_review' },
-    approved:     { label: 'Đã duyệt',      cls: 'st-approved' },
-    rejected:     { label: 'Có lỗi',        cls: 'st-rejected' }
+    pending:      { label: 'Chờ xử lý',     cls: 'st-pending' },
+    in_progress:  { label: 'Đang làm',       cls: 'st-in_progress' },
+    submitted:    { label: 'Đợi kiểm tra',   cls: 'st-submitted' },
+    under_review: { label: 'Đang kiểm tra',  cls: 'st-under_review' },
+    reviewed:     { label: 'Đã kiểm tra',    cls: 'st-approved' },
+    approved:     { label: 'Đã duyệt',       cls: 'st-approved' },
+    rejected:     { label: 'Có lỗi',         cls: 'st-rejected' }
 };
 
 function getStatusBadge(status) {
@@ -136,13 +137,15 @@ function getMyTaskAction(task) {
     if (s === 'pending' || s === 'in_progress')
         return `<a href="Label.html?taskId=${task.id}" class="action-link"><i class="fa-solid fa-pen-to-square"></i> Gán nhãn</a>`;
     if (s === 'submitted')
-        return `<span style="color:#94A3B8;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Chờ kiểm tra</span>`;
+        return `<span style="color:#94A3B8;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Đợi kiểm tra</span>`;
     if (s === 'under_review')
         return `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     if (s === 'rejected')
         return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
-    if (s === 'approved')
+    if (s === 'reviewed')
         return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>';
+    if (s === 'approved')
+        return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>';
     return '<span style="color:#94A3B8">—</span>';
 }
 
@@ -160,7 +163,7 @@ async function showRejectedDetail(taskId) {
                 const frameNum = parseInt(match[1]);
                 const desc = match[2].trim();
                 return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
-                    <div style="flex-shrink:0"><span style="background:#EF4444;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">Frame ${frameNum}</span></div>
+                    <div style="flex-shrink:0"><span style="background:#EF4444;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">Khung hình ${frameNum}</span></div>
                     <div style="flex:1">
                         <div style="font-size:13px;color:#1E293B;margin-bottom:8px">${desc || 'Có lỗi cần sửa'}</div>
                         <a href="Label.html?taskId=${taskId}&frame=${frameNum - 1}"
@@ -215,6 +218,8 @@ async function loadReviewTasks() {
         if (!res.ok) throw new Error();
         reviewTasks = await res.json();
         renderReviewTasks(reviewTasks);
+        // Cập nhật lại stats sau khi có reviewTasks
+        updateStats(myTasks);
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
@@ -225,7 +230,7 @@ function renderReviewTasks(tasks) {
     if (!tasks.length) {
         tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <h3>Không có bài cần review</h3>
+            <h3>Không có bài cần kiểm tra</h3>
             <p>Hiện tại không có bài nộp nào đang chờ bạn kiểm duyệt.</p>
         </div></td></tr>`;
         document.getElementById('showingReview').textContent = 'Không có dữ liệu';
@@ -236,6 +241,7 @@ function renderReviewTasks(tasks) {
         const name = task.scene_name || `Nhiệm vụ #${task.id}`;
         const desc = task.scene_description || '';
         const canReview = task.status === 'under_review';
+        const isDone = task.status === 'reviewed' || task.status === 'approved';
         return `<tr>
             <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
             <td><div class="scene-name">
@@ -249,10 +255,9 @@ function renderReviewTasks(tasks) {
                     ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
                     : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`)
                 : `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`
-            }</td>
-        </tr>`;
+            }</td>        </tr>`;
     }).join('');
-    document.getElementById('showingReview').textContent = `${tasks.length} bài cần review`;
+    document.getElementById('showingReview').textContent = `${tasks.length} bài cần kiểm thử`;
     document.getElementById('tabBadgeReview').textContent = tasks.length;
 }
 
@@ -262,13 +267,15 @@ function updateStats(tasks) {
     const done = tasks.filter(t => t.status === 'approved').length;
     const rejected = tasks.filter(t => t.status === 'rejected').length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    // Số task reviewer đang chờ mình kiểm thử (under_review)
+    const pendingReview = reviewTasks.filter(t => t.status === 'under_review').length;
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statTotalText').textContent = `${total} nhiệm vụ`;
     document.getElementById('statDone').textContent = done;
     document.getElementById('statDonePct').textContent = `${pct}%`;
     document.getElementById('statRejected').textContent = rejected;
-    document.getElementById('statReview').textContent = reviewTasks.length || '—';
-    document.getElementById('statReviewText').textContent = reviewTasks.length > 0 ? 'đang chờ' : '';
+    document.getElementById('statReview').textContent = pendingReview;
+    document.getElementById('statReviewText').textContent = pendingReview > 0 ? 'đang chờ' : '';
 }
 
 // ============= SEARCH =============

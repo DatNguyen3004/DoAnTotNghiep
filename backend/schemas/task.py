@@ -29,6 +29,7 @@ class TaskOut(BaseModel):
     status: str
     feedback: Optional[str] = None
     time_spent: int = 0
+    reviewer_time_spent: int = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     # Enriched fields (populated by router)
@@ -48,7 +49,10 @@ class TaskStatusUpdate(BaseModel):
 
 
 class TaskSubmit(BaseModel):
-    time_spent: Optional[int] = None   # total seconds of work
+    time_spent: Optional[int] = None   # total seconds of labeler work
+
+class ReviewSubmit(BaseModel):
+    reviewer_time_spent: Optional[int] = None  # total seconds of reviewer work
 
 
 class ReviewReject(BaseModel):

@@ -14,7 +14,8 @@ class Task(Base):
     reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     status      = Column(Unicode(20), nullable=False, default="pending")
     feedback    = Column(Unicode(4000), nullable=True)
-    time_spent  = Column(Integer, default=0)       # seconds
+    time_spent          = Column(Integer, default=0)       # seconds — labeler total
+    reviewer_time_spent = Column(Integer, default=0)       # seconds — reviewer total
     created_at  = Column(DateTime, server_default=func.now())
     updated_at  = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

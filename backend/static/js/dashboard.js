@@ -10,7 +10,7 @@ if (!getToken() || currentUser.role !== 'admin') {
 
 // Project context
 const projectId = sessionStorage.getItem('projectId');
-const projectName = sessionStorage.getItem('projectName') || 'Dashboard';
+const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 if (!projectId) {
     window.location.href = 'ManagerProject.html';
 }
@@ -49,12 +49,13 @@ function switchTab(evt, tabId) {
 
 // ============= STATUS HELPERS =============
 const STATUS_MAP = {
-    pending: { label: 'Chờ xử lý', class: 'st-pending' },
-    in_progress: { label: 'Đang làm', class: 'st-in_progress' },
-    submitted: { label: 'Đã nộp', class: 'st-submitted' },
-    under_review: { label: 'Đang duyệt', class: 'st-under_review' },
-    approved: { label: 'Đã duyệt', class: 'st-approved' },
-    rejected: { label: 'Bị từ chối', class: 'st-rejected' }
+    pending:      { label: 'Chờ xử lý',    class: 'st-pending' },
+    in_progress:  { label: 'Đang làm',      class: 'st-in_progress' },
+    submitted:    { label: 'Đợi kiểm tra',  class: 'st-submitted' },
+    under_review: { label: 'Đang kiểm tra', class: 'st-under_review' },
+    reviewed:     { label: 'Đã kiểm tra',   class: 'st-approved' },
+    approved:     { label: 'Đã duyệt',      class: 'st-approved' },
+    rejected:     { label: 'Có lỗi',        class: 'st-rejected' }
 };
 
 function getStatusBadge(status) {
@@ -66,25 +67,19 @@ function getActionLink(task) {
     const s = task.status;
     let mainLink = '';
     if (s === 'pending' || s === 'in_progress')
-        mainLink = `<span style="color:#94A3B8;font-size:13px;font-style:italic">Đang thực hiện</span>`;
+        mainLink = `<span style="color:#94A3B8;font-size:13px;font-style:italic"></span>`;
     else if (s === 'submitted')
         mainLink = `<span style="color:#64748B;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Chờ kiểm tra</span>`;
     else if (s === 'under_review')
         mainLink = `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
-    else if (s === 'approved') {
-        const adminApproved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
-        if (adminApproved.includes(task.id)) {
-            mainLink = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã phê duyệt</span>`;
-        } else {
-            mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Xem lại</button>`;
-        }
-    }
+    else if (s === 'reviewed')
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Phê duyệt</button>`;
+    else if (s === 'approved')
+        mainLink = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>`;
     else if (s === 'rejected')
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link"><i class="fa-solid fa-eye"></i> Xem lại</button>`;
-    else
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link review-link"><i class="fa-solid fa-eye"></i> Xem lại</button>`;
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link"><i class="fa-solid fa-eye"></i> Xem</button>`;
 
-    const deleteBtn = `<button onclick="deleteTask(${task.id})" title="Xóa task"
+    const deleteBtn = `<button onclick="deleteTask(${task.id})" title="Xóa nhiệm vụ"
         style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:15px;padding:4px 6px;margin-left:6px;transition:color 0.2s;vertical-align:middle"
         onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#CBD5E1'">
         <i class="fa-regular fa-trash-can"></i>
@@ -110,7 +105,7 @@ async function loadTasks() {
         <tr><td colspan="6" style="text-align:center;padding:40px;">
             <div style="color:#94A3B8">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;margin-bottom:12px;display:block"></i>
-                Đang tải nhiệm vụ...
+                Đang tải...
             </div>
         </td></tr>`;
 
@@ -151,13 +146,14 @@ function renderTasks(tasks) {
                     <p>Nhấn "Phân công" để giao nhiệm vụ cho người thực hiện.</p>
                 </div>
             </td></tr>`;
+
         document.getElementById('showingText').textContent = 'Không có dữ liệu';
         document.getElementById('tabBadgeTasks').textContent = 0;
         return;
     }
 
     tbody.innerHTML = tasks.map((task, idx) => {
-        const sceneName = task.scene_name || `Scene #${task.scene_id || task.id}`;
+        const sceneName = task.scene_name || `Nhiệm vụ #${task.scene_id || task.id}`;
         const sceneDesc = task.scene_description || '';
         const progress = task.frame_count > 0
             ? Math.round((task.annotated_frames / task.frame_count) * 100)
@@ -198,19 +194,30 @@ function updateStats(tasks) {
     const totalFrames = tasks.reduce((s, t) => s + (t.frame_count || 0), 0);
     const completedTasks = tasks.filter(t => t.status === 'approved').length;
     const needAttention = tasks.filter(t => t.status === 'rejected' || t.status === 'under_review').length;
-    const approvedTasks = tasks.filter(t => t.status === 'approved');
-    const totalTime = approvedTasks.reduce((s, t) => s + (t.time_spent || 0), 0);
-    const avgTime = approvedTasks.length > 0 ? Math.round(totalTime / approvedTasks.length / 60) : 0;
+
+    // Hiệu suất: tính trên các task đã hoàn thành (approved hoặc reviewed)
+    const doneTasks = tasks.filter(t => (t.status === 'approved' || t.status === 'reviewed') && t.annotated_frames > 0);
+    let avgTimeDisplay = '—';
+    if (doneTasks.length > 0) {
+        // Tổng thời gian = labeler time + reviewer time (bao gồm cả các lần sửa lại)
+        const totalTime = doneTasks.reduce((s, t) => s + (t.time_spent || 0) + (t.reviewer_time_spent || 0), 0);
+        const totalAnnotatedFrames = doneTasks.reduce((s, t) => s + (t.annotated_frames || 0), 0);
+        if (totalAnnotatedFrames > 0 && totalTime > 0) {
+            const minPerFrame = totalTime / totalAnnotatedFrames / 60;
+            avgTimeDisplay = Math.round(minPerFrame);
+        }
+    }
+
     const completedPct = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
     document.getElementById('statTotalFrames').textContent = totalFrames.toLocaleString();
-    document.getElementById('statTotalScenesText').textContent = `${tasks.length} scenes`;
+    document.getElementById('statTotalScenesText').textContent = `${tasks.length} nhiệm vụ`;
     document.getElementById('statCompleted').textContent = completedTasks;
     document.getElementById('statCompletedPct').textContent = `${completedPct}%`;
     document.getElementById('statNeedAttention').textContent = needAttention;
     document.getElementById('statNeedAttentionText').textContent = needAttention > 0 ? 'Cần xử lý' : 'Tốt';
     document.getElementById('statNeedAttentionText').style.color = needAttention > 0 ? '#D97706' : '#16A34A';
-    document.getElementById('statAvgTime').textContent = avgTime || '—';
+    document.getElementById('statAvgTime').textContent = avgTimeDisplay;
 
     const fp = document.getElementById('floatingProgress');
     if (fp) fp.textContent = `${completedPct}% hoàn thành`;
@@ -333,23 +340,23 @@ async function loadAssignData() {
 
             const select = document.getElementById('selectScene');
             if (availableScenes.length === 0) {
-                select.innerHTML = '<option value="" disabled>Tất cả scene đã được phân công</option>';
-                document.getElementById('sceneHelper').textContent = 'Tất cả scene đã được phân công!';
+                select.innerHTML = '<option value="" disabled>Tất cả nhiệm vụ đã được phân công</option>';
+                document.getElementById('sceneHelper').textContent = 'Tất cả nhiệm vụ đã được phân công!';
             } else {
-                select.innerHTML = '<option value="">-- Chọn scene --</option>';
+                select.innerHTML = '<option value="">-- Chọn nhiệm vụ --</option>';
                 availableScenes.forEach(s => {
-                    const name = s.name || s.scene_token || `Scene #${s.id}`;
+                    const name = s.name || s.scene_token || `Nhiệm vụ #${s.id}`;
                     const desc = s.description ? ` — ${s.description}` : '';
-                    const frames = s.frame_count ? ` (${s.frame_count} frames)` : '';
+                    const frames = s.frame_count ? ` (${s.frame_count} khung hình)` : '';
                     select.innerHTML += `<option value="${s.id}">${name}${desc}${frames}</option>`;
                 });
-                document.getElementById('sceneHelper').textContent = `${availableScenes.length} scene chưa phân công`;
+                document.getElementById('sceneHelper').textContent = `${availableScenes.length} nhiệm vụ chưa phân công`;
             }
         } else {
-            document.getElementById('sceneHelper').textContent = 'Không thể tải danh sách scene';
+            document.getElementById('sceneHelper').textContent = 'Không thể tải danh sách nhiệm vụ';
         }
     } catch (e) {
-        document.getElementById('sceneHelper').textContent = 'Lỗi tải scene';
+        document.getElementById('sceneHelper').textContent = 'Lỗi tải nhiệm vụ';
     }
 
     // Load labelers — members của project có role=user
@@ -528,7 +535,7 @@ async function removeMember(userId, username) {
 
 // ============= DELETE TASK =============
 async function deleteTask(taskId) {
-    showConfirm('Xóa task này? Toàn bộ annotation sẽ bị xóa theo.', async () => {
+    showConfirm('Xóa nhiệm vụ này? Toàn bộ file nhãn sẽ bị xóa theo.', async () => {
         try {
             const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
                 method: 'DELETE',
@@ -550,7 +557,7 @@ async function deleteTask(taskId) {
 // ============= ALL TASKS TAB =============
 async function loadAllTasks() {
     const tbody = document.getElementById('allTasksBody');
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
     </td></tr>`;
 
@@ -568,7 +575,7 @@ async function loadAllTasks() {
         }
 
         tbody.innerHTML = scenes.map((scene, idx) => {
-            const name = scene.name || scene.scene_token || `Scene #${scene.id}`;
+            const name = scene.name || scene.scene_token || `Nhiệm vụ #${scene.id}`;
             const desc = scene.description || '—';
             return `<tr>
                 <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
@@ -581,7 +588,7 @@ async function loadAllTasks() {
                         </div>
                     </div>
                 </td>
-                <td><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} frames</span></td>
+                <td><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} khung hình</span></td>
                 <td>
                     <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g,'\\"')}",scene_description:"${(scene.description||'').replace(/"/g,'\\"')}",_previewSceneId:${scene.id}})'
                         class="action-link" style="font-size:12px">
@@ -677,34 +684,65 @@ async function loadSceneThumb(sceneId) {
 }
 
 // ============= SCENE EDIT MODAL =============
+let _previewFrames = [];
+let _previewFrameIdx = 0;
+
 async function openSceneEditModal(task) {
     const sceneId = task.scene_id || task._previewSceneId;
     document.getElementById('sceneEditId').value = sceneId;
     document.getElementById('sceneEditName').value = task.scene_name || '';
     document.getElementById('sceneEditDesc').value = task.scene_description || '';
 
-    // Load preview ảnh CAM_FRONT của frame đầu tiên
-    const previewImg = document.getElementById('scenePreviewImg');
-    previewImg.src = '';
+    // Reset preview state
+    _previewFrames = [];
+    _previewFrameIdx = 0;
+    document.getElementById('scenePreviewImg').src = '';
+    document.getElementById('previewFrameCounter').textContent = '... / ...';
+
+    document.getElementById('sceneEditModal').classList.add('active');
+
+    // Load all frames
     try {
         const framesRes = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (framesRes.ok) {
-            const frames = await framesRes.json();
-            if (frames.length > 0) {
-                const imgRes = await fetch(`${BASE_URL}/frames/${frames[0].id}/image/CAM_FRONT`, {
-                    headers: { Authorization: `Bearer ${getToken()}` }
-                });
-                if (imgRes.ok) {
-                    const blob = await imgRes.blob();
-                    previewImg.src = URL.createObjectURL(blob);
-                }
+            _previewFrames = await framesRes.json();
+            if (_previewFrames.length > 0) {
+                await _loadPreviewFrame(0);
             }
         }
     } catch (e) { /* silent */ }
+}
 
-    document.getElementById('sceneEditModal').classList.add('active');
+async function _loadPreviewFrame(idx) {
+    if (!_previewFrames.length) return;
+    idx = Math.max(0, Math.min(_previewFrames.length - 1, idx));
+    _previewFrameIdx = idx;
+
+    const loading = document.getElementById('previewLoading');
+    const counter = document.getElementById('previewFrameCounter');
+    const img = document.getElementById('scenePreviewImg');
+
+    loading.style.display = 'flex';
+    counter.textContent = `${idx + 1} / ${_previewFrames.length}`;
+
+    try {
+        const res = await fetch(`${BASE_URL}/frames/${_previewFrames[idx].id}/image/CAM_FRONT`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const blob = await res.blob();
+            img.src = URL.createObjectURL(blob);
+        }
+    } catch (e) { /* silent */ }
+    finally {
+        loading.style.display = 'none';
+    }
+}
+
+async function previewNavFrame(dir) {
+    await _loadPreviewFrame(_previewFrameIdx + dir);
 }
 
 function closeSceneEditModal() {
@@ -746,90 +784,19 @@ async function saveSceneEdit() {
 async function showAdminTaskDetail(taskId) {
     const task = allTasks.find(t => t.id === taskId);
     if (!task) return;
-
-    const labeler = task.assigned_user;
-    const reviewer = task.reviewer_user;
-    const s = task.status;
-
-    const statusColor = s === 'approved' ? '#10B981' : s === 'rejected' ? '#EF4444' : '#7C3AED';
-    const statusLabel = { approved: 'Đã hoàn thành', rejected: 'Có lỗi', under_review: 'Đang kiểm tra', submitted: 'Đã nộp' }[s] || s;
-
-    const canApprove = s === 'under_review' || s === 'submitted';
-    // Kiểm tra đã kiểm tra không lỗi: reviewer đã approve (status = approved từ reviewer)
-    const reviewerApproved = s === 'approved';
-
-    const existing = document.getElementById('adminTaskDetailModal');
-    if (existing) existing.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'adminTaskDetailModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-    modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-                <div style="font-size:16px;font-weight:800;color:#1E293B">Chi tiết nhiệm vụ</div>
-                <button onclick="document.getElementById('adminTaskDetailModal').remove()"
-                    style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:16px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
-
-            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-user" style="margin-right:6px"></i>Người gán nhãn</span>
-                    <span style="font-size:13px;font-weight:700;color:#1E293B">${labeler?.username || '—'}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px"></i>Người kiểm thử</span>
-                    <span style="font-size:13px;font-weight:700;color:#1E293B">${reviewer?.username || '—'}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-circle-dot" style="margin-right:6px"></i>Trạng thái</span>
-                    <span style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</span>
-                </div>
-                ${reviewerApproved ? `
-                <div style="padding:10px 14px;background:#F0FDF4;border-radius:8px;border-left:3px solid #10B981">
-                    <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
-                    <div style="font-size:12px;color:#16A34A;margin-top:2px">Reviewer đã xác nhận bài làm đúng</div>
-                </div>` : ''}
-                ${task.feedback ? `
-                <div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
-                    <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ reviewer</div>
-                    <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
-                </div>` : ''}
-            </div>
-
-            <div style="display:flex;gap:10px">
-                ${reviewerApproved ? `
-                <button onclick="adminApproveTask(${taskId})"
-                    style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-                    <i class="fa-solid fa-check-double"></i> Phê duyệt
-                </button>` : `
-                <span style="flex:1;height:42px;background:#F1F5F9;color:#94A3B8;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
-                    <i class="fa-solid fa-clock"></i> Chờ kiểm thử xong
-                </span>`}
-                <button onclick="document.getElementById('adminTaskDetailModal').remove()"
-                    style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
-                    Đóng
-                </button>
-            </div>
-        </div>`;
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-    document.body.appendChild(modal);
-}
-
-// ============= ADMIN TASK DETAIL MODAL =============
-async function showAdminTaskDetail(taskId) {
-    const task = allTasks.find(t => t.id === taskId);
-    if (!task) return;
     const labeler = task.assigned_user;
     const reviewer = task.reviewer_user;
     const s = task.status;
     const statusColor = s === 'approved' ? '#10B981' : s === 'rejected' ? '#EF4444' : '#7C3AED';
-    const statusLabel = { approved: 'Đã hoàn thành', rejected: 'Có lỗi', under_review: 'Đang kiểm tra', submitted: 'Đã nộp' }[s] || s;
-    const reviewerApproved = s === 'approved';
+    const statusLabel = {
+        approved: 'Đã kiểm tra — không có lỗi',
+        rejected: 'Có lỗi',
+        under_review: 'Đang kiểm tra',
+        submitted: 'Chờ kiểm tra',
+        in_progress: 'Đang làm',
+        pending: 'Chờ xử lý'
+    }[s] || s;
+    const reviewerApproved = s === 'reviewed';
 
     const existing = document.getElementById('adminTaskDetailModal');
     if (existing) existing.remove();
@@ -858,10 +825,10 @@ async function showAdminTaskDetail(taskId) {
             </div>
             ${reviewerApproved ? `<div style="padding:10px 14px;background:#F0FDF4;border-radius:8px;border-left:3px solid #10B981">
                 <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
-                <div style="font-size:12px;color:#16A34A;margin-top:2px">Reviewer đã xác nhận bài làm đúng</div>
+                <div style="font-size:12px;color:#16A34A;margin-top:2px">Người kiểm tra đã xác nhận bài làm đúng</div>
             </div>` : ''}
             ${task.feedback ? `<div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
-                <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ reviewer</div>
+                <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ người kiểm tra</div>
                 <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
             </div>` : ''}
         </div>
