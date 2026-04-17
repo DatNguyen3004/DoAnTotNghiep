@@ -145,8 +145,11 @@ async function loadFrames(sceneId) {
         await loadAllAnnotations();
         initTrackCounters();
         // Khôi phục frame đã lưu gần nhất
+        const urlFrame = parseInt(new URLSearchParams(window.location.search).get('frame') || '-1');
         const savedFrame = parseInt(localStorage.getItem(`lastFrame_${taskId}`) || '0');
-        const startFrame = Math.min(Math.max(0, savedFrame), frames.length - 1);
+        const startFrame = urlFrame >= 0
+            ? Math.min(urlFrame, frames.length - 1)
+            : Math.min(Math.max(0, savedFrame), frames.length - 1);
         await goToFrame(startFrame);
     } catch (e) {
         showToast('Không thể tải frames', 'error');
@@ -1243,37 +1246,45 @@ async function saveAnnotations(showMsg = true) {
     }
     unsaved = false;
     localStorage.setItem(`lastFrame_${taskId}`, currentFrameIdx);
+    // Nếu đến từ FrameList → đánh dấu frame này đã lưu
+    const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+    const frameParam = new URLSearchParams(window.location.search).get('frame');
+    if (returnTo === 'FrameList' && frameParam !== null) {
+        const frameNum = parseInt(frameParam) + 1;
+        localStorage.setItem(`framelist_saved_${taskId}_${frameNum}`, 'true');
+    }
     if (showMsg) showToast('Đã lưu tất cả nhãn', 'success');
 }
 
 // ============= SUBMIT =============
 async function submitTask() {
-    if (!confirm('Nộp bài? Bài sẽ được giao cho người review.')) return;
-    await saveAnnotations(false);
+    showConfirm('Nộp bài? Bài sẽ được giao cho người review.', async () => {
+        await saveAnnotations(false);
 
-    const btn = document.querySelector('.btn-phe-duyet');
-    if (btn) { btn.disabled = true; btn.textContent = 'Đang nộp...'; }
+        const btn = document.querySelector('.btn-phe-duyet');
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang nộp...'; }
 
-    try {
-        const res = await fetch(`${BASE_URL}/tasks/${taskId}/submit`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time_spent: timerSeconds })
-        });
-        if (res.ok) {
-            clearInterval(timerInterval);
-            localStorage.removeItem(`timer_${taskId}`); // Xóa timer sau khi nộp
-            showToast('Nộp bài thành công!', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 1800);
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi nộp bài', 'error');
+        try {
+            const res = await fetch(`${BASE_URL}/tasks/${taskId}/submit`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ time_spent: timerSeconds })
+            });
+            if (res.ok) {
+                clearInterval(timerInterval);
+                localStorage.removeItem(`timer_${taskId}`);
+                showToast('Nộp bài thành công!', 'success');
+                setTimeout(() => window.location.href = 'dashboard.html', 1800);
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Lỗi nộp bài', 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Nộp'; }
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối', 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Nộp'; }
         }
-    } catch (e) {
-        showToast('Lỗi kết nối', 'error');
-        if (btn) { btn.disabled = false; btn.textContent = 'Nộp'; }
-    }
+    }, { title: 'Nộp bài', confirmText: 'Nộp', type: 'info' });
 }
 
 // ============= AI =============

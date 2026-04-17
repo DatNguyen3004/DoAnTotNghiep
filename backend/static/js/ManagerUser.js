@@ -243,21 +243,24 @@ document.getElementById('editUserForm').addEventListener('submit', async functio
 
 // ============= DELETE USER =============
 async function deleteUser(userId, name) {
-    if (!confirm(`Bạn có chắc muốn xóa tài khoản "${name}"?\nHành động này không thể hoàn tác.`)) return;
-
-    try {
-        const res = await fetch(`${BASE_URL}/users/${userId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${getToken()}` }
-        });
-
-        if (res.ok) {
-            showToast(`Đã xóa tài khoản "${name}"`, 'success');
-            loadUsers();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi khi xóa tài khoản', 'error');
+    showConfirm(`Bạn có chắc muốn xóa tài khoản "${name}"?\nHành động này không thể hoàn tác.`, async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/users/${userId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            if (res.ok) {
+                showToast(`Đã xóa tài khoản "${name}"`, 'success');
+                loadUsers();
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Lỗi khi xóa tài khoản', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối server', 'error');
         }
+    }, { title: 'Xóa tài khoản', confirmText: 'Xóa', type: 'danger' });
+}
     } catch (e) {
         showToast('Lỗi kết nối server', 'error');
     }

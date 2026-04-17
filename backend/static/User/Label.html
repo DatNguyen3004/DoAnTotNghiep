@@ -30,7 +30,7 @@
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left-btn-container">
-            <button class="btn-phe-duyet" onclick="window.location.href='Test.html#pending'"><i class="bi bi-send-fill"></i> Nộp</button>
+            <button class="btn-phe-duyet" id="btnNop"><i class="bi bi-send-fill"></i> Nộp</button>
         </div>
 
         <div class="toolbar-center-area">
@@ -144,7 +144,7 @@
 
             <div class="panel-footer">
                 <button class="btn-submit"><i class="bi bi-floppy2-fill"></i>   Lưu</button>
-                <a href="dashboard.html" class="link-home">
+                <a id="backLink" href="dashboard.html" class="link-home">
                     <i class="fa-solid fa-house"></i> Trở về trang chủ
                 </a>
             </div>
@@ -195,7 +195,21 @@
             _boxDropdown?.classList.remove('show');
         });
     </script>
-    <script src="../js/label.js?v=17"></script>
+    <script src="../js/confirm.js"></script>
+    <script src="../js/label.js?v=20"></script>
+    <script>
+        // Set back link nếu đến từ FrameList
+        (function() {
+            const p = new URLSearchParams(window.location.search);
+            if (p.get('returnTo') === 'FrameList') {
+                const link = document.getElementById('backLink');
+                if (link) {
+                    link.href = `FrameList.html?taskId=${p.get('taskId')}&mode=${p.get('mode') || 'fix'}`;
+                    link.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Trở về danh sách';
+                }
+            }
+        })();
+    </script>
 </body>
 
 </html>

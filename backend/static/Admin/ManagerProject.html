@@ -922,17 +922,18 @@
             });
         }
         async function deleteProject(id, name) {
-            if (!confirm(`Xóa dự án "${name}"? Hành động này không thể hoàn tác.`)) return;
-            try {
-                const res = await fetch(`${BASE_URL}/projects/${id}`, {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${getToken()}` }
-                });
-                if (!res.ok) throw new Error();
-                loadProjects();
-            } catch (e) {
-                alert('Xóa dự án thất bại.');
-            }
+            showConfirm(`Xóa dự án "${name}"? Hành động này không thể hoàn tác.`, async () => {
+                try {
+                    const res = await fetch(`${BASE_URL}/projects/${id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${getToken()}` }
+                    });
+                    if (!res.ok) throw new Error();
+                    loadProjects();
+                } catch (e) {
+                    alert('Xóa dự án thất bại.');
+                }
+            }, { title: 'Xóa dự án', confirmText: 'Xóa', type: 'danger' });
         }
 
         // Edit modal
@@ -973,6 +974,7 @@
 
         loadProjects();
     </script>
+    <script src="../js/confirm.js"></script>
 
 </body>
 

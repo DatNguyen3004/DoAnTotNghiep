@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm thử chéo - NuLabel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/Label.css?v=2">
+    <style>
+        .review-panel { display: flex; flex-direction: column; gap: 0; }
+        .feedback-section {
+            padding: 16px;
+            border-top: 1px solid #E2E8F0;
+            flex-shrink: 0;
+        }
+        .feedback-label {
+            font-size: 11px; font-weight: 700; color: #64748B;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+        }
+        .feedback-textarea {
+            width: 100%; min-height: 80px; padding: 10px 12px;
+            border: 1px solid #E2E8F0; border-radius: 8px;
+            font-size: 13px; font-family: Inter, sans-serif; color: #1E293B;
+            resize: vertical; outline: none; transition: border 0.2s;
+            box-sizing: border-box;
+        }
+        .feedback-textarea:focus { border-color: #2563EB; }
+        .review-actions {
+            padding: 16px; border-top: 1px solid #E2E8F0;
+            display: flex; gap: 10px; flex-shrink: 0;
+        }
+        .btn-correct {
+            flex: 1; height: 44px; background: #10B981; color: #fff;
+            border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: all 0.2s; font-family: Inter, sans-serif;
+        }
+        .btn-correct:hover { background: #059669; transform: translateY(-1px); }
+        .btn-wrong {
+            flex: 1; height: 44px; background: #EF4444; color: #fff;
+            border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: all 0.2s; font-family: Inter, sans-serif;
+        }
+        .btn-wrong:hover { background: #DC2626; transform: translateY(-1px); }
+        .frame-status {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+        }
+        .frame-status.correct { background: #D1FAE5; color: #065F46; }
+        .frame-status.wrong   { background: #FEE2E2; color: #991B1B; }
+        .frame-status.pending { background: #F1F5F9; color: #64748B; }
+        .review-progress {
+            padding: 10px 16px; border-bottom: 1px solid #E2E8F0;
+            font-size: 12px; color: #64748B; display: flex; align-items: center;
+            justify-content: space-between; flex-shrink: 0;
+        }
+        .progress-bar-wrap {
+            flex: 1; height: 4px; background: #E2E8F0; border-radius: 2px;
+            margin: 0 10px; overflow: hidden;
+        }
+        .progress-bar-fill { height: 100%; background: #10B981; border-radius: 2px; transition: width 0.3s; }
+        .btn-submit-review {
+            width: 100%; height: 40px; background: #2563EB; color: #fff;
+            border: none; border-radius: 8px; font-size: 13px; font-weight: 700;
+            cursor: pointer; font-family: Inter, sans-serif; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-submit-review:hover { background: #1D4ED8; }
+        .btn-submit-review:disabled { background: #94A3B8; cursor: not-allowed; }
+        .review-label-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background 0.2s;
+        }
+        .review-label-item:hover { background: #F8FAFC; }
+        .review-label-item.active { background: #F8FAFC; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <div class="nav-brand">NuLabel</div>
+            <span style="font-size:12px;color:#64748B;margin-left:12px;font-weight:600">
+                <i class="fa-solid fa-magnifying-glass" style="color:#7C3AED"></i> Kiểm thử chéo
+            </span>
+        </div>
+        <div class="nav-right">
+            <i class="fa-regular fa-bell" style="color:#64748B;font-size:18px;cursor:pointer"></i>
+            <div class="user-avatar" id="userAvatar">NL</div>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left-btn-container">
+            <button class="btn-phe-duyet" id="btnDaKiemTra" style="background:linear-gradient(90deg,#7C3AED,#2563EB)">
+                <i class="fa-solid fa-circle-check"></i> Đã kiểm tra
+            </button>
+        </div>
+        <div class="toolbar-center-area">
+            <div class="pagination-control">
+                <i class="fa-solid fa-angles-left" id="btnFirst"></i>
+                <i class="fa-solid fa-angle-left" id="btnPrev"></i>
+                <div class="page-number" id="pageNum">1</div>
+                <i class="fa-solid fa-angle-right" id="btnNext"></i>
+                <i class="fa-solid fa-angles-right" id="btnLast"></i>
+            </div>
+            <div class="center-right-controls">
+                <div class="timer-pill"><i class="fa-regular fa-clock"></i> 00:00:00</div>
+            </div>
+        </div>
+        <div class="toolbar-right-area">
+            <div class="tool-icons">
+                <div class="zoom-control">
+                    <i class="fa-solid fa-magnifying-glass-minus" onclick="zoomOut()" style="cursor:pointer"></i>
+                    <span id="zoomLevel">100%</span>
+                    <i class="fa-solid fa-magnifying-glass-plus" onclick="zoomIn()" style="cursor:pointer"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace">
+
+        <!-- Left Panel: Cams -->
+        <aside class="panel-left">
+            <div class="panel-header">CAMERA</div>
+            <div class="cam-list" id="camList"></div>
+        </aside>
+
+        <!-- Center Canvas (read-only) -->
+        <main class="center-canvas">
+            <div class="canvas-container">
+                <img src="" alt="Frame" id="mainImage" style="display:none">
+            </div>
+        </main>
+
+        <!-- Right Panel: Review -->
+        <aside class="panel-right review-panel">
+
+            <!-- Progress -->
+            <div class="review-progress">
+                <span id="progressText">0 / 0</span>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <span id="frameStatusBadge" class="frame-status pending">Chưa đánh giá</span>
+            </div>
+
+            <!-- Label list (read-only) -->
+            <div class="results-section" style="flex:1;min-height:0">
+                <div class="section-header">
+                    <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
+                </div>
+                <div class="label-list" id="labelList"></div>
+            </div>
+
+            <!-- Feedback -->
+            <div class="feedback-section">
+                <div class="feedback-label"><i class="fa-solid fa-comment-dots"></i> Mô tả / Nhận xét</div>
+                <textarea class="feedback-textarea" id="frameFeedback"
+                    placeholder="Nhập nhận xét cho frame này (không bắt buộc)..."></textarea>
+            </div>
+
+            <!-- Đúng / Sai buttons -->
+            <div class="review-actions">
+                <button class="btn-correct" id="btnCorrect" onclick="markFrame('correct')">
+                    <i class="fa-solid fa-check"></i> Đúng
+                </button>
+                <button class="btn-wrong" id="btnWrong" onclick="markFrame('wrong')">
+                    <i class="fa-solid fa-xmark"></i> Sai
+                </button>
+            </div>
+
+            <!-- Footer -->
+            <div class="panel-footer">
+                <a id="backLinkReview" href="dashboard.html" class="link-home">
+                    <i class="fa-solid fa-house"></i> Trở về trang chủ
+                </a>
+            </div>
+
+        </aside>
+    </div>
+
+    <script src="../js/confirm.js"></script>
+    <script src="../js/label_review.js?v=13"></script>
+    <script>
+        (function() {
+            const p = new URLSearchParams(window.location.search);
+            if (p.get('returnTo') === 'FrameList') {
+                const link = document.getElementById('backLinkReview');
+                if (link) {
+                    link.href = `FrameList.html?taskId=${p.get('taskId')}&mode=review`;
+                    link.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Trở về danh sách';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

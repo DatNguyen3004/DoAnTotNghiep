@@ -67,21 +67,28 @@ function getActionLink(task) {
     let mainLink = '';
     if (s === 'pending' || s === 'in_progress')
         mainLink = `<span style="color:#94A3B8;font-size:13px;font-style:italic">Đang thực hiện</span>`;
-    else if (s === 'submitted' || s === 'under_review')
-        mainLink = `<a href="Label_Review.html?taskId=${task.id}" class="action-link review-link"><i class="fa-solid fa-eye"></i> Xem lại</a>`;
-    else if (s === 'approved')
-        mainLink = `<a href="Label_Review.html?taskId=${task.id}" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Xem lại</a>`;
+    else if (s === 'submitted')
+        mainLink = `<span style="color:#64748B;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Chờ kiểm tra</span>`;
+    else if (s === 'under_review')
+        mainLink = `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
+    else if (s === 'approved') {
+        const adminApproved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
+        if (adminApproved.includes(task.id)) {
+            mainLink = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã phê duyệt</span>`;
+        } else {
+            mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Xem lại</button>`;
+        }
+    }
     else if (s === 'rejected')
-        mainLink = `<a href="Label_Review.html?taskId=${task.id}" class="action-link rejected-link"><i class="fa-solid fa-eye"></i> Xem lại</a>`;
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link"><i class="fa-solid fa-eye"></i> Xem lại</button>`;
     else
-        mainLink = '<span style="color:#94A3B8">—</span>';
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link review-link"><i class="fa-solid fa-eye"></i> Xem lại</button>`;
 
     const deleteBtn = `<button onclick="deleteTask(${task.id})" title="Xóa task"
         style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:15px;padding:4px 6px;margin-left:6px;transition:color 0.2s;vertical-align:middle"
         onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#CBD5E1'">
         <i class="fa-regular fa-trash-can"></i>
     </button>`;
-
     return mainLink + deleteBtn;
 }
 
@@ -500,46 +507,44 @@ async function addMember(userId, name) {
 }
 
 async function removeMember(userId, username) {
-    if (!confirm(`Xóa "${username}" khỏi dự án?`)) return;
-
-    try {
-        const res = await fetch(`${BASE_URL}/projects/${projectId}/members/${userId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${getToken()}` }
-        });
-
-        if (res.ok) {
-            showToast(`Đã xóa "${username}" khỏi dự án`, 'success');
-            loadMembers();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi xóa thành viên', 'error');
+    showConfirm(`Xóa "${username}" khỏi dự án?`, async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/projects/${projectId}/members/${userId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            if (res.ok) {
+                showToast(`Đã xóa "${username}" khỏi dự án`, 'success');
+                loadMembers();
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Lỗi xóa thành viên', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối server', 'error');
         }
-    } catch (e) {
-        showToast('Lỗi kết nối server', 'error');
-    }
+    }, { title: 'Xóa thành viên', confirmText: 'Xóa', type: 'danger' });
 }
 
 // ============= DELETE TASK =============
 async function deleteTask(taskId) {
-    if (!confirm('Xóa task này? Toàn bộ annotation sẽ bị xóa theo.')) return;
-
-    try {
-        const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${getToken()}` }
-        });
-
-        if (res.ok) {
-            showToast('Đã xóa nhiệm vụ', 'success');
-            loadTasks();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi xóa nhiệm vụ', 'error');
+    showConfirm('Xóa task này? Toàn bộ annotation sẽ bị xóa theo.', async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            if (res.ok) {
+                showToast('Đã xóa nhiệm vụ', 'success');
+                loadTasks();
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Lỗi xóa nhiệm vụ', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối server', 'error');
         }
-    } catch (e) {
-        showToast('Lỗi kết nối server', 'error');
-    }
+    }, { title: 'Xóa nhiệm vụ', confirmText: 'Xóa', type: 'danger' });
 }
 
 // ============= ALL TASKS TAB =============
@@ -731,6 +736,205 @@ async function saveSceneEdit() {
             if (allScenesData.length > 0) loadAllScenes();
         } else {
             showToast('Lỗi cập nhật', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi kết nối', 'error');
+    }
+}
+
+// ============= ADMIN TASK DETAIL MODAL =============
+async function showAdminTaskDetail(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const labeler = task.assigned_user;
+    const reviewer = task.reviewer_user;
+    const s = task.status;
+
+    const statusColor = s === 'approved' ? '#10B981' : s === 'rejected' ? '#EF4444' : '#7C3AED';
+    const statusLabel = { approved: 'Đã hoàn thành', rejected: 'Có lỗi', under_review: 'Đang kiểm tra', submitted: 'Đã nộp' }[s] || s;
+
+    const canApprove = s === 'under_review' || s === 'submitted';
+    // Kiểm tra đã kiểm tra không lỗi: reviewer đã approve (status = approved từ reviewer)
+    const reviewerApproved = s === 'approved';
+
+    const existing = document.getElementById('adminTaskDetailModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'adminTaskDetailModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div style="font-size:16px;font-weight:800;color:#1E293B">Chi tiết nhiệm vụ</div>
+                <button onclick="document.getElementById('adminTaskDetailModal').remove()"
+                    style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:16px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-user" style="margin-right:6px"></i>Người gán nhãn</span>
+                    <span style="font-size:13px;font-weight:700;color:#1E293B">${labeler?.username || '—'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px"></i>Người kiểm thử</span>
+                    <span style="font-size:13px;font-weight:700;color:#1E293B">${reviewer?.username || '—'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                    <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-circle-dot" style="margin-right:6px"></i>Trạng thái</span>
+                    <span style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</span>
+                </div>
+                ${reviewerApproved ? `
+                <div style="padding:10px 14px;background:#F0FDF4;border-radius:8px;border-left:3px solid #10B981">
+                    <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
+                    <div style="font-size:12px;color:#16A34A;margin-top:2px">Reviewer đã xác nhận bài làm đúng</div>
+                </div>` : ''}
+                ${task.feedback ? `
+                <div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
+                    <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ reviewer</div>
+                    <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
+                </div>` : ''}
+            </div>
+
+            <div style="display:flex;gap:10px">
+                ${reviewerApproved ? `
+                <button onclick="adminApproveTask(${taskId})"
+                    style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+                    <i class="fa-solid fa-check-double"></i> Phê duyệt
+                </button>` : `
+                <span style="flex:1;height:42px;background:#F1F5F9;color:#94A3B8;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
+                    <i class="fa-solid fa-clock"></i> Chờ kiểm thử xong
+                </span>`}
+                <button onclick="document.getElementById('adminTaskDetailModal').remove()"
+                    style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                    Đóng
+                </button>
+            </div>
+        </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+// ============= ADMIN TASK DETAIL MODAL =============
+async function showAdminTaskDetail(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    const labeler = task.assigned_user;
+    const reviewer = task.reviewer_user;
+    const s = task.status;
+    const statusColor = s === 'approved' ? '#10B981' : s === 'rejected' ? '#EF4444' : '#7C3AED';
+    const statusLabel = { approved: 'Đã hoàn thành', rejected: 'Có lỗi', under_review: 'Đang kiểm tra', submitted: 'Đã nộp' }[s] || s;
+    const reviewerApproved = s === 'approved';
+
+    const existing = document.getElementById('adminTaskDetailModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'adminTaskDetailModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="font-size:16px;font-weight:800;color:#1E293B">Chi tiết nhiệm vụ</div>
+            <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:16px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-user" style="margin-right:6px"></i>Người gán nhãn</span>
+                <span style="font-size:13px;font-weight:700;color:#1E293B">${labeler?.username || '—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px"></i>Người kiểm thử</span>
+                <span style="font-size:13px;font-weight:700;color:#1E293B">${reviewer?.username || '—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-circle-dot" style="margin-right:6px"></i>Trạng thái</span>
+                <span style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</span>
+            </div>
+            ${reviewerApproved ? `<div style="padding:10px 14px;background:#F0FDF4;border-radius:8px;border-left:3px solid #10B981">
+                <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
+                <div style="font-size:12px;color:#16A34A;margin-top:2px">Reviewer đã xác nhận bài làm đúng</div>
+            </div>` : ''}
+            ${task.feedback ? `<div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
+                <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ reviewer</div>
+                <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
+            </div>` : ''}
+        </div>
+        <div style="display:flex;gap:10px">
+            ${reviewerApproved
+                ? `<button onclick="adminApproveTask(${taskId})" style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
+                    <i class="fa-solid fa-check-double"></i> Phê duyệt
+                   </button>`
+                : `<span style="flex:1;height:42px;background:#F1F5F9;color:#94A3B8;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
+                    <i class="fa-solid fa-clock"></i> Chờ kiểm thử xong
+                   </span>`
+            }
+            <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
+        </div>
+    </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+async function adminApproveTask(taskId) {
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'approved' })
+        });
+        if (res.ok) {
+            showToast('Đã phê duyệt nhiệm vụ', 'success');
+            document.getElementById('adminTaskDetailModal')?.remove();
+            // Đánh dấu admin đã phê duyệt task này
+            try {
+                const approved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
+                if (!approved.includes(taskId)) approved.push(taskId);
+                localStorage.setItem('admin_approved_tasks', JSON.stringify(approved));
+            } catch(e) {}
+            loadTasks();
+        } else {
+            const err = await res.json();
+            showToast(err.detail || 'Lỗi phê duyệt', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi kết nối', 'error');
+    }
+}
+
+// ============= TOAST =============
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}" style="margin-right:8px"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+async function adminApproveTask(taskId) {
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'approved' })
+        });
+        if (res.ok) {
+            showToast('Đã phê duyệt nhiệm vụ', 'success');
+            document.getElementById('adminTaskDetailModal')?.remove();
+            try {
+                const approved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
+                if (!approved.includes(taskId)) approved.push(taskId);
+                localStorage.setItem('admin_approved_tasks', JSON.stringify(approved));
+            } catch(e) {}
+            loadTasks();
+        } else {
+            const err = await res.json();
+            showToast(err.detail || 'Lỗi phê duyệt', 'error');
         }
     } catch (e) {
         showToast('Lỗi kết nối', 'error');

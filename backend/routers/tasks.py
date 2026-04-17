@@ -222,16 +222,19 @@ def submit_task(
     if body.time_spent is not None:
         task.time_spent = body.time_spent
 
-    # Auto-assign reviewer
-    reviewer_id = assign_reviewer(db, task_id, task.project_id, task.assigned_to)
+    # Auto-assign reviewer — giữ reviewer cũ nếu đã có, ngược lại tìm mới
+    if task.reviewer_id:
+        reviewer_id = task.reviewer_id  # Giữ nguyên reviewer cũ
+    else:
+        reviewer_id = assign_reviewer(db, task_id, task.project_id, task.assigned_to)
+
     if reviewer_id:
         task.reviewer_id = reviewer_id
         task.status = "under_review"
     else:
-        # No other labeler available → submitted (admin will need to handle)
         task.status = "submitted"
 
-    task.feedback = None  # Clear old feedback
+    # Giữ feedback để reviewer biết frame nào cần kiểm tra lại lần 2
     db.commit()
     db.refresh(task)
 
@@ -260,10 +263,11 @@ def approve_task(
     if task.reviewer_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Bạn không phải reviewer của task này")
 
-    if task.status != "under_review":
+    if task.status not in ("under_review", "submitted"):
         raise HTTPException(status_code=400, detail=f"Không thể approve task ở trạng thái '{task.status}'")
 
     task.status = "approved"
+    task.feedback = None  # Xóa feedback khi approve thành công
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
@@ -287,7 +291,7 @@ def reject_task(
     if task.reviewer_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Bạn không phải reviewer của task này")
 
-    if task.status != "under_review":
+    if task.status not in ("under_review", "submitted"):
         raise HTTPException(status_code=400, detail=f"Không thể reject task ở trạng thái '{task.status}'")
 
     if not body.feedback or not body.feedback.strip():
