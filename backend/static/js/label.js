@@ -1049,16 +1049,29 @@ function confirmChangeCategory(annId, newCategory) {
     const frame = frames[currentFrameIdx];
     const anns = currentAnns();
     const ann = anns.find(a => a.id === annId);
-    if (ann) {
-        ann.category = newCategory;
-        ann.track_id = getNextTrackId(newCategory);
-        setFrameAnns(frame.id, currentCamera, anns);
-        redrawAnnotations();
-        renderLabelList();
-        markUnsaved();
-        showToast('Đã đổi loại đối tượng', 'success');
-    }
+    if (!ann) return;
+
     document.getElementById('changeCatModal').style.display = 'none';
+
+    // Tính track_id mới TRƯỚC khi đổi category (để không bị tính nhầm)
+    // Tìm max track_id của newCategory, bỏ qua annotation đang đổi
+    let maxId = 0;
+    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
+        if (a.id !== ann.id && a.category === newCategory && a.track_id && a.track_id > maxId) {
+            maxId = a.track_id;
+        }
+    })));
+    const newTrackId = maxId + 1;
+
+    // Đổi category và gán track_id mới
+    ann.category = newCategory;
+    ann.track_id = newTrackId;
+
+    setFrameAnns(frame.id, currentCamera, anns);
+    redrawAnnotations();
+    renderLabelList();
+    markUnsaved();
+    showToast('Đã đổi loại đối tượng', 'success');
 }
 
 function changeAnnEntity(id) {

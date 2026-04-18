@@ -17,6 +17,25 @@ const projectId = sessionStorage.getItem('projectId');
 const sideEl = document.getElementById('sideProjectName');
 if (sideEl) sideEl.textContent = projectName;
 
+// Nếu admin xem user → sửa sidebar thành sidebar admin
+if (currentUser.role === 'admin' && viewUserId) {
+    const nav = document.querySelector('.sidebar-nav');
+    if (nav) {
+        // User/Profile.html → links tới Admin pages cần ../Admin/
+        const prefix = window.location.pathname.includes('/User/') ? '../Admin/' : '';
+        nav.innerHTML = `
+            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom:16px;padding:0 16px;">${projectName}</h2>
+            <a href="${prefix}dashboard.html" class="nav-item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
+            <a href="${prefix}ManagerUser.html" class="nav-item active"><i class="fa-solid fa-users"></i><span>Quản lý người dùng</span></a>
+            <a href="${prefix}setting.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></a>`;
+    }
+    const exitLink = document.querySelector('.sidebar-bottom .exit-nav');
+    if (exitLink) {
+        const prefix = window.location.pathname.includes('/User/') ? '../Admin/' : '';
+        exitLink.href = prefix + 'ManagerProject.html';
+    }
+}
+
 // Load sidebar project logo
 async function loadSidebarProject() {
     if (!projectId) return;

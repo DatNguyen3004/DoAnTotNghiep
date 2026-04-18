@@ -33,22 +33,7 @@ if (toggleBtn) {
     });
 }
 
-// Load topnav avatar — ảnh hoặc initials
-(function() {
-    const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
-    const img = document.getElementById('topnavAvatar');
-    if (!img) return;
-    if (cu.avatar_url) {
-        img.src = cu.avatar_url;
-    } else if (cu.username) {
-        img.style.display = 'none';
-        const span = document.createElement('span');
-        span.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif';
-        span.textContent = cu.username.substring(0,2).toUpperCase();
-        span.onclick = function() { window.location.href = '../User/Profile.html'; };
-        if (img.parentNode) img.parentNode.insertBefore(span, img.nextSibling);
-    }
-})();
+
 async function loadSidebarProject() {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}`, {
@@ -290,3 +275,4 @@ function showToast(message, type = 'success') {
 // ============= INIT =============
 loadSidebarProject();
 loadUsers();
+
