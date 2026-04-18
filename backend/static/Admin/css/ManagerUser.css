@@ -269,6 +269,8 @@ body {
 }
 
 .topnav-brand {
+    display: flex;
+    align-items: center;
     font-size: 20px;
     font-weight: 800;
     color: var(--primary-blue);
@@ -389,7 +391,9 @@ body {
 }
 
 .btn-add:hover {
-    opacity: 0.9;
+    background: #3A4F72;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
 }
 
 /* Table Area */

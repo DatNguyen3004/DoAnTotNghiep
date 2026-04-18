@@ -269,6 +269,8 @@ body {
 }
 
 .topnav-brand {
+    display: flex;
+    align-items: center;
     font-size: 20px;
     font-weight: 800;
     color: var(--primary-blue);
@@ -593,7 +595,7 @@ body {
     gap: 8px;
     padding: 0 20px;
     height: 40px;
-    background: var(--primary-navy);
+    background: var(--primary-blue);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -843,11 +845,13 @@ tbody tr:hover {
     gap: 6px;
     padding: 6px 14px;
     border-radius: 6px;
+    border: none;
     background: #F1F5F9;
 }
 
 .action-link:hover {
     background: var(--primary-blue);
+    cursor: pointer;
     color: #fff;
 }
 

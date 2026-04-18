@@ -21,6 +21,12 @@ if (sideProjectNameEl) {
     sideProjectNameEl.textContent = projectName;
 }
 
+// Load topnav avatar from localStorage
+const topnavAvatarEl = document.getElementById('topnavAvatar');
+if (topnavAvatarEl && currentUser.avatar_url) {
+    topnavAvatarEl.src = currentUser.avatar_url;
+}
+
 // ============= SIDEBAR TOGGLE =============
 const sidebar = document.getElementById('sidebar');
 const mainWrapper = document.getElementById('mainWrapper');

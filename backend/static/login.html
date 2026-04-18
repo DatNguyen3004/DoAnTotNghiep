@@ -61,7 +61,7 @@
         }
 
         .logo-container {
-            margin-bottom: 12px;
+            margin: 20px 0 20px 0;
         }
 
         /* Adjusted SVG to match the image's bounding box / frame design */
@@ -223,7 +223,7 @@
         }
 
         .forgot-link {
-            color: var(--primary-color);
+            color: #2563eb;
             text-decoration: none;
             font-weight: 600;
             transition: var(--transition);
@@ -237,7 +237,7 @@
         .btn-submit {
             width: 100%;
             height: 44px;
-            background-color: var(--primary-color);
+            background-color: #2563eb;
             color: white;
             border: none;
             border-radius: 8px;
@@ -352,22 +352,7 @@
         <div class="login-card">
             <div class="login-header">
                 <div class="logo-container">
-                    <!-- SVG logo representing multiple labeling frames & data points matching NuLabel references -->
-                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Background Frames -->
-                        <path d="M22 46L46 46L46 22L22 22L22 46Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
-                        <path d="M26 50L50 50L50 26L26 26L26 50Z" fill="#F1F5F9" stroke="#64748B" stroke-width="1.5"/>
-                        <path d="M18 42L42 42L42 18L18 18L18 42Z" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2"/>
-                        
-                        <!-- Network / Nodes inside front frame -->
-                        <path d="M24 24L36 28M36 28L32 36M36 28L40 22M24 24L22 34M32 36L40 38" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="24" cy="24" r="2.5" fill="#1D4ED8"/>
-                        <circle cx="36" cy="28" r="2.5" fill="#1D4ED8"/>
-                        <circle cx="32" cy="36" r="2.5" fill="#1D4ED8"/>
-                        <circle cx="40" cy="22" r="2.5" fill="#1D4ED8"/>
-                        <circle cx="22" cy="34" r="2.5" fill="#1D4ED8"/>
-                        <circle cx="40" cy="38" r="2.5" fill="#1D4ED8"/>
-                    </svg>
+                    <img style="justify-content: center;" src="../static/image/NuLabel-removebg-preview.png" width="50" height="40">
                 </div>
                 <h1 class="login-title">NuLabel</h1>
                 <p class="login-subtitle">Đăng nhập để tiếp tục quản lý nhãn dữ liệu của bạn</p>

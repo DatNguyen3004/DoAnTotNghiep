@@ -33,7 +33,22 @@ if (toggleBtn) {
     });
 }
 
-// ============= LOAD SIDEBAR PROJECT INFO =============
+// Load topnav avatar — ảnh hoặc initials
+(function() {
+    const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
+    const img = document.getElementById('topnavAvatar');
+    if (!img) return;
+    if (cu.avatar_url) {
+        img.src = cu.avatar_url;
+    } else if (cu.username) {
+        img.style.display = 'none';
+        const span = document.createElement('span');
+        span.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif';
+        span.textContent = cu.username.substring(0,2).toUpperCase();
+        span.onclick = function() { window.location.href = '../User/Profile.html'; };
+        if (img.parentNode) img.parentNode.insertBefore(span, img.nextSibling);
+    }
+})();
 async function loadSidebarProject() {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}`, {
@@ -126,13 +141,17 @@ function renderUsers(users) {
         const createdAt = user.created_at
             ? new Date(user.created_at).toLocaleDateString('vi-VN')
             : '—';
+        // Avatar: ảnh hoặc initials
+        const avatarHtml = user.avatar_url
+            ? `<img src="${user.avatar_url}" alt="${name}" class="user-avatar" style="object-fit:cover;border-radius:50%;width:36px;height:36px;flex-shrink:0;">`
+            : `<div class="user-avatar">${initials}</div>`;
 
         return `
             <tr>
                 <td style="text-align:center;">${idx + 1}</td>
                 <td>
                     <div class="user-info">
-                        <div class="user-avatar">${initials}</div>
+                        ${avatarHtml}
                         <div>
                             <div class="user-name">${name}</div>
                             ${user.full_name ? `<div style="font-size:12px;color:#94A3B8;margin-top:2px">${user.full_name}</div>` : ''}
@@ -176,70 +195,11 @@ if (searchInput) {
     });
 }
 
-// ============= VIEW / EDIT USER MODAL =============
+// ============= VIEW USER → Profile page =============
 function viewUser(userId) {
-    const user = allUsers.find(u => u.id === userId);
-    if (!user) return;
-
-    const name = user.username || 'N/A';
-    const initials = name.substring(0, 2).toUpperCase();
-
-    document.getElementById('viewUserAvatar').textContent = initials;
-    document.getElementById('viewUserTitle').textContent = name;
-    document.getElementById('viewUserSubtitle').textContent = user.full_name || 'Chỉnh sửa thông tin người dùng';
-
-    document.getElementById('editUserId').value = user.id;
-    document.getElementById('editUsername').value = user.username || '';
-    document.getElementById('editFullName').value = user.full_name || '';
-    document.getElementById('editEmail').value = user.email || '';
-
-    document.getElementById('viewUserModal').classList.add('active');
+    // Admin xem user → Profile.html với readonly=true
+    window.location.href = '../User/Profile.html?userId=' + userId + '&readonly=true';
 }
-
-function closeViewModal() {
-    document.getElementById('viewUserModal').classList.remove('active');
-}
-
-document.getElementById('viewUserModal').addEventListener('click', function (e) {
-    if (e.target === this) closeViewModal();
-});
-
-document.getElementById('editUserForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-
-    const userId = document.getElementById('editUserId').value;
-    const full_name = document.getElementById('editFullName').value.trim();
-    const email = document.getElementById('editEmail').value.trim();
-
-    const btn = document.getElementById('btnSubmitEdit');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
-
-    try {
-        const res = await fetch(`${BASE_URL}/users/${userId}`, {
-            method: 'PUT',
-            headers: {
-                Authorization: `Bearer ${getToken()}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ full_name, email })
-        });
-
-        if (res.ok) {
-            showToast('Đã cập nhật thông tin thành công!', 'success');
-            closeViewModal();
-            loadUsers();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi cập nhật thông tin', 'error');
-        }
-    } catch (e) {
-        showToast('Lỗi kết nối server', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi';
-    }
-});
 
 // ============= DELETE USER =============
 async function deleteUser(userId, name) {

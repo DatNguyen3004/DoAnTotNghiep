@@ -4,21 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thông tin cá nhân - NuLabel</title>
+    <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../Admin/css/dashboard.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/setting.css">
     <style>
         .profile-card { display:flex; gap:32px; background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:32px; max-width:800px; }
-        .avatar-section { width:180px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
-        .avatar-preview-container { width:110px; height:110px; border-radius:50%; overflow:hidden; background:#EEF2FF; display:flex; align-items:center; justify-content:center; }
+        .avatar-section { width:200px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
+        .avatar-preview-container { width:120px; height:120px; border-radius:50%; overflow:hidden; background:#EEF2FF; display:flex; align-items:center; justify-content:center; }
         .avatar-preview { width:100%; height:100%; object-fit:cover; }
-        .btn-change-photo { padding:8px 16px; background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:Inter,sans-serif; }
+        .btn-change-photo { padding:8px 16px; background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:Inter,sans-serif; transition:all 0.2s; }
         .btn-change-photo:hover { background:#E2E8F0; }
         .avatar-hint { font-size:11px; color:#94A3B8; text-align:center; line-height:1.4; }
         .form-section { flex:1; }
         .form-grid { display:flex; flex-direction:column; gap:16px; }
-        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
         .form-group { display:flex; flex-direction:column; gap:6px; }
+        .form-group.half { display:inline-flex; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
         .form-group label { font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
         .form-group input, .form-group select, .form-group textarea { padding:10px 14px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; font-family:Inter,sans-serif; color:#1E293B; outline:none; transition:border 0.2s; background:#fff; width:100%; box-sizing:border-box; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#2563EB; }
@@ -34,6 +38,7 @@
         .profile-content { padding:32px; }
     </style>
 </head>
+
 <body>
 
 <main class="main-wrapper" id="mainWrapper">
@@ -41,18 +46,20 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-top">
             <div class="sidebar-badge" id="sideProjectBadge">
-                <img id="sideProjectLogo" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-                <div id="sideProjectText" style="display:flex;flex-direction:column;align-items:center;">
-                    <span class="badge-t1">PROJECT</span><span class="badge-t2">NULABEL</span>
+                <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
+                    <span class="badge-t1">PROJECT</span>
+                    <span class="badge-t2">NULABEL</span>
                 </div>
             </div>
             <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
                 <i class="fa-solid fa-chevron-left"></i>
             </div>
         </div>
-        <nav class="sidebar-nav" style="padding-top:24px;">
-            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom:16px;padding:0 16px;">Dashboard</h2>
+        <nav class="sidebar-nav" style="padding-top: 24px;">
+            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Trang chủ</h2>
             <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
+            <a href="ManagerUser.html" class="nav-item"><i class="fa-solid fa-users"></i><span>Quản lý người dùng</span></a>
             <a href="setting.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></a>
         </nav>
         <div class="sidebar-bottom">
@@ -67,8 +74,10 @@
         <div class="topnav-right">
             <i class="fa-regular fa-bell topnav-icon"></i>
             <i class="fa-regular fa-circle-question topnav-icon"></i>
-            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
-                alt="Avatar" class="avatar" id="topnavAvatar" style="cursor:pointer" onclick="window.location.href='Profile.html'">
+            <a href="Profile.html">
+                <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
+                    alt="Avatar" class="avatar" id="topnavAvatar">
+            </a>
         </div>
     </header>
 
@@ -80,9 +89,9 @@
 
         <div class="profile-card">
             <div class="avatar-section">
-                <h3 style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px">Ảnh đại diện</h3>
+                <h3>Ảnh đại diện</h3>
                 <div class="avatar-preview-container">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=user&style=transparent" alt="Avatar" class="avatar-preview">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Khang&style=transparent" alt="Avatar" class="avatar-preview">
                 </div>
                 <button class="btn-change-photo">Thay đổi ảnh</button>
                 <p class="avatar-hint">Khuyến nghị file .jpg hoặc .png, kích thước tối thiểu 400×400px.</p>
