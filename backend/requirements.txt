@@ -9,3 +9,5 @@ ultralytics==8.2.0
 opencv-python==4.9.0.80
 aiofiles==23.2.1
 aiosmtplib==3.0.1
+httpx==0.27.0
+python-dotenv==1.0.1
