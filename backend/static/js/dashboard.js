@@ -795,7 +795,8 @@ async function showAdminTaskDetail(taskId) {
     const s = task.status;
     const statusColor = s === 'approved' ? '#10B981' : s === 'rejected' ? '#EF4444' : '#7C3AED';
     const statusLabel = {
-        approved: 'Đã kiểm tra — không có lỗi',
+        approved: 'Đã phê duyệt',
+        reviewed: 'Đã kiểm tra',
         rejected: 'Có lỗi',
         under_review: 'Đang kiểm tra',
         submitted: 'Chờ kiểm tra',
@@ -833,7 +834,7 @@ async function showAdminTaskDetail(taskId) {
                 <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
                 <div style="font-size:12px;color:#16A34A;margin-top:2px">Người kiểm tra đã xác nhận bài làm đúng</div>
             </div>` : ''}
-            ${task.feedback ? `<div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
+            ${task.feedback && s !== 'reviewed' ? `<div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
                 <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ người kiểm tra</div>
                 <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
             </div>` : ''}

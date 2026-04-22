@@ -34,6 +34,7 @@ class TaskOut(BaseModel):
     updated_at: Optional[datetime] = None
     # Enriched fields (populated by router)
     scene_name: Optional[str] = None
+    project_name: Optional[str] = None
     scene_description: Optional[str] = None
     frame_count: int = 0
     annotated_frames: int = 0

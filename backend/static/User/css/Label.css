@@ -33,13 +33,16 @@
         /* Navbar */
         .navbar {
             height: 72px;
-            background: var(--bg-nav);
+            background: #ffffff;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 40px;
             flex-shrink: 0;
+            position: relative;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
 
         .nav-left {

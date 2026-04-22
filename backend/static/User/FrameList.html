@@ -60,33 +60,15 @@
 <body>
 <main class="main-wrapper" id="mainWrapper">
 
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-top">
-            <div class="sidebar-badge" id="sideProjectBadge">
-                <img id="sideProjectLogo" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-                <div id="sideProjectText" style="display:flex;flex-direction:column;align-items:center;">
-                    <span class="badge-t1">PROJECT</span><span class="badge-t2">NULABEL</span>
-                </div>
-            </div>
-            <div class="btn-toggle-sidebar" id="toggleSidebar"><i class="fa-solid fa-chevron-left"></i></div>
-        </div>
-        <nav class="sidebar-nav" style="padding-top:24px;">
-            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom:16px;padding:0 16px;">Trang chủ</h2>
-            <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
-            <a href="setting.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></a>
-        </nav>
-        <div class="sidebar-bottom">
-            <a href="ManagerProject.html" class="nav-item exit-nav"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Thoát dự án</span></a>
-        </div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <header class="topnav">
         <div class="topnav-brand">
-            <img src="../static/image/NuLabel-removebg-preview.png" width="40" height="30">
+            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
             <span style="padding-left: 10px;">NuLabel</span>
         </div>
         <div class="topnav-right">
-            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0" alt="Avatar" class="avatar">
+            <img src="" alt="Avatar" class="avatar">
         </div>
     </header>
 
@@ -124,7 +106,6 @@ const taskId = params.get('taskId');
 const mode = params.get('mode') || 'fix';
 if (!taskId) window.location.href = 'dashboard.html';
 
-const projectId = sessionStorage.getItem('projectId');
 const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 const storageKey = 'framelist_done_' + mode + '_' + taskId;
 const reviewKey = 'framelist_review_' + taskId;
@@ -136,36 +117,45 @@ try { reviewStates = JSON.parse(localStorage.getItem(reviewKey) || '{}'); } catc
 
 let task = null, frames = [], frameEntries = [];
 
-document.getElementById('sideProjectName').textContent = projectName;
-document.getElementById('toggleSidebar').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-    document.getElementById('mainWrapper').classList.toggle('expanded');
-});
-
-async function loadSidebarProject() {
-    if (!projectId) return;
-    try {
-        const res = await fetch(BASE_URL + '/projects/' + projectId, { headers: { Authorization: 'Bearer ' + getToken() } });
-        if (!res.ok) return;
-        const p = await res.json();
-        if (p.cover_image) {
-            const logo = document.getElementById('sideProjectLogo');
-            logo.src = p.cover_image; logo.style.display = 'block';
-            document.getElementById('sideProjectText').style.display = 'none';
-        }
-        document.getElementById('sideProjectName').textContent = p.name || projectName;
-    } catch(e) {}
+// Nếu chưa có projectId, fetch task để lấy project_id rồi inject sidebar
+async function ensureSidebar() {
+    if (!sessionStorage.getItem('projectId')) {
+        try {
+            const r = await fetch(BASE_URL + '/tasks/' + taskId, { headers: { Authorization: 'Bearer ' + getToken() } });
+            if (r.ok) {
+                const t = await r.json();
+                if (t.project_id) sessionStorage.setItem('projectId', String(t.project_id));
+            }
+        } catch(e) {}
+    }
+    // Load sidebar.js dynamically sau khi projectId đã có
+    if (!document.getElementById('_sidebarScript')) {
+        const s = document.createElement('script');
+        s.id = '_sidebarScript';
+        s.src = '../js/sidebar.js';
+        document.body.appendChild(s);
+    }
 }
 
+ensureSidebar().then(function() { init(); });
+
 async function init() {
-    loadSidebarProject();
     try {
         const r1 = await fetch(BASE_URL + '/tasks/' + taskId, { headers: { Authorization: 'Bearer ' + getToken() } });
         if (!r1.ok) throw new Error();
         task = await r1.json();
+
+        // Đảm bảo projectId có trong sessionStorage để sidebar hoạt động
+        if (task.project_id && !sessionStorage.getItem('projectId')) {
+            sessionStorage.setItem('projectId', String(task.project_id));
+            if (task.scene_name) sessionStorage.setItem('projectName', task.scene_name);
+        }
+
         const r2 = await fetch(BASE_URL + '/scenes/' + task.scene_id + '/frames', { headers: { Authorization: 'Bearer ' + getToken() } });
         if (!r2.ok) throw new Error();
         frames = await r2.json();
+        // Đánh dấu đang trong chế độ FrameList để disable nút tổng thể ở giao diện cũ
+        localStorage.setItem('framelist_mode_' + taskId, mode);
         renderPage();
     } catch(e) {
         document.getElementById('frameGrid').innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation" style="color:#EF4444"></i><h3>Không thể tải dữ liệu</h3></div>';
@@ -340,6 +330,7 @@ async function _doFrameListSubmit(autoApprove) {
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi nộp bài');
             localStorage.removeItem(storageKey);
             localStorage.removeItem(reviewKey);
+            localStorage.removeItem('framelist_mode_' + taskId);
             showToast('Đã nộp lại — người kiểm tra sẽ xem xét', 'success');
         } else {
             const wrongFrames = frameEntries.filter(function(e) { return reviewStates[e.frameNum] === 'wrong'; });
@@ -356,6 +347,7 @@ async function _doFrameListSubmit(autoApprove) {
                 if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
                 localStorage.removeItem(storageKey);
                 localStorage.removeItem(reviewKey);
+                localStorage.removeItem('framelist_mode_' + taskId);
                 showToast('Đã gửi phản hồi — ' + wrongFrames.length + ' khung hình cần sửa lại', 'success');
             } else {
                 const reviewerTime = parseInt(localStorage.getItem('review_timer_' + taskId) || '0');
@@ -367,6 +359,7 @@ async function _doFrameListSubmit(autoApprove) {
                 if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
                 localStorage.removeItem(storageKey);
                 localStorage.removeItem(reviewKey);
+                localStorage.removeItem('framelist_mode_' + taskId);
                 showToast(autoApprove ? 'Tất cả khung hình đều đúng — đã xác nhận!' : 'Đã xác nhận — nhiệm vụ chờ admin phê duyệt', 'success');
             }
         }

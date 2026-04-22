@@ -8,3 +8,4 @@ python-multipart==0.0.9
 ultralytics==8.2.0
 opencv-python==4.9.0.80
 aiofiles==23.2.1
+aiosmtplib==3.0.1

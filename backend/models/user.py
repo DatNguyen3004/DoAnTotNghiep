@@ -16,5 +16,7 @@ class User(Base):
     gender        = Column(Unicode(10), nullable=True)
     birth_date    = Column(Unicode(20), nullable=True)
     avatar_url    = Column(Unicode(500), nullable=True)
+    reset_token   = Column(Unicode(255), nullable=True)
+    reset_expires = Column(DateTime, nullable=True)
     created_at    = Column(DateTime, server_default=func.now())
     is_active     = Column(Boolean, default=True)

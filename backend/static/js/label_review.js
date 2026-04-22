@@ -69,6 +69,23 @@ async function init() {
     setupNav();
     document.getElementById('btnDaKiemTra').addEventListener('click', submitReview);
     document.getElementById('frameFeedback').addEventListener('input', saveFeedbackToState);
+    // Lưu feedback vào framelist_review khi blur (reviewer nhập xong rồi chuyển trang)
+    document.getElementById('frameFeedback').addEventListener('blur', function() {
+        saveFeedbackToState();
+        // Sync vào framelist_review nếu đến từ FrameList
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        const frameParam = new URLSearchParams(window.location.search).get('frame');
+        if (returnTo === 'FrameList' && frameParam !== null) {
+            try {
+                const frameNum = parseInt(frameParam) + 1;
+                const reviewKey = `framelist_review_${taskId}`;
+                const rs = JSON.parse(localStorage.getItem(reviewKey) || '{}');
+                const fb = document.getElementById('frameFeedback').value.trim();
+                if (fb) rs['fb_' + frameNum] = fb;
+                localStorage.setItem(reviewKey, JSON.stringify(rs));
+            } catch(e) {}
+        }
+    });
 }
 
 function startTimer() {
@@ -121,11 +138,28 @@ async function loadTask() {
             if (btn) btn.style.display = 'none';
         }
 
-        const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
+        // Update user avatar — chỉ set initials nếu chưa có ảnh
         const avatarEl = document.getElementById('userAvatar');
-        if (avatarEl) avatarEl.textContent = initials;
+        if (avatarEl && avatarEl.tagName === 'DIV' && !currentUser.avatar_url) {
+            const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
+            avatarEl.textContent = initials;
+        }
 
         await loadFrames(task.scene_id);
+
+        // Nếu đang ở chế độ kiểm tra từng frame (returnTo=FrameList)
+        // → disable nút "Đã kiểm tra" tổng thể để buộc dùng FrameList
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        const framelistActive = localStorage.getItem(`framelist_mode_${taskId}`) === 'review';
+        if (returnTo === 'FrameList' || framelistActive) {
+            const btn = document.getElementById('btnDaKiemTra');
+            if (btn) {
+                btn.disabled = true;
+                btn.title = 'Vui lòng đánh giá từng khung hình qua danh sách rồi xác nhận';
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            }
+        }
     } catch (e) {
         showToast('Không thể tải nhiệm vụ', 'error');
     }
@@ -199,6 +233,10 @@ async function goToFrame(idx) {
     saveFeedbackToState();
     currentFrameIdx = idx;
     selectedAnnId = null;
+    // Reset pan khi chuyển frame, giữ nguyên zoom
+    panOffset = { x: 0, y: 0 };
+    const container = document.querySelector('.canvas-container');
+    if (container) container.style.transform = `translate(0px, 0px) scale(${zoomScale})`;
     document.getElementById('pageNum').textContent = idx + 1;
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
@@ -434,6 +472,7 @@ function markFrame(status) {
             rs[frameNum] = status; // 'correct' hoặc 'wrong'
             const fb = document.getElementById('frameFeedback').value.trim();
             if (fb) rs['fb_' + frameNum] = fb;
+            else delete rs['fb_' + frameNum]; // Xóa feedback cũ nếu để trống
             localStorage.setItem(reviewKey, JSON.stringify(rs));
         } catch(e) {}
     }
@@ -540,8 +579,50 @@ function zoomOut() {
 }
 function applyZoom() {
     const container = document.querySelector('.canvas-container');
-    if (container) container.style.transform = `scale(${zoomScale})`;
+    if (container) container.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`;
     document.getElementById('zoomLevel').textContent = `${Math.round(zoomScale * 100)}%`;
+}
+
+// ============= PAN =============
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+let panOffset = { x: 0, y: 0 };
+
+function togglePanReview() {
+    // Không làm gì — pan luôn hoạt động bằng nhấn giữ chuột
+}
+
+function initPanReview() {
+    const canvas = document.querySelector('.center-canvas');
+    if (!canvas) return;
+    canvas.addEventListener('mousedown', _panStart, { passive: false });
+    canvas.addEventListener('mousemove', _panMove, { passive: false });
+    canvas.addEventListener('mouseup', _panEnd);
+    canvas.addEventListener('mouseleave', _panEnd);
+    canvas.style.cursor = 'grab';
+}
+
+function _panStart(e) {
+    e.preventDefault();
+    isPanning = true;
+    panStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+    e.currentTarget.style.cursor = 'grabbing';
+    e.currentTarget.style.userSelect = 'none';
+}
+
+function _panMove(e) {
+    if (!isPanning) return;
+    e.preventDefault();
+    panOffset.x = e.clientX - panStart.x;
+    panOffset.y = e.clientY - panStart.y;
+    const container = document.querySelector('.canvas-container');
+    if (container) container.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`;
+}
+
+function _panEnd(e) {
+    isPanning = false;
+    e.currentTarget.style.cursor = 'grab';
+    e.currentTarget.style.userSelect = '';
 }
 
 // ============= TOAST =============
@@ -560,4 +641,5 @@ _style.textContent = `@keyframes slideIn{from{transform:translateX(100px);opacit
 document.head.appendChild(_style);
 
 // ============= START =============
+document.addEventListener('DOMContentLoaded', () => initPanReview());
 init();

@@ -33,6 +33,9 @@ def get_model():
             return None
         _model = YOLO(weights_path)
         _model_loaded = True
+        # Warm-up trên GPU nếu có
+        import torch
+        _model.to('cuda' if torch.cuda.is_available() else 'cpu')
         _model_error = None
         return _model
     except Exception as e:

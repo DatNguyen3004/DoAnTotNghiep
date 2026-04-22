@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/setting.css">
     <style>
-        .profile-card { display:flex; gap:32px; background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:32px; max-width:800px; }
+        .profile-card { display:flex; gap:32px; background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:32px; max-width:900px; width:100%; }
         .avatar-section { width:200px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
         .avatar-preview-container { width:120px; height:120px; border-radius:50%; overflow:hidden; background:#EEF2FF; display:flex; align-items:center; justify-content:center; }
         .avatar-preview { width:100%; height:100%; object-fit:cover; }
@@ -28,14 +28,18 @@
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#2563EB; }
         .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled { background:#F8FAFC; color:#94A3B8; cursor:not-allowed; }
         .form-footer { display:flex; gap:12px; justify-content:flex-end; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid #E2E8F0; }
-        .btn-back { height:40px; padding:0 20px; background:#F1F5F9; color:#475569; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; text-decoration:none; display:flex; align-items:center; gap:8px; }
+        .btn-back { height:40px; padding:0 20px; background:#F1F5F9; color:#475569; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; text-decoration:none; display:inline-flex; align-items:center; gap:8px; line-height:1; box-sizing:border-box; }
         .btn-back:hover { background:#E2E8F0; }
-        .btn-save { height:40px; padding:0 24px; background:#2563EB; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; display:flex; align-items:center; gap:8px; }
-        .btn-save:hover { background:#1D4ED8; }
-        .page-header { margin-bottom:24px; }
+        .btn-save { height:40px; padding:0 24px; background:#2563EB; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; display:inline-flex; align-items:center; gap:8px; line-height:1; box-sizing:border-box; }
+        .btn-save:hover {
+            background: #3A4F72;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
+        }
+        .page-header { margin-bottom:24px; max-width:900px; width:100%; }
         .page-header h1 { font-size:22px; font-weight:800; color:#1E293B; }
         .page-header p { font-size:13px; color:#64748B; margin-top:4px; }
-        .profile-content { padding:32px; }
+        .profile-content { padding:32px; display:flex; flex-direction:column; align-items:center; }
     </style>
 </head>
 
@@ -43,40 +47,16 @@
 
 <main class="main-wrapper" id="mainWrapper">
 
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-top">
-            <div class="sidebar-badge" id="sideProjectBadge">
-                <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
-                <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
-                    <span class="badge-t1">PROJECT</span>
-                    <span class="badge-t2">NULABEL</span>
-                </div>
-            </div>
-            <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
-                <i class="fa-solid fa-chevron-left"></i>
-            </div>
-        </div>
-        <nav class="sidebar-nav" style="padding-top: 24px;">
-            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Trang chủ</h2>
-            <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
-            <a href="ManagerUser.html" class="nav-item"><i class="fa-solid fa-users"></i><span>Quản lý người dùng</span></a>
-            <a href="setting.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></a>
-        </nav>
-        <div class="sidebar-bottom">
-            <a href="ManagerProject.html" class="nav-item exit-nav">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Thoát dự án</span>
-            </a>
-        </div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <header class="topnav">
-        <div class="topnav-brand">NuLabel</div>
+        <div class="topnav-brand">
+            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
+        <span style="padding-left: 10px;">NuLabel</span>
+        </div>
         <div class="topnav-right">
-            <i class="fa-regular fa-bell topnav-icon"></i>
-            <i class="fa-regular fa-circle-question topnav-icon"></i>
             <a href="Profile.html">
-                <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
-                    alt="Avatar" class="avatar" id="topnavAvatar">
+                <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
             </a>
         </div>
     </header>
@@ -131,6 +111,7 @@
                 </div>
                 <div class="form-footer">
                     <a href="javascript:history.back()" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+                    <button type="button" onclick="document.getElementById('modalChangePass').style.display='flex'" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:8px"><i class="fa-solid fa-key"></i> Đổi mật khẩu</button>
                     <button class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi</button>
                 </div>
             </div>
@@ -139,6 +120,108 @@
 
 </main>
 
+<script src="../js/sidebar.js"></script>
+<script src="../js/avatar-sync.js"></script>
 <script src="../js/profile.js"></script>
+
+<!-- Modal đổi mật khẩu -->
+<div id="modalChangePass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;font-family:Inter,sans-serif">
+    <div style="background:#fff;border-radius:14px;padding:28px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                <i class="fa-solid fa-key" style="color:#2563EB"></i> Đổi mật khẩu
+            </div>
+            <i class="fa-solid fa-xmark" onclick="closeChangePass()" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+        </div>
+        <div id="changePassError" style="display:none;margin-bottom:14px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;color:#DC2626;align-items:center;gap:8px">
+            <i class="fa-solid fa-circle-xmark"></i><span id="changePassErrorMsg"></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật khẩu hiện tại</label>
+                <input type="password" id="cpOld" placeholder="Nhập mật khẩu hiện tại" autocomplete="current-password"
+                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật khẩu mới</label>
+                <input type="password" id="cpNew" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"
+                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Xác nhận mật khẩu mới</label>
+                <input type="password" id="cpConfirm" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password"
+                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+            <button onclick="closeChangePass()" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Hủy</button>
+            <button onclick="submitChangePass()" id="btnChangePass" style="height:40px;padding:0 24px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px">
+                <i class="fa-solid fa-check"></i> Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeChangePass() {
+    document.getElementById('modalChangePass').style.display = 'none';
+    document.getElementById('cpOld').value = '';
+    document.getElementById('cpNew').value = '';
+    document.getElementById('cpConfirm').value = '';
+    document.getElementById('changePassError').style.display = 'none';
+}
+
+function showChangePassError(msg) {
+    const el = document.getElementById('changePassError');
+    document.getElementById('changePassErrorMsg').textContent = msg;
+    el.style.display = 'flex';
+}
+
+async function submitChangePass() {
+    const oldPass = document.getElementById('cpOld').value;
+    const newPass = document.getElementById('cpNew').value;
+    const confirm = document.getElementById('cpConfirm').value;
+
+    if (!oldPass) return showChangePassError('Vui lòng nhập mật khẩu hiện tại');
+    if (!newPass || newPass.length < 6) return showChangePassError('Mật khẩu mới phải có ít nhất 6 ký tự');
+    if (newPass !== confirm) return showChangePassError('Mật khẩu xác nhận không khớp');
+
+    const btn = document.getElementById('btnChangePass');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
+
+        const verifyRes = await fetch('http://localhost:8000/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: cu.username, password: oldPass })
+        });
+        if (!verifyRes.ok) return showChangePassError('Mật khẩu hiện tại không đúng');
+
+        const res = await fetch('http://localhost:8000/api/users/' + cu.id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ new_password: newPass })
+        });
+        if (!res.ok) throw new Error();
+
+        closeChangePass();
+        if (typeof showToast === 'function') showToast('Đổi mật khẩu thành công', 'success');
+        else alert('Đổi mật khẩu thành công!');
+    } catch(e) {
+        showChangePassError('Có lỗi xảy ra, vui lòng thử lại');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Xác nhận';
+    }
+}
+
+document.getElementById('modalChangePass').addEventListener('click', function(e) {
+    if (e.target === this) closeChangePass();
+});
+</script>
 </body>
 </html>

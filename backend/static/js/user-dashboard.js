@@ -141,7 +141,7 @@ function getMyTaskAction(task) {
     if (s === 'under_review')
         return `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     if (s === 'rejected')
-        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
+        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link" onclick="sessionStorage.setItem('projectId',${task.project_id||'null'})"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
     if (s === 'reviewed')
         return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>';
     if (s === 'approved')
@@ -252,7 +252,7 @@ function renderReviewTasks(tasks) {
             <td>${getStatusBadge(task.status)}</td>
             <td>${canReview
                 ? (task.feedback
-                    ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
+                    ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id||'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
                     : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`)
                 : `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`
             }</td>        </tr>`;

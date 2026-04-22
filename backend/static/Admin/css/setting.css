@@ -165,13 +165,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 32px;
 }
 
 .btn-save:hover {
-    background: #1D4ED8;
+    background: #3A4F72;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
 }
 
 .btn-reset {
@@ -188,7 +187,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 32px;
 }
 
 .btn-reset:hover {

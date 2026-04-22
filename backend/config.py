@@ -22,3 +22,10 @@ NUSCENES_META = os.path.join(NUSCENES_ROOT, "v1.0-mini")
 
 # AI Model
 YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS", "weights/yolov8n.pt")
+
+# Email (Gmail SMTP)
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = os.getenv("SMTP_USER", "datnguyen1abc@gmail.com")
+SMTP_PASS = os.getenv("SMTP_PASS", "sphc fdsy habv ntpj")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000")

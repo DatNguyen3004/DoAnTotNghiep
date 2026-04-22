@@ -1324,9 +1324,9 @@ tbody tr:hover {
 }
 
 .btn-primary:hover {
-    background: #1D4ED8;
+    background: #3A4F72;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
 }
 
 .btn-primary:disabled {

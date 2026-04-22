@@ -20,9 +20,12 @@ router = APIRouter()
 VALID_STATUSES = {"pending", "in_progress", "submitted", "under_review", "reviewed", "approved", "rejected"}
 
 
+from models.project import Project
+
 def _enrich_task(task: Task, db: Session) -> dict:
     """Enrich task with scene info, user info, and annotation count."""
     scene = db.query(Scene).filter(Scene.id == task.scene_id).first()
+    project = db.query(Project).filter(Project.id == task.project_id).first()
 
     # Count distinct frames that have annotations
     annotated_frames = (
@@ -47,6 +50,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
         created_at=task.created_at,
         updated_at=task.updated_at,
         scene_name=scene.name or scene.scene_token if scene else None,
+        project_name=project.name if project else None,
         scene_description=scene.description if scene else None,
         frame_count=scene.frame_count if scene else 0,
         annotated_frames=annotated_frames,

@@ -83,7 +83,7 @@
     <!-- Navbar -->
     <header class="navbar">
         <div class="nav-left">
-            <img src="../static/image/NuLabel-removebg-preview.png" width="40" height="30">
+            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
             <div class="nav-brand">NuLabel</div>
             <span style="font-size:12px;color:#64748B;margin-left:12px;font-weight:600">
             </span>
@@ -119,6 +119,9 @@
                     <span id="zoomLevel">100%</span>
                     <i class="fa-solid fa-magnifying-glass-plus" onclick="zoomIn()" style="cursor:pointer"></i>
                 </div>
+                <i class="fa-regular fa-hand" id="btnPanReview" title="Kéo ảnh"
+                   onclick="togglePanReview()"
+                   style="cursor:pointer;font-size:16px;color:#64748B;padding:4px 6px;border-radius:6px;transition:all 0.2s"></i>
             </div>
         </div>
     </div>
@@ -133,7 +136,7 @@
         </aside>
 
         <!-- Center Canvas (read-only) -->
-        <main class="center-canvas">
+        <main class="center-canvas" style="cursor:grab">
             <div class="canvas-container">
                 <img src="" alt="Khung hình" id="mainImage" style="display:none">
             </div>
@@ -188,7 +191,7 @@
 
     <script src="../js/confirm.js"></script>
     <script src="../js/avatar-sync.js"></script>
-    <script src="../js/label_review.js?v=14"></script>
+    <script src="../js/label_review.js?v=16"></script>
     <script>
         (function() {
             const p = new URLSearchParams(window.location.search);

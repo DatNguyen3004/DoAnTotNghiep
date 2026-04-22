@@ -16,54 +16,16 @@
 
     <!-- Main Content Wrapper -->
     <div class="main-wrapper" id="mainWrapper">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-top">
-                <div class="sidebar-badge" id="sideProjectBadge">
-                    <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
-                    <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
-                        <span class="badge-t1">PROJECT</span>
-                        <span class="badge-t2">NULABEL</span>
-                    </div>
-                </div>
-                <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </div>
-            </div>
-
-            <nav class="sidebar-nav" style="padding-top: 24px;">
-                <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Trang chủ
-                </h2>
-                <a href="dashboard.html" class="nav-item" id="nav-dashboard">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Trang chủ</span>
-                </a>
-                <a href="ManagerUser.html" class="nav-item active" id="nav-users">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Quản lý người dùng</span>
-                </a>
-                <a href="setting.html" class="nav-item" id="nav-settings">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Cài đặt</span>
-                </a>
-            </nav>
-
-            <div class="sidebar-bottom">
-                <a href="ManagerProject.html" class="nav-item exit-nav">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    <span>Thoát dự án</span>
-                </a>
-            </div>
-        </aside>
+        <div id="sidebar-container"></div>
 
         <header class="topnav">
             <div class="topnav-brand">
-                <img src="../static/image/NuLabel-removebg-preview.png" width="40" height="30">
+                <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
                 <span style="padding-left: 10px;">NuLabel</span>
             </div>
             <div class="topnav-right">
                 <a href="../User/Profile.html">
-                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
-                        alt="Avatar" class="avatar" id="topnavAvatar">
+                    <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
                 </a>
             </div>
         </header>
@@ -180,6 +142,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="closeViewModal()">Hủy</button>
+                    <button type="button" class="btn-cancel" id="btnResetPass" onclick="resetUserPassword()" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">
+                        <i class="fa-solid fa-key"></i> Reset mật khẩu
+                    </button>
                     <button type="submit" class="btn-primary" id="btnSubmitEdit">
                         <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi
                     </button>
@@ -225,6 +190,7 @@
     </div>
 
     <script src="../js/confirm.js"></script>
+    <script src="../js/sidebar.js"></script>
     <script src="../js/avatar-sync.js"></script>
     <script src="../js/ManagerUser.js?v=4"></script>
 </body>

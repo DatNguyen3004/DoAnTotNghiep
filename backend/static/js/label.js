@@ -112,12 +112,28 @@ async function loadTask() {
         if (!res.ok) throw new Error();
         task = await res.json();
 
-        // Update user avatar initials
-        const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
-        const avatarEl = document.querySelector('.user-avatar');
-        if (avatarEl) avatarEl.textContent = initials;
+        // Update user avatar — chỉ set initials nếu chưa có ảnh (avatar-sync.js đã xử lý ảnh)
+        const avatarEl = document.getElementById('userAvatar');
+        if (avatarEl && avatarEl.tagName === 'DIV' && !currentUser.avatar_url) {
+            const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
+            avatarEl.textContent = initials;
+        }
 
         await loadFrames(task.scene_id);
+
+        // Nếu task đang bị rejected (gán lại) → luôn disable nút Nộp, buộc dùng FrameList
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        const framelistActive = localStorage.getItem(`framelist_mode_${taskId}`) === 'fix';
+        if (task.status === 'rejected' || framelistActive) {
+            const submitBtn = document.getElementById('btnNop') || document.querySelector('.btn-phe-duyet');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.title = 'Vui lòng sửa từng khung hình qua danh sách khung hình rồi nộp lại';
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+                submitBtn.style.pointerEvents = 'none';
+            }
+        }
 
         // Cập nhật status sang in_progress nếu đang pending
         if (task.status === 'pending') {
@@ -277,11 +293,31 @@ document.querySelector('.fa-angles-right')?.addEventListener('click', () => goTo
 
 // Keyboard
 document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowRight' || e.key === 'd') goToFrame(currentFrameIdx + 1);
     if (e.key === 'ArrowLeft'  || e.key === 'a') goToFrame(currentFrameIdx - 1);
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
+    // Phím tắt camera
+    if (e.key === '1') switchCamera('CAM_FRONT');
+    if (e.key === '2') switchCamera('CAM_FRONT_LEFT');
+    if (e.key === '3') switchCamera('CAM_FRONT_RIGHT');
+    if (e.key === '4') switchCamera('CAM_BACK');
+    if (e.key === '5') switchCamera('CAM_BACK_LEFT');
+    if (e.key === '6') switchCamera('CAM_BACK_RIGHT');
+    // Phím tắt công cụ
+    if (e.key === 'v' || e.key === 'V') setActiveTool('pointer');
+    if (e.key === 'b' || e.key === 'B') setActiveTool('box');
+    if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
+    // Phím tắt điều hướng đầu/cuối
+    if (e.key === 'Home') goToFrame(0);
+    if (e.key === 'End')  goToFrame(frames.length - 1);
+    // Phím tắt zoom
+    if (e.key === '+' || e.key === '=') zoomIn();
+    if (e.key === '-' || e.key === '_') zoomOut();
+    if (e.key === '0') { zoomLevel = 100; applyZoom(); }
+    if (e.ctrlKey && e.key === 'ArrowUp')   { e.preventDefault(); zoomIn(); }
+    if (e.ctrlKey && e.key === 'ArrowDown') { e.preventDefault(); zoomOut(); }
 });
 
 // ============= CAMERA =============
@@ -1271,10 +1307,16 @@ async function saveAnnotations(showMsg = true) {
 
 // ============= SUBMIT =============
 async function submitTask() {
+    // Nếu task đang ở chế độ gán lại (rejected), không cho nộp tổng thể — phải dùng FrameList
+    if (task && task.status === 'rejected') {
+        showToast('Vui lòng sửa từng khung hình qua danh sách khung hình rồi nộp lại', 'info');
+        return;
+    }
+
     showConfirm('Nộp bài? Bài sẽ được giao cho người kiểm tra.', async () => {
         await saveAnnotations(false);
 
-        const btn = document.querySelector('.btn-phe-duyet');
+        const btn = document.getElementById('btnNop') || document.querySelector('.btn-phe-duyet');
         if (btn) { btn.disabled = true; btn.textContent = 'Đang nộp...'; }
 
         try {
@@ -1710,6 +1752,39 @@ function switchResultTab(tab) {
     redrawAnnotations();
 }
 
+// ============= TASK INFO MODAL =============
+function openTaskInfo() {
+    const modal = document.getElementById('modalTaskInfo');
+    if (!modal || !task) return;
+    document.getElementById('infoProjectName').textContent = task.project_name || '—';
+    document.getElementById('infoTaskName').textContent = task.scene_name || `Nhiệm vụ #${task.id}`;
+    document.getElementById('infoLabeler').textContent = task.assigned_user
+        ? (task.assigned_user.username + (task.assigned_user.full_name ? ' — ' + task.assigned_user.full_name : ''))
+        : '—';
+    document.getElementById('infoReviewer').textContent = task.reviewer_user
+        ? (task.reviewer_user.username + (task.reviewer_user.full_name ? ' — ' + task.reviewer_user.full_name : ''))
+        : 'Chưa phân công';
+    modal.style.display = 'flex';
+}
+
+// ============= IMAGE FILTER =============
+function applyImageFilter() {
+    const brightness = document.getElementById('brightnessSlider')?.value || 100;
+    const contrast = document.getElementById('contrastSlider')?.value || 100;
+    document.getElementById('brightnessVal').textContent = brightness + '%';
+    document.getElementById('contrastVal').textContent = contrast + '%';
+    const img = document.getElementById('mainImage');
+    if (img) img.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+}
+
+function resetImageFilter() {
+    const bs = document.getElementById('brightnessSlider');
+    const cs = document.getElementById('contrastSlider');
+    if (bs) bs.value = 100;
+    if (cs) cs.value = 100;
+    applyImageFilter();
+}
+
 // ============= TOAST =============
 function showToast(msg, type = 'info', customColor = null) {
     const colors = { success: '#10B981', error: '#EF4444', info: '#2563EB', custom: customColor };
@@ -1728,4 +1803,11 @@ style.textContent = `@keyframes slideIn{from{transform:translateX(100px);opacity
 document.head.appendChild(style);
 
 // ============= START =============
+// Đóng modal khi click ra ngoài (backdrop)
+['modalTaskInfo', 'modalShortcuts', 'modalSettings'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
+
 init();

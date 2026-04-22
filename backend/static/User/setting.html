@@ -13,48 +13,15 @@
 
 <main class="main-wrapper" id="mainWrapper">
 
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-top">
-            <div class="sidebar-badge" id="sideProjectBadge">
-                <img id="sideProjectLogo" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
-                <div id="sideProjectText" style="display:flex; flex-direction:column; align-items:center;">
-                    <span class="badge-t1">PROJECT</span>
-                    <span class="badge-t2">NULABEL</span>
-                </div>
-            </div>
-            <div class="btn-toggle-sidebar" id="toggleSidebar" title="Thu gọn / Mở rộng">
-                <i class="fa-solid fa-chevron-left"></i>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav" style="padding-top: 24px;">
-            <h2 class="sidebar-title" id="sideProjectName" style="margin-bottom: 16px; padding: 0 16px;">Dashboard</h2>
-            <a href="dashboard.html" class="nav-item" id="nav-dashboard">
-                <i class="fa-solid fa-house"></i>
-                <span>Trang chủ</span>
-            </a>
-            <a href="setting.html" class="nav-item active" id="nav-settings">
-                <i class="fa-solid fa-gear"></i>
-                <span>Cài đặt</span>
-            </a>
-        </nav>
-
-        <div class="sidebar-bottom">
-            <a href="ManagerProject.html" class="nav-item exit-nav">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                <span>Thoát dự án</span>
-            </a>
-        </div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <header class="topnav">
         <div class="topnav-brand">
-            <img src="../static/image/NuLabel-removebg-preview.png" width="40" height="30">
+            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
             <span style="padding-left: 10px;">NuLabel</span>
         </div>
         <div class="topnav-right">
-            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
-                alt="Avatar" class="avatar">
+            <img src="" alt="Avatar" class="avatar">
         </div>
     </header>
 
@@ -105,6 +72,7 @@
 
 </main>
 
+<script src="../js/sidebar.js"></script>
 <script src="../js/avatar-sync.js"></script>
 <script src="../js/user-setting.js?v=2"></script>
 </body>

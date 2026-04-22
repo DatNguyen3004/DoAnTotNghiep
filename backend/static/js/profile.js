@@ -160,7 +160,10 @@ function fillForm(user) {
             initDiv.textContent = (user.username || 'NL').substring(0, 2).toUpperCase();
         }
     }
-    updateTopnavAvatar(user.avatar_url, user.username);
+    // Chỉ update topnav avatar khi đang xem profile của chính mình
+    if (parseInt(targetId) === currentUser.id) {
+        updateTopnavAvatar(user.avatar_url, user.username);
+    }
 }
 
 function setReadonly() {
@@ -172,9 +175,54 @@ function setReadonly() {
     const btnPhoto = document.querySelector('.btn-change-photo');
     if (btnSave) btnSave.style.display = 'none';
     if (btnPhoto) btnPhoto.style.display = 'none';
+
+    // Ẩn nút "Đổi mật khẩu" (chỉ dành cho chính chủ)
+    const btnChangePass = document.querySelector('[onclick*="modalChangePass"]');
+    if (btnChangePass) btnChangePass.style.display = 'none';
+
+    // Nếu admin đang xem user khác → thêm nút "Reset mật khẩu"
+    const isAdminViewingUser = currentUser.role === 'admin' && viewUserId && parseInt(viewUserId) !== currentUser.id;
+    if (isAdminViewingUser) {
+        const formFooter = document.querySelector('.form-footer');
+        if (formFooter) {
+            const btnReset = document.createElement('button');
+            btnReset.type = 'button';
+            btnReset.innerHTML = '<i class="fa-solid fa-key"></i> Reset mật khẩu';
+            btnReset.style.cssText = 'height:40px;padding:0 20px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:8px';
+            btnReset.onclick = adminResetUserPassword;
+            formFooter.appendChild(btnReset);
+        }
+    }
+
     const notice = document.createElement('div');
     const formSection = document.querySelector('.form-section');
     if (formSection) formSection.prepend(notice);
+}
+
+async function adminResetUserPassword() {
+    const userEmail = document.getElementById('pEmail')?.value;
+    const userName = document.getElementById('pFullName')?.value || 'người dùng';
+    if (!userEmail) {
+        showToast('Tài khoản này chưa có email, không thể reset mật khẩu', 'error');
+        return;
+    }
+
+    showConfirm(
+        `Gửi link reset mật khẩu đến email <strong>${userEmail}</strong> của <strong>${userName}</strong>?`,
+        async function() {
+            try {
+                await fetch(BASE_URL + '/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail })
+                });
+                showToast(`Đã gửi link reset mật khẩu đến ${userEmail}`, 'success');
+            } catch(e) {
+                showToast('Lỗi kết nối', 'error');
+            }
+        },
+        { title: 'Reset mật khẩu', confirmText: 'Gửi link', type: 'warning' }
+    );
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────

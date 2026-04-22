@@ -19,7 +19,7 @@
     <header class="navbar">
         <div class="nav-left">
             <div class="nav-brand" style="display: flex; align-items: center;">
-                <img src="../static/image/NuLabel-removebg-preview.png" width="40" height="30">
+                <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
                 <span style="padding-left: 10px;">NuLabel</span>
             </div>
         </div>
@@ -31,7 +31,7 @@
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left-btn-container">
-            <button class="btn-phe-duyet" id="btnNop"><i class="bi bi-send-fill"></i> Nộp</button>
+            <button class="btn-phe-duyet" id="btnNop" style="background:linear-gradient(90deg,#7C3AED,#2563EB)"><i class="bi bi-send-fill"></i> Nộp</button>
         </div>
 
         <div class="toolbar-center-area">
@@ -56,9 +56,9 @@
                     <span id="zoomLevel">100%</span>
                     <i class="fa-solid fa-magnifying-glass-plus" onclick="zoomIn()" title="Phóng to" style="cursor:pointer"></i>
                 </div>
-                <i class="bi bi-archive-fill"></i>
-                <i class="bi bi-card-heading"></i>
-                <i class="fa-solid fa-gear" title="Settings"></i>
+                <i class="bi bi-archive-fill" onclick="openTaskInfo()" style="cursor:pointer" title="Thông tin nhiệm vụ"></i>
+                <i class="bi bi-card-heading" onclick="document.getElementById('modalShortcuts').style.display='flex'" style="cursor:pointer" title="Phím tắt"></i>
+                <i class="fa-solid fa-gear" onclick="document.getElementById('modalSettings').style.display='flex'" title="Cài đặt ảnh" style="cursor:pointer"></i>
             </div>
         </div>
     </div>
@@ -154,7 +154,160 @@
 
     </div>
 
-    <!-- Track ID Modal -->
+    <!-- Modal: Thông tin nhiệm vụ -->
+    <div id="modalTaskInfo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:28px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:Inter,sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                    <i class="bi bi-archive-fill" style="color:#7C3AED"></i> Thông tin nhiệm vụ
+                </div>
+                <i class="fa-solid fa-xmark" onclick="document.getElementById('modalTaskInfo').style.display='none'" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Dự án</span>
+                    <span id="infoProjectName" style="font-size:14px;font-weight:600;color:#1E293B">—</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Nhiệm vụ</span>
+                    <span id="infoTaskName" style="font-size:14px;font-weight:600;color:#1E293B">—</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Người gán nhãn</span>
+                    <span id="infoLabeler" style="font-size:14px;font-weight:600;color:#1E293B">—</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Người kiểm thử</span>
+                    <span id="infoReviewer" style="font-size:14px;font-weight:600;color:#1E293B">Chưa phân công</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Phím tắt -->
+    <div id="modalShortcuts" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:28px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:Inter,sans-serif;max-height:80vh;overflow-y:auto">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                    <i class="bi bi-card-heading" style="color:#2563EB"></i> Phím tắt
+                </div>
+                <i class="fa-solid fa-xmark" onclick="document.getElementById('modalShortcuts').style.display='none'" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Điều hướng khung hình</div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Khung hình tiếp theo</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">→</kbd> / <kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">D</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Khung hình trước</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">←</kbd> / <kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">A</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Khung hình đầu tiên</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">Home</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Khung hình cuối cùng</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">End</kbd></span>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Camera</div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam trước</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">1</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam trái trước</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">2</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam phải trước</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">3</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam sau</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">4</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam trái sau</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">5</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Cam phải sau</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">6</kbd></span>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Công cụ</div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Con trỏ (Pointer)</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">V</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Vẽ hộp (Box)</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">B</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Kéo ảnh (Pan)</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">H</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Xóa nhãn đang chọn</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">Del</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Bỏ chọn nhãn</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">Esc</kbd></span>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Zoom</div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Phóng to</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">+</kbd> hoặc <kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">Ctrl</kbd>+<kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">↑</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Thu nhỏ</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">-</kbd> hoặc <kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">Ctrl</kbd>+<kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">↓</kbd></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:#F8FAFC;border-radius:7px">
+                    <span style="color:#475569">Đặt lại zoom</span>
+                    <span style="font-weight:700;color:#1E293B"><kbd style="background:#E2E8F0;padding:2px 7px;border-radius:4px">0</kbd></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cài đặt độ sáng -->
+    <div id="modalSettings" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:28px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:Inter,sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-gear" style="color:#64748B"></i> Cài đặt ảnh
+                </div>
+                <i class="fa-solid fa-xmark" onclick="document.getElementById('modalSettings').style.display='none'" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:18px">
+                <div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                        <label style="font-size:13px;font-weight:600;color:#475569">Độ sáng</label>
+                        <span id="brightnessVal" style="font-size:13px;font-weight:700;color:#2563EB">100%</span>
+                    </div>
+                    <input type="range" id="brightnessSlider" min="0" max="200" value="100"
+                        style="width:100%;accent-color:#2563EB;cursor:pointer"
+                        oninput="applyImageFilter()">
+                </div>
+                <div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                        <label style="font-size:13px;font-weight:600;color:#475569">Độ tương phản</label>
+                        <span id="contrastVal" style="font-size:13px;font-weight:700;color:#2563EB">100%</span>
+                    </div>
+                    <input type="range" id="contrastSlider" min="0" max="200" value="100"
+                        style="width:100%;accent-color:#2563EB;cursor:pointer"
+                        oninput="applyImageFilter()">
+                </div>
+                <button onclick="resetImageFilter()" style="height:36px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+                    <i class="fa-solid fa-rotate-left"></i> Đặt lại mặc định
+                </button>
+            </div>
+        </div>
+    </div>
     <div id="trackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center">
         <div style="background:#fff;border-radius:12px;padding:24px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
             <div style="font-size:15px;font-weight:800;color:#1E293B;margin-bottom:6px">Đây là thực thể nào?</div>
