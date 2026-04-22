@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - NuLabel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4B638A;
+            --primary-hover: #3A4F72;
+            --bg-page: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --text-title: #111827;
+            --text-subtitle: #64748B;
+            --text-label: #334155;
+            --text-input: #1E293B;
+            --text-placeholder: #94A3B8;
+            --border-color: #E2E8F0;
+            --input-bg: #F8FAFC;
+            --transition: all 0.2s ease;
+            --required-color: #EF4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-page);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 32px 20px;
+            color: var(--text-title);
+        }
+
+        .signup-container { width: 100%; max-width: 560px; }
+
+        .signup-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            border: 1px solid rgba(226,232,240,0.8);
+            padding: 40px;
+        }
+
+        .signup-header { text-align: center; margin-bottom: 32px; }
+        .logo-container { margin-bottom: 16px; }
+        .signup-title { font-size: 24px; font-weight: 800; color: var(--text-title); margin-bottom: 8px; letter-spacing: -0.5px; }
+        .signup-subtitle { font-size: 14px; color: var(--text-subtitle); font-weight: 500; }
+
+        /* Avatar upload */
+        .avatar-upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .avatar-preview {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--input-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .avatar-preview:hover { border-color: var(--primary-color); }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-placeholder { color: var(--text-placeholder); font-size: 32px; }
+        .avatar-hint { font-size: 12px; color: var(--text-subtitle); margin-top: 8px; font-weight: 500; }
+        #avatarInput { display: none; }
+
+        /* Form grid */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-grid .full-width { grid-column: 1 / -1; }
+
+        .form-group { margin-bottom: 0; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-label);
+            margin-bottom: 6px;
+        }
+        .form-group label .required { color: var(--required-color); margin-left: 2px; }
+
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon-left {
+            position: absolute; left: 12px;
+            color: var(--text-placeholder); font-size: 14px;
+            pointer-events: none; transition: var(--transition);
+        }
+        .input-icon-right {
+            position: absolute; right: 12px;
+            color: var(--text-placeholder); font-size: 14px;
+            cursor: pointer; transition: var(--transition);
+        }
+        .input-icon-right:hover { color: var(--text-label); }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            height: 42px;
+            padding: 0 12px 0 38px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            font-size: 14px;
+            color: var(--text-input);
+            outline: none;
+            transition: var(--transition);
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-group input.no-icon,
+        .form-group select.no-icon { padding-left: 12px; }
+        .form-group input::placeholder { color: var(--text-placeholder); font-weight: 400; }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(75,99,138,0.1);
+            background-color: #fff;
+        }
+        .form-group select { cursor: pointer; }
+
+        /* Password strength */
+        .password-strength { margin-top: 6px; height: 3px; border-radius: 2px; background: var(--border-color); overflow: hidden; }
+        .password-strength-bar { height: 100%; width: 0; transition: width 0.3s, background 0.3s; border-radius: 2px; }
+
+        /* Divider */
+        .section-divider {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; gap: 12px;
+            font-size: 11px; font-weight: 700; color: var(--text-placeholder);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin: 4px 0;
+        }
+        .section-divider::before, .section-divider::after {
+            content: ''; flex: 1; border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Alert */
+        .alert {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .alert.error { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; }
+        .alert.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #16A34A; }
+
+        /* Field error */
+        .field-error {
+            font-size: 12px;
+            color: var(--required-color);
+            font-weight: 500;
+            margin-top: 5px;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+        .field-error.show { display: flex; }
+        .form-group input.invalid,
+        .form-group select.invalid {
+            border-color: var(--required-color) !important;
+            box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+        }
+        .form-group input.valid,
+        .form-group select.valid {
+            border-color: #22C55E !important;
+        }
+
+        /* Submit */
+        .btn-submit {
+            width: 100%;
+            height: 44px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-submit:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(75,99,138,0.2);
+        }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .signup-footer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-subtitle);
+            font-weight: 500;
+            margin-top: 20px;
+        }
+        .signup-footer a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+        .signup-footer a:hover {
+            text-decoration: underline; 
+            color: var(--primary-hover);
+        }
+
+        @media (max-width: 520px) {
+            .signup-card { padding: 28px 16px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-grid .full-width { grid-column: 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="signup-container">
+    <div class="signup-card">
+        <div class="signup-header">
+            <div class="logo-container">
+                <img src="../static/image/NuLabel-removebg-preview.png" width="50" height="40">
+            </div>
+            <h1 class="signup-title">Tạo tài khoản</h1>
+            <p class="signup-subtitle">Điền thông tin để đăng ký tài khoản NuLabel</p>
+        </div>
+
+        <!-- Avatar upload -->
+        <div class="avatar-upload-section">
+            <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()" title="Nhấn để chọn ảnh">
+                <i class="fa-regular fa-user avatar-placeholder" id="avatarPlaceholder"></i>
+                <img id="avatarImg" src="" style="display:none">
+            </div>
+            <span class="avatar-hint"><i class="fa-solid fa-camera" style="margin-right:4px"></i>Nhấn để chọn ảnh đại diện</span>
+            <input type="file" id="avatarInput" accept="image/*">
+        </div>
+
+        <!-- Alert -->
+        <div class="alert error" id="alertError">
+            <i class="fa-solid fa-circle-xmark"></i>
+            <span id="alertErrorMsg"></span>
+        </div>
+        <div class="alert success" id="alertSuccess">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Đăng ký thành công! Đang chuyển hướng...</span>
+        </div>
+
+        <form id="signupForm">
+            <div class="form-grid">
+
+                <!-- Thông tin đăng nhập -->
+                <div class="section-divider full-width">Thông tin đăng nhập</div>
+
+                <!-- Tên tài khoản -->
+                <div class="form-group full-width">
+                    <label>Tên đăng nhập <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user input-icon-left"></i>
+                        <input type="text" id="username" placeholder="Nhập tên đăng nhập" autocomplete="username" required>
+                    </div>
+                    <span class="field-error" id="err-username"><i class="fa-solid fa-circle-exclamation"></i><span></span></span>
+                </div>
+
+                <!-- Mật khẩu -->
+                <div class="form-group">
+                    <label>Mật khẩu <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon-left"></i>
+                        <input type="password" id="password" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password" required>
+                        <i class="fa-regular fa-eye input-icon-right" id="togglePwd"></i>
+                    </div>
+                    <div class="password-strength"><div class="password-strength-bar" id="pwdStrengthBar"></div></div>
+                    <span class="field-error" id="err-password"><i class="fa-solid fa-circle-exclamation"></i><span></span></span>
+                </div>
+
+                <!-- Nhập lại mật khẩu -->
+                <div class="form-group">
+                    <label>Nhập lại mật khẩu <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon-left"></i>
+                        <input type="password" id="confirmPassword" placeholder="Nhập lại mật khẩu" autocomplete="new-password" required>
+                        <i class="fa-regular fa-eye input-icon-right" id="toggleConfirm"></i>
+                    </div>
+                    <span class="field-error" id="err-confirm"><i class="fa-solid fa-circle-exclamation"></i><span></span></span>
+                </div>
+
+                <!-- Thông tin cá nhân -->
+                <div class="section-divider full-width">Thông tin cá nhân</div>
+
+                <!-- Họ và tên -->
+                <div class="form-group full-width">
+                    <label>Họ và tên</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-id-card input-icon-left"></i>
+                        <input type="text" id="fullName" placeholder="Nhập họ và tên">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group full-width">
+                    <label>Email <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-envelope input-icon-left"></i>
+                        <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required>
+                    </div>
+                    <span class="field-error" id="err-email"><i class="fa-solid fa-circle-exclamation"></i><span></span></span>
+                </div>
+
+                <!-- Giới tính -->
+                <div class="form-group">
+                    <label>Giới tính</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-venus-mars input-icon-left"></i>
+                        <select id="gender">
+                            <option value="">-- Chọn giới tính --</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Ngày sinh -->
+                <div class="form-group">
+                    <label>Ngày sinh</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-calendar input-icon-left"></i>
+                        <input type="date" id="birthDate">
+                    </div>
+                </div>
+
+                <!-- Số điện thoại -->
+                <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-phone input-icon-left"></i>
+                        <input type="tel" id="phone" placeholder="Nhập số điện thoại">
+                    </div>
+                </div>
+
+                <!-- Địa chỉ -->
+                <div class="form-group">
+                    <label>Địa chỉ</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-location-dot input-icon-left"></i>
+                        <input type="text" id="address" placeholder="Nhập địa chỉ">
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn-submit" id="btnSubmit">
+                <i class="fa-solid fa-user-plus"></i> Đăng ký
+            </button>
+        </form>
+
+        <div class="signup-footer">
+            Đã có tài khoản?
+            <a href="/login.html">Đăng nhập ngay</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8000';
+
+    // ── Avatar upload ──────────────────────────────────────────────────────────
+    const avatarInput = document.getElementById('avatarInput');
+    avatarInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('avatarPlaceholder').style.display = 'none';
+            const img = document.getElementById('avatarImg');
+            img.src = e.target.result;
+            img.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        window._pendingAvatarFile = file;
+    });
+
+    // ── Password toggle ────────────────────────────────────────────────────────
+    function toggleVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon  = document.getElementById(iconId);
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        icon.classList.toggle('fa-eye', !isPassword);
+        icon.classList.toggle('fa-eye-slash', isPassword);
+    }
+    document.getElementById('togglePwd').addEventListener('click', () => toggleVisibility('password', 'togglePwd'));
+    document.getElementById('toggleConfirm').addEventListener('click', () => toggleVisibility('confirmPassword', 'toggleConfirm'));
+
+    // ── Password strength ──────────────────────────────────────────────────────
+    document.getElementById('password').addEventListener('input', function () {
+        const val = this.value;
+        const bar = document.getElementById('pwdStrengthBar');
+        let strength = 0;
+        if (val.length >= 6) strength++;
+        if (val.length >= 10) strength++;
+        if (/[A-Z]/.test(val) && /[0-9]/.test(val)) strength++;
+        if (/[^A-Za-z0-9]/.test(val)) strength++;
+        const colors = ['', '#EF4444', '#F59E0B', '#3B82F6', '#22C55E'];
+        const widths = ['0%', '25%', '50%', '75%', '100%'];
+        bar.style.width  = widths[strength];
+        bar.style.background = colors[strength];
+        // Clear error khi đang gõ
+        if (val.length >= 6) clearFieldError('password');
+    });
+
+    // ── Inline field validation helpers ───────────────────────────────────────
+    function setFieldError(fieldId, errId, msg) {
+        const input = document.getElementById(fieldId);
+        const errEl = document.getElementById(errId);
+        input.classList.add('invalid');
+        input.classList.remove('valid');
+        errEl.querySelector('span').textContent = msg;
+        errEl.classList.add('show');
+    }
+
+    function clearFieldError(fieldId) {
+        const input = document.getElementById(fieldId);
+        const errId = 'err-' + fieldId.replace('confirmPassword', 'confirm');
+        const errEl = document.getElementById(errId);
+        if (!errEl) return;
+        input.classList.remove('invalid');
+        input.classList.add('valid');
+        errEl.classList.remove('show');
+    }
+
+    // Real-time validation khi blur (rời khỏi field)
+    document.getElementById('username').addEventListener('blur', function () {
+        if (!this.value.trim()) setFieldError('username', 'err-username', 'Tên đăng nhập không được để trống');
+        else if (this.value.trim().length < 3) setFieldError('username', 'err-username', 'Tên đăng nhập phải có ít nhất 3 ký tự');
+        else clearFieldError('username');
+    });
+    document.getElementById('username').addEventListener('input', function () {
+        if (this.value.trim().length >= 3) clearFieldError('username');
+    });
+
+    document.getElementById('password').addEventListener('blur', function () {
+        if (!this.value) setFieldError('password', 'err-password', 'Mật khẩu không được để trống');
+        else if (this.value.length < 6) setFieldError('password', 'err-password', 'Mật khẩu phải có ít nhất 6 ký tự');
+        else clearFieldError('password');
+    });
+
+    document.getElementById('confirmPassword').addEventListener('blur', function () {
+        const pwd = document.getElementById('password').value;
+        if (!this.value) setFieldError('confirmPassword', 'err-confirm', 'Vui lòng nhập lại mật khẩu');
+        else if (this.value !== pwd) setFieldError('confirmPassword', 'err-confirm', 'Mật khẩu nhập lại không khớp');
+        else clearFieldError('confirmPassword');
+    });
+    document.getElementById('confirmPassword').addEventListener('input', function () {
+        const pwd = document.getElementById('password').value;
+        if (this.value === pwd && this.value.length > 0) clearFieldError('confirmPassword');
+    });
+
+    document.getElementById('email').addEventListener('blur', function () {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!this.value.trim()) setFieldError('email', 'err-email', 'Email không được để trống');
+        else if (!emailRegex.test(this.value.trim())) setFieldError('email', 'err-email', 'Email không đúng định dạng');
+        else clearFieldError('email');
+    });
+    document.getElementById('email').addEventListener('input', function () {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(this.value.trim())) clearFieldError('email');
+    });
+
+    // ── Alert helpers ──────────────────────────────────────────────────────────
+    function showError(msg) {
+        const el = document.getElementById('alertError');
+        document.getElementById('alertErrorMsg').textContent = msg;
+        el.style.display = 'flex';
+        document.getElementById('alertSuccess').style.display = 'none';
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => el.style.display = 'none', 6000);
+    }
+    function showSuccess() {
+        document.getElementById('alertError').style.display = 'none';
+        document.getElementById('alertSuccess').style.display = 'flex';
+    }
+
+    // ── Form submit ────────────────────────────────────────────────────────────
+    document.getElementById('signupForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const username        = document.getElementById('username').value.trim();
+        const password        = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const email           = document.getElementById('email').value.trim();
+        const fullName        = document.getElementById('fullName').value.trim();
+        const gender          = document.getElementById('gender').value;
+        const birthDate       = document.getElementById('birthDate').value;
+        const phone           = document.getElementById('phone').value.trim();
+        const address         = document.getElementById('address').value.trim();
+        const emailRegex      = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        // Validate tất cả trường bắt buộc cùng lúc
+        let hasError = false;
+
+        if (!username) {
+            setFieldError('username', 'err-username', 'Tên đăng nhập không được để trống');
+            hasError = true;
+        } else if (username.length < 3) {
+            setFieldError('username', 'err-username', 'Tên đăng nhập phải có ít nhất 3 ký tự');
+            hasError = true;
+        }
+
+        if (!password) {
+            setFieldError('password', 'err-password', 'Mật khẩu không được để trống');
+            hasError = true;
+        } else if (password.length < 6) {
+            setFieldError('password', 'err-password', 'Mật khẩu phải có ít nhất 6 ký tự');
+            hasError = true;
+        }
+
+        if (!confirmPassword) {
+            setFieldError('confirmPassword', 'err-confirm', 'Vui lòng nhập lại mật khẩu');
+            hasError = true;
+        } else if (confirmPassword !== password) {
+            setFieldError('confirmPassword', 'err-confirm', 'Mật khẩu nhập lại không khớp');
+            hasError = true;
+        }
+
+        if (!email) {
+            setFieldError('email', 'err-email', 'Email không được để trống');
+            hasError = true;
+        } else if (!emailRegex.test(email)) {
+            setFieldError('email', 'err-email', 'Email không đúng định dạng');
+            hasError = true;
+        }
+
+        if (hasError) {
+            // Scroll đến lỗi đầu tiên
+            const firstInvalid = document.querySelector('.invalid');
+            if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng ký...';
+
+        try {
+            // 1. Đăng ký tài khoản
+            const res = await fetch(`${API}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    confirm_password: confirmPassword,
+                    email,
+                    full_name: fullName || null,
+                    gender: gender || null,
+                    birth_date: birthDate || null,
+                    phone: phone || null,
+                    address: address || null,
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                // Hiển thị lỗi từ server vào đúng field nếu có thể
+                const detail = err.detail || 'Đăng ký thất bại';
+                if (detail.includes('đăng nhập')) setFieldError('username', 'err-username', detail);
+                else if (detail.includes('Email')) setFieldError('email', 'err-email', detail);
+                else showError(detail);
+                return;
+            }
+
+            const data = await res.json();
+            localStorage.setItem('access_token', data.access_token);
+
+            // 2. Upload avatar nếu có
+            if (window._pendingAvatarFile) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', window._pendingAvatarFile);
+                    const avatarRes = await fetch(`${API}/api/users/upload-avatar`, {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + data.access_token },
+                        body: formData
+                    });
+                    if (avatarRes.ok) {
+                        const avatarData = await avatarRes.json();
+                        await fetch(`${API}/api/users/${data.user.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + data.access_token
+                            },
+                            body: JSON.stringify({ avatar_url: avatarData.url })
+                        });
+                        data.user.avatar_url = avatarData.url;
+                    }
+                } catch (e) { /* bỏ qua lỗi upload avatar */ }
+            }
+
+            // 3. Lấy thông tin user đầy đủ
+            try {
+                const meRes = await fetch(`${API}/api/auth/me`, {
+                    headers: { 'Authorization': 'Bearer ' + data.access_token }
+                });
+                if (meRes.ok) {
+                    localStorage.setItem('current_user', JSON.stringify(await meRes.json()));
+                } else {
+                    localStorage.setItem('current_user', JSON.stringify(data.user));
+                }
+            } catch (e) {
+                localStorage.setItem('current_user', JSON.stringify(data.user));
+            }
+
+            showSuccess();
+            setTimeout(() => {
+                window.location.href = data.user.role === 'admin'
+                    ? '/static/Admin/ManagerProject.html'
+                    : '/static/User/ManagerProject.html';
+            }, 1200);
+
+        } catch (err) {
+            showError('Không thể kết nối đến server. Vui lòng thử lại.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Đăng ký';
+        }
+    });
+</script>
+</body>
+</html>

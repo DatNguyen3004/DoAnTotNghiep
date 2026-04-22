@@ -60,6 +60,54 @@ def logout():
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+# ── Register (public) ─────────────────────────────────────────────────────────
+from pydantic import BaseModel as _BaseModel
+from typing import Optional as _Optional
+
+class RegisterRequest(_BaseModel):
+    username: str
+    password: str
+    confirm_password: str
+    email: str
+    full_name: _Optional[str] = None
+    gender: _Optional[str] = None
+    birth_date: _Optional[str] = None
+    phone: _Optional[str] = None
+    address: _Optional[str] = None
+    avatar_url: _Optional[str] = None
+
+@router.post("/register", response_model=LoginResponse)
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    if body.password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Mật khẩu nhập lại không khớp")
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 6 ký tự")
+    if db.query(User).filter(User.username == body.username).first():
+        raise HTTPException(status_code=400, detail="Tên đăng nhập đã tồn tại")
+    if db.query(User).filter(User.email == body.email).first():
+        raise HTTPException(status_code=400, detail="Email đã được sử dụng")
+
+    user = User(
+        username=body.username,
+        email=body.email,
+        full_name=body.full_name or None,
+        password_hash=hash_password(body.password),
+        role="admin",
+        gender=body.gender or None,
+        birth_date=body.birth_date or None,
+        phone=body.phone or None,
+        address=body.address or None,
+        avatar_url=body.avatar_url or None,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token({"sub": str(user.id), "role": user.role})
+    return LoginResponse(access_token=token, user=UserOut.model_validate(user))
+
 # ── Forgot Password ──────────────────────────────────────────────────────────
 from pydantic import BaseModel
 
