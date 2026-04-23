@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/ManagerProject.css">
 </head>
-
 <body>
 
     <!-- Navigation -->
@@ -357,6 +356,13 @@
         });
 
         loadProjects();
+
+        // Khi trang ManagerProject được hiển thị (kể cả từ Back button / bfcache)
+        // → clear projectId để đảm bảo đã thoát dự án
+        window.addEventListener('pageshow', function () {
+            sessionStorage.removeItem('projectId');
+            sessionStorage.removeItem('projectName');
+        });
     </script>
     <script src="../js/confirm.js"></script>
 

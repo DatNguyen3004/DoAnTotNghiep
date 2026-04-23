@@ -262,6 +262,8 @@ body {
 /* ============= TOPNAV ============= */
 .topnav {
     height: 72px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
     padding: 0 40px;
     display: flex;
     justify-content: space-between;
@@ -1426,3 +1428,5 @@ tbody tr:hover {
         padding: 24px 20px 0;
     }
 }
+
+

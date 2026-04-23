@@ -152,6 +152,15 @@
         initSidebar();
     }
 
+    // Khi nhấn nút Back/Forward của trình duyệt → kiểm tra nếu về ManagerProject thì clear project
+    window.addEventListener('popstate', function () {
+        var dest = window.location.pathname;
+        if (dest.includes('ManagerProject')) {
+            sessionStorage.removeItem('projectId');
+            sessionStorage.removeItem('projectName');
+        }
+    });
+
     // Inject hamburger vào topnav-brand
     function injectHamburger() {
         var brand = document.querySelector('.topnav-brand, .nav-brand-wrap');

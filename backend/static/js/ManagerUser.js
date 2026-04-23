@@ -44,9 +44,12 @@ async function loadSidebarProject() {
 
         if (project.cover_image) {
             const logo = document.getElementById('sideProjectLogo');
-            logo.src = project.cover_image;
-            logo.style.display = 'block';
-            document.getElementById('sideProjectText').style.display = 'none';
+            const text = document.getElementById('sideProjectText');
+            if (logo) {
+                logo.src = project.cover_image;
+                logo.style.display = 'block';
+            }
+            if (text) text.style.display = 'none';
         }
 
         const nameEl = document.getElementById('sideProjectName');

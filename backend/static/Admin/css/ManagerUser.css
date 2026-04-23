@@ -262,6 +262,8 @@ body {
 /* ============= TOPNAV ============= */
 .topnav {
     height: 72px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
     padding: 0 40px;
     display: flex;
     justify-content: space-between;
@@ -836,3 +838,4 @@ tr:last-child td {
     from { opacity: 1; }
     to   { opacity: 0; }
 }
+

@@ -502,7 +502,7 @@
             display: block;
             font-size: 13px;
             font-weight: 700;
-            color: #475569;
+            color: var(--text-label);
             margin-bottom: 8px;
         }
 
@@ -607,7 +607,7 @@
         }
 
         .btn-primary-modal {
-            background-color: #3B5784;
+            background-color:#2563eb;
             color: white;
             border: none;
             border-radius: 6px;
