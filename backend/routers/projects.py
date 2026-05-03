@@ -22,6 +22,44 @@ def _to_out(project: Project, db: Session) -> dict:
     d['scene_count'] = scene_count
     return d
 
+def create_scenes_from_folder(db: Session, project_id: int, folder_path: str):
+    """Tự động tạo các nhiệm vụ chưa phân công từ folder mặc định"""
+    if not os.path.isdir(folder_path):
+        return
+    
+    image_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
+    image_files = sorted([f for f in os.listdir(folder_path) if os.path.splitext(f)[1].lower() in image_extensions])
+    
+    if not image_files:
+        return
+    
+    # Chia nhiệm vụ (mỗi scene 40 ảnh), mặc định KHÔNG gán user (unassigned)
+    batch_size = 40
+    for batch_idx, i in enumerate(range(0, len(image_files), batch_size)):
+        if batch_idx >= 10: break # Lấy 10 nhiệm vụ mẫu
+        batch_files = image_files[i:i + batch_size]
+        
+        scene = Scene(
+            project_id=project_id,
+            scene_token=f"scene-{uuid.uuid4().hex[:8]}",
+            name=f"Nhiệm vụ {batch_idx + 1}",
+            description=f"Dữ liệu nuScenes mặc định",
+            frame_count=len(batch_files),
+            assigned_to=None, # Đảm bảo chưa được phân công
+            status="pending"
+        )
+        db.add(scene)
+        db.flush()
+        
+        for frame_idx, filename in enumerate(batch_files):
+            frame = Frame(
+                scene_id=scene.id,
+                frame_index=frame_idx,
+                cam_front=os.path.join(folder_path, filename)
+            )
+            db.add(frame)
+    db.commit()
+
 @router.get("", response_model=List[ProjectOut])
 def list_projects(
     current_user: User = Depends(get_current_user),
@@ -46,11 +84,29 @@ def create_project(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    project = Project(name=body.name, description=body.description, created_by=current_user.id)
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    return project
+    # Đường dẫn bộ dữ liệu nuScenes mặc định (trỏ vào camera trước)
+    default_dataset_path = r"D:\Dataset\v1.0-mini\samples\CAM_FRONT"
+    
+    try:
+        project = Project(
+            name=body.name, 
+            description=body.description, 
+            created_by=current_user.id
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        
+        # Thử nạp dữ liệu từ folder mặc định
+        try:
+            create_scenes_from_folder(db, project.id, default_dataset_path)
+        except Exception as e:
+            print(f"Lỗi khi nạp dữ liệu: {e}")
+            
+        return project
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Lỗi tạo dự án: {str(e)}")
 
 @router.get("/{project_id}", response_model=ProjectOut)
 def get_project(
