@@ -354,7 +354,7 @@ body {
     padding: 0 16px 0 44px;
     border-radius: 6px;
     border: none;
-    background: #F1F5F9;
+    /* background: #F1F5F9; */
     font-size: 14px;
     outline: none;
     transition: box-shadow 0.2s;
@@ -427,6 +427,7 @@ td:nth-child(5) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--text-muted);
 }
 
 th {

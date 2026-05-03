@@ -3,134 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập</title>
-    <link rel="icon" type="image/png" href="../static/image/NuLabel-removebg-preview.png">
-    <!-- Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome icons -->
+    <title>Đăng nhập - NuLabel</title>
+    <link rel="icon" type="image/png" href="/static/image/NuLabel-removebg-preview.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #4B638A; /* Muted navy blue as in image */
-            --primary-hover: #3A4F72;
-            --bg-page: #F8FAFC;
-            --bg-card: #FFFFFF;
-            --text-title: #111827;
-            --text-subtitle: #64748B;
-            --text-label: #334155;
-            --text-input: #1E293B;
-            --text-placeholder: #94A3B8;
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --navy: #0F172A;
+            --navy-light: #1E293B;
             --border-color: #E2E8F0;
             --input-bg: #F8FAFC;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --text-placeholder: #94A3B8;
             --transition: all 0.2s ease;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
         body {
-            background-color: var(--bg-page);
+            min-height: 100vh;
             display: flex;
             align-items: center;
-            justify-content: center;
+            background: #1a1a2e;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ── Decorative background shapes ── */
+        .bg-shapes { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+        /* Large circles */
+        .bg-shapes .circle {
+            position: absolute;
+            border-radius: 50%;
+        }
+        .bg-shapes .c1 {
+            width: 220px; height: 220px;
+            top: -60px; left: -60px;
+            background: #2a2a3e;
+        }
+        .bg-shapes .c2 {
+            width: 160px; height: 160px;
+            top: -30px; left: 120px;
+            background: #252535;
+        }
+        .bg-shapes .c3 {
+            width: 180px; height: 180px;
+            bottom: -50px; left: -50px;
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.06);
+        }
+        .bg-shapes .c4 {
+            width: 120px; height: 120px;
+            bottom: 80px; left: 80px;
+            background: #252535;
+        }
+        .bg-shapes .c5 {
+            width: 260px; height: 260px;
+            bottom: -80px; right: -80px;
+            background: #252535;
+        }
+        .bg-shapes .c6 {
+            width: 100px; height: 100px;
+            top: 50%; right: 520px;
+            transform: translateY(-50%);
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.05);
+        }
+        /* Concentric ring */
+        .bg-shapes .ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.05);
+        }
+        .bg-shapes .r1 { width: 200px; height: 200px; top: 60px; right: 560px; }
+        .bg-shapes .r2 { width: 140px; height: 140px; top: 90px; right: 590px; }
+        .bg-shapes .r3 { width: 80px;  height: 80px;  top: 120px; right: 620px; }
+
+        /* Dot grids */
+        .bg-shapes .dots {
+            position: absolute;
+            display: grid;
+            gap: 10px;
+        }
+        .bg-shapes .dots span {
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            display: block;
+        }
+        .bg-shapes .dots-1 { top: 120px; left: 200px; grid-template-columns: repeat(3,1fr); }
+        .bg-shapes .dots-2 { bottom: 100px; left: 40%; grid-template-columns: repeat(5,1fr); }
+        .bg-shapes .dots-3 { top: 40px; right: 540px; grid-template-columns: repeat(4,1fr); }
+
+        /* Diagonal lines */
+        .bg-shapes .lines {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bg-shapes .lines span {
+            display: block;
+            width: 30px; height: 3px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 2px;
+            transform: rotate(-45deg);
+        }
+        .bg-shapes .lines-1 { left: 30px; top: 45%; }
+        .bg-shapes .lines-2 { bottom: 60px; left: 45%; }
+
+        /* ── Layout ── */
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
             min-height: 100vh;
-            color: var(--text-title);
+            display: flex;
+            align-items: center;
         }
 
-        .login-container {
-            width: 100%;
-            max-width: 460px;
-            padding: 20px;
+        /* ── Left panel (60%) ── */
+        .left-panel {
+            width: 50%;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* padding: 60px 150px; */
+            padding: 60px 0px 60px 150px;
+            position: relative;
         }
 
-        .login-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            padding: 40px;
-            width: 100%;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
         }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .logo-container {
-            margin: 20px 0 20px 0;
-        }
-
-        /* Adjusted SVG to match the image's bounding box / frame design */
-        .logo-container svg {
-            width: 72px;
-            height: 72px;
-            display: inline-block;
-        }
-
-        .login-title {
-            font-size: 24px;
+        .brand img { width: 100px; height: 100px; object-fit: contain; filter: brightness(1.2); }
+        .brand-name {
+            font-size: 22px;
             font-weight: 800;
-            color: var(--text-title);
-            margin-bottom: 8px;
+            color: #F1F5F9;
             letter-spacing: -0.5px;
         }
 
-        .login-subtitle {
-            font-size: 14px;
-            color: var(--text-subtitle);
-            line-height: 1.5;
-            font-weight: 500;
+        .hero-title {
+            font-size: 70px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #00bcd4;
+            /* padding-top: 35px; */
+            text-transform: uppercase;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .hero-desc {
+            font-size: 15px;
+            color: #cbd5e1;
+            line-height: 1.7;
+            /* max-width: 400px; */
+            margin-bottom: 40px;
         }
 
+        .features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .feature-icon {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .feature-icon.blue   { background: rgba(0,188,212,0.15);  color: #00bcd4; }
+        .feature-icon.purple { background: rgba(99,102,241,0.15); color: #A78BFA; }
+        .feature-icon.teal   { background: rgba(20,184,166,0.15); color: #2DD4BF; }
+        .feature-icon.amber  { background: rgba(245,158,11,0.15); color: #FCD34D; }
+        .feature-text { font-size: 14px; font-weight: 500; color: #94a3b8; }
+
+        /* ── Right panel — floating card (40%) ── */
+        .right-panel {
+            width: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 150px;
+        }
+
+        .login-card {
+            width: 100%;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 40px 36px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .login-box { width: 100%; }
+
+        .login-header { text-align: center; margin-bottom: 32px; }
+        .login-logo { margin-bottom: 16px; }
+        .login-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+        .login-subtitle { font-size: 14px; color: #64748B; font-weight: 500; }
+
+        .form-group { margin-bottom: 18px; }
         .form-group label {
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: var(--text-label);
-            margin-bottom: 8px;
+            color: #334155;
+            margin-bottom: 7px;
         }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
+        .input-wrapper { position: relative; display: flex; align-items: center; }
         .input-icon-left {
-            position: absolute;
-            left: 14px;
-            color: var(--text-placeholder);
-            font-size: 15px;
+            position: absolute; left: 13px;
+            color: var(--text-placeholder); font-size: 14px;
             pointer-events: none;
-            transition: var(--transition);
         }
-
         .input-icon-right {
-            position: absolute;
-            right: 14px;
-            color: var(--text-placeholder);
-            font-size: 15px;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 0 4px;
+            position: absolute; right: 13px;
+            color: var(--text-placeholder); font-size: 14px;
+            cursor: pointer; transition: var(--transition);
         }
-
-        .input-icon-right:hover {
-            color: var(--text-label);
-        }
+        .input-icon-right:hover { color: #334155; }
 
         .form-group input {
             width: 100%;
@@ -138,446 +249,398 @@
             padding: 0 40px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background-color: var(--input-bg);
+            background: var(--input-bg);
             font-size: 14px;
-            color: var(--text-input);
+            color: var(--text-main);
             outline: none;
             transition: var(--transition);
             font-weight: 500;
         }
-
-        .form-group input::placeholder {
-            color: var(--text-placeholder);
-            font-weight: 400;
-        }
-
+        .form-group input::placeholder { color: var(--text-placeholder); font-weight: 400; }
         .form-group input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(75, 99, 138, 0.1);
-            background-color: #fff;
-        }
-
-        .form-group input:focus ~ .input-icon-left {
-            color: var(--primary-color);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: #fff;
         }
 
         .form-options {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             font-size: 13px;
         }
-
         .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-            font-weight: 500;
-            color: var(--text-label);
+            display: flex; align-items: center;
+            cursor: pointer; user-select: none;
+            font-weight: 500; color: #334155;
         }
-
-        .checkbox-label input {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            height: 0;
-            width: 0;
-        }
-
+        .checkbox-label input { position: absolute; opacity: 0; width: 0; height: 0; }
         .checkmark {
-            width: 16px;
-            height: 16px;
-            background-color: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            margin-right: 8px;
-            position: relative;
+            width: 16px; height: 16px;
+            background: #fff; border: 1px solid var(--border-color);
+            border-radius: 4px; margin-right: 8px; position: relative;
             transition: var(--transition);
         }
-
-        .checkbox-label:hover .checkmark {
-            border-color: #cbd5e1;
-        }
-
-        .checkbox-label input:checked ~ .checkmark {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
+        .checkbox-label input:checked ~ .checkmark { background: var(--primary); border-color: var(--primary); }
         .checkmark::after {
-            content: "";
-            position: absolute;
-            display: none;
-            left: 5px;
-            top: 2px;
-            width: 3px;
-            height: 7px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
+            content: ""; position: absolute; display: none;
+            left: 5px; top: 2px; width: 3px; height: 7px;
+            border: solid white; border-width: 0 2px 2px 0;
             transform: rotate(45deg);
         }
-
-        .checkbox-label input:checked ~ .checkmark::after {
-            display: block;
-        }
+        .checkbox-label input:checked ~ .checkmark::after { display: block; }
 
         .forgot-link {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
+            color: var(--primary); text-decoration: none;
+            font-weight: 600; transition: var(--transition);
         }
-
-        .forgot-link:hover {
-            text-decoration: underline;
-            color: var(--primary-hover);
-        }
+        .forgot-link:hover { text-decoration: underline; }
 
         .btn-submit {
-            width: 100%;
-            height: 44px;
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            margin-bottom: 24px;
+            width: 100%; height: 44px;
+            background: var(--primary); color: #fff;
+            border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: var(--transition);
+            margin-bottom: 20px;
         }
-
         .btn-submit:hover {
-            background-color: var(--primary-hover);
+            background: var(--primary-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(75, 99, 138, 0.2);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(37,99,235,0.25);
         }
 
         .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin-bottom: 24px;
+            display: flex; align-items: center;
+            text-align: center; margin-bottom: 16px;
         }
-
         .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--border-color);
+            content: ''; flex: 1; border-bottom: 1px solid var(--border-color);
         }
-
         .divider span {
-            padding: 0 16px;
-            color: var(--text-placeholder);
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            padding: 0 14px; color: var(--text-placeholder);
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        .social-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
-
+        .social-buttons { display: flex; gap: 10px; margin-bottom: 24px; }
         .btn-social {
-            flex: 1;
-            height: 44px;
-            background-color: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-label);
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
+            flex: 1; height: 42px;
+            background: #fff; border: 1px solid var(--border-color);
+            border-radius: 8px; display: flex;
+            align-items: center; justify-content: center;
+            gap: 8px; font-size: 13px; font-weight: 600;
+            color: #334155; cursor: pointer;
+            transition: var(--transition); text-decoration: none;
         }
-
         .btn-social:hover {
-            background-color: var(--bg-page);
-            border-color: #cbd5e1;
+            background: #F8FAFC; border-color: #CBD5E1;
             transform: translateY(-1px);
         }
-
-        .btn-social img, .btn-social svg {
-            width: 18px;
-            height: 18px;
-        }
+        .btn-social svg { width: 17px; height: 17px; }
 
         .login-footer {
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-subtitle);
-            font-weight: 500;
+            text-align: center; font-size: 13px;
+            color: #64748B; font-weight: 500;
         }
-
         .login-footer a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 700;
-            margin-left: 4px;
-            transition: var(--transition);
+            color: var(--primary); text-decoration: none;
+            font-weight: 700; margin-left: 4px;
         }
+        .login-footer a:hover { text-decoration: underline; }
 
-        .login-footer a:hover {
-            text-decoration: underline;
-            color: var(--primary-hover);
+        /* Responsive */
+        @media (max-width: 960px) {
+            .left-panel { display: none; }
+            .right-panel { width: 100%; padding: 40px 20px; }
         }
-
-        /* Mobile adjustments */
         @media (max-width: 480px) {
-            .login-card {
-                padding: 32px 20px;
-            }
-            .social-buttons {
-                flex-direction: column;
-            }
+            .login-card { padding: 28px 20px; border-radius: 16px; }
+            .social-buttons { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <div class="logo-container">
-                    <img style="justify-content: center;" src="../static/image/NuLabel-removebg-preview.png" width="50" height="40">
-                </div>
-                <h1 class="login-title">NuLabel</h1>
-                <p class="login-subtitle">Đăng nhập để tiếp tục quản lý nhãn dữ liệu của bạn</p>
+<!-- Decorative background shapes -->
+<div class="bg-shapes">
+    <div class="circle c1"></div>
+    <div class="circle c2"></div>
+    <div class="circle c3"></div>
+    <div class="circle c4"></div>
+    <div class="circle c5"></div>
+    <div class="circle c6"></div>
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+    <div class="dots dots-1">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+    </div>
+    <div class="dots dots-2">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="dots dots-3">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="lines lines-1">
+        <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="lines lines-2">
+        <span></span><span></span><span></span>
+    </div>
+</div>
+
+<div class="page-wrapper">
+
+<!-- Left: Intro panel -->
+<div class="left-panel">
+    <div class="brand">
+        <img src="/static/image/NuLabel-removebg-preview.png" alt="NuLabel">
+        <h1 class="hero-title">NuLabel</h1>
+    </div>
+    <div class="hero-content">
+        <p class="hero-desc">
+            Hệ thống chuẩn hóa dữ liệu xe tự hành đa cảm biến với hỗ trợ gán nhãn bán tự động.
+            Sử dụng đơn giản với NuLabel.
+        </p>
+
+        <div class="features-list">
+            <div class="feature-item">
+                <div class="feature-icon blue"><i class="fa-solid fa-robot"></i></div>
+                <span class="feature-text">AI YOLOv8 tự động gán nhãn</span>
             </div>
-
-            <form action="#" method="POST" id="loginForm">
-                <div id="loginError" style="display:none;margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#DC2626;font-family:Inter,sans-serif">
-                    <i class="fa-solid fa-circle-xmark" style="font-size:16px;flex-shrink:0"></i>
-                    <span id="loginErrorMsg">Tên đăng nhập hoặc mật khẩu không đúng</span>
-                </div>
-                <div class="form-group">
-                    <label for="username">Tên đăng nhập</label>
-                    <div class="input-wrapper">
-                        <i class="fa-regular fa-user input-icon-left"></i>
-                        <input type="text" id="username" name="username" placeholder="Nhập tên đăng nhập" autocomplete="username" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Mật khẩu</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-lock input-icon-left"></i>
-                        <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required>
-                        <i class="fa-regular fa-eye input-icon-right" id="togglePassword"></i>
-                    </div>
-                </div>
-
-                <div class="form-options">
-                    <label class="checkbox-label" for="remember">
-                        <input type="checkbox" id="remember" name="remember">
-                        <span class="checkmark"></span>
-                        Ghi nhớ đăng nhập
-                    </label>
-                    <a href="#" class="forgot-link" onclick="openForgotModal();return false">Quên mật khẩu?</a>
-                </div>
-
-                <button type="submit" class="btn-submit">Đăng nhập</button>
-            </form>
-
-            <!-- Divider -->
-            <div class="divider">
-                <span>hoặc tiếp tục với</span>
+            <div class="feature-item">
+                <div class="feature-icon purple"><i class="fa-solid fa-camera"></i></div>
+                <span class="feature-text">6 camera đồng bộ chuẩn nuScenes</span>
             </div>
-
-            <!-- Social login buttons -->
-            <div class="social-buttons">
-                <a href="http://localhost:8000/api/auth/google/login" class="btn-social">
-                    <!-- Google icon -->
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    Google
-                </a>
-                <a href="http://localhost:8000/api/auth/github/login" class="btn-social">
-                    <!-- GitHub icon -->
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-                    </svg>
-                    GitHub
-                </a>
+            <div class="feature-item">
+                <div class="feature-icon teal"><i class="fa-solid fa-users"></i></div>
+                <span class="feature-text">Kiểm duyệt chéo giữa các Labeler</span>
             </div>
-
-            <div class="login-footer">
-                Chưa có tài khoản?
-                <a href="/signUp.html">Đăng ký ngay</a>
+            <div class="feature-item">
+                <div class="feature-icon amber"><i class="fa-solid fa-file-export"></i></div>
+                <span class="feature-text">Xuất dữ liệu JSON chuẩn nuScenes</span>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Password toggle logic
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
+<!-- Right: Login form card -->
+<div class="right-panel">
+    <div class="login-card">
+    <div class="login-box">
+        <div class="login-header">
+            <h1 class="login-title">ĐĂNG NHẬP</h1>
+        </div>
 
-        togglePassword.addEventListener('click', function () {
-            // Toggle type
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            
-            // Toggle icon
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
-        });
+        <div id="loginError" style="display:none;margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#DC2626">
+            <i class="fa-solid fa-circle-xmark" style="font-size:15px;flex-shrink:0"></i>
+            <span id="loginErrorMsg">Tên đăng nhập hoặc mật khẩu không đúng</span>
+        </div>
 
-        // Form submit - gọi API đăng nhập
-        const loginForm = document.getElementById('loginForm');
-        const btnSubmit = loginForm.querySelector('.btn-submit');
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Tên đăng nhập</label>
+                <div class="input-wrapper">
+                    <i class="fa-regular fa-user input-icon-left"></i>
+                    <input type="text" id="username" name="username" placeholder="Nhập tên đăng nhập" autocomplete="username" required>
+                </div>
+            </div>
 
-        function showLoginError(msg) {
-            const el = document.getElementById('loginError');
-            const msgEl = document.getElementById('loginErrorMsg');
-            if (el && msgEl) {
-                msgEl.textContent = msg;
-                el.style.display = 'flex';
-                setTimeout(() => el.style.display = 'none', 5000);
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock input-icon-left"></i>
+                    <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required>
+                    <i class="fa-regular fa-eye input-icon-right" id="togglePassword"></i>
+                </div>
+            </div>
+
+            <div class="form-options">
+                <label class="checkbox-label" for="remember">
+                    <input type="checkbox" id="remember" name="remember">
+                    <span class="checkmark"></span>
+                    Ghi nhớ đăng nhập
+                </label>
+                <a href="#" class="forgot-link" onclick="openForgotModal();return false">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit" class="btn-submit">Đăng nhập</button>
+        </form>
+
+        <div class="divider"><span>hoặc tiếp tục với</span></div>
+
+        <div class="social-buttons">
+            <a href="http://localhost:8000/api/auth/google/login" class="btn-social">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Google
+            </a>
+            <a href="http://localhost:8000/api/auth/github/login" class="btn-social">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+
+        <div class="login-footer">
+            Chưa có tài khoản?
+            <a href="/signUp.html">Đăng ký ngay</a>
+        </div>
+    </div><!-- /.login-box -->
+    </div><!-- /.login-card -->
+</div><!-- /.right-panel -->
+
+</div><!-- /.page-wrapper -->
+
+<script>
+    // Password toggle
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const input = document.getElementById('password');
+        const type = input.type === 'password' ? 'text' : 'password';
+        input.type = type;
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+
+    function showLoginError(msg) {
+        const el = document.getElementById('loginError');
+        document.getElementById('loginErrorMsg').textContent = msg;
+        el.style.display = 'flex';
+        setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const btn = this.querySelector('.btn-submit');
+
+        btn.disabled = true;
+        btn.textContent = 'Đang đăng nhập...';
+
+        try {
+            const res = await fetch('http://localhost:8000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                showLoginError(err.detail || 'Tên đăng nhập hoặc mật khẩu không đúng!');
+                return;
             }
-        }
 
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            btnSubmit.disabled = true;
-            btnSubmit.textContent = 'Đang đăng nhập...';
+            const data = await res.json();
+            localStorage.setItem('access_token', data.access_token);
 
             try {
-                const res = await fetch('http://localhost:8000/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                const meRes = await fetch('http://localhost:8000/api/auth/me', {
+                    headers: { 'Authorization': 'Bearer ' + data.access_token }
                 });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    showLoginError(err.detail || 'Tên đăng nhập hoặc mật khẩu không đúng!');
-                    return;
-                }
-
-                const data = await res.json();
-                localStorage.setItem('access_token', data.access_token);
-
-                // Fetch /api/auth/me để lấy thông tin user đầy đủ (bao gồm avatar_url)
-                try {
-                    const meRes = await fetch('http://localhost:8000/api/auth/me', {
-                        headers: { 'Authorization': 'Bearer ' + data.access_token }
-                    });
-                    if (meRes.ok) {
-                        const meData = await meRes.json();
-                        localStorage.setItem('current_user', JSON.stringify(meData));
-                    } else {
-                        localStorage.setItem('current_user', JSON.stringify(data.user));
-                    }
-                } catch(e) {
+                if (meRes.ok) {
+                    localStorage.setItem('current_user', JSON.stringify(await meRes.json()));
+                } else {
                     localStorage.setItem('current_user', JSON.stringify(data.user));
                 }
-
-                if (data.user.role === 'admin') {
-                    window.location.href = 'Admin/ManagerProject.html';
-                } else {
-                    window.location.href = 'User/ManagerProject.html';
-                }
-            } catch (err) {
-                showLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
-            } finally {
-                btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Đăng nhập';
+            } catch(e) {
+                localStorage.setItem('current_user', JSON.stringify(data.user));
             }
-        });
-    </script>
 
-    <!-- Modal quên mật khẩu -->
-    <div id="modalForgot" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;font-family:Inter,sans-serif">
-        <div style="background:#fff;border-radius:14px;padding:28px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-                <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-key" style="color:#2563EB"></i> Quên mật khẩu
-                </div>
-                <i class="fa-solid fa-xmark" onclick="closeForgotModal()" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+            window.location.href = data.user.role === 'admin'
+                ? 'Admin/ManagerProject.html'
+                : 'User/ManagerProject.html';
+        } catch (err) {
+            showLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Đăng nhập';
+        }
+    });
+</script>
+
+<!-- Modal quên mật khẩu -->
+<div id="modalForgot" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;font-family:Inter,sans-serif">
+    <div style="background:#fff;border-radius:14px;padding:28px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                <i class="fa-solid fa-key" style="color:#2563EB"></i> Quên mật khẩu
             </div>
-            <p style="font-size:13px;color:#64748B;margin-bottom:18px">Nhập email đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu về hộp thư của bạn.</p>
-            <div id="forgotError" style="display:none;margin-bottom:14px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;color:#DC2626;align-items:center;gap:8px">
-                <i class="fa-solid fa-circle-xmark"></i><span id="forgotErrorMsg"></span>
-            </div>
-            <div id="forgotSuccess" style="display:none;margin-bottom:14px;padding:10px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;font-weight:600;color:#16A34A;align-items:center;gap:8px">
-                <i class="fa-solid fa-circle-check"></i><span>Email đã được gửi! Kiểm tra hộp thư của bạn.</span>
-            </div>
-            <div id="forgotForm">
-                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Email</label>
-                <input type="email" id="forgotEmail" placeholder="your@gmail.com"
-                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:16px">
-                <div style="display:flex;gap:10px;justify-content:flex-end">
-                    <button onclick="closeForgotModal()" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Hủy</button>
-                    <button onclick="submitForgot()" id="btnForgot" style="height:40px;padding:0 24px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px">
-                        <i class="fa-solid fa-paper-plane"></i> Gửi link
-                    </button>
-                </div>
+            <i class="fa-solid fa-xmark" onclick="closeForgotModal()" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+        </div>
+        <p style="font-size:13px;color:#64748B;margin-bottom:18px">Nhập email đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu về hộp thư của bạn.</p>
+        <div id="forgotError" style="display:none;margin-bottom:14px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;color:#DC2626;align-items:center;gap:8px">
+            <i class="fa-solid fa-circle-xmark"></i><span id="forgotErrorMsg"></span>
+        </div>
+        <div id="forgotSuccess" style="display:none;margin-bottom:14px;padding:10px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;font-weight:600;color:#16A34A;align-items:center;gap:8px">
+            <i class="fa-solid fa-circle-check"></i><span>Email đã được gửi! Kiểm tra hộp thư của bạn.</span>
+        </div>
+        <div id="forgotForm">
+            <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Email</label>
+            <input type="email" id="forgotEmail" placeholder="your@gmail.com"
+                style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:16px">
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button onclick="closeForgotModal()" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Hủy</button>
+                <button onclick="submitForgot()" id="btnForgot" style="height:40px;padding:0 24px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-paper-plane"></i> Gửi link
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        function openForgotModal() {
-            document.getElementById('modalForgot').style.display = 'flex';
-            document.getElementById('forgotEmail').value = '';
-            document.getElementById('forgotError').style.display = 'none';
-            document.getElementById('forgotSuccess').style.display = 'none';
-            document.getElementById('forgotForm').style.display = 'block';
+<script>
+    function openForgotModal() {
+        document.getElementById('modalForgot').style.display = 'flex';
+        document.getElementById('forgotEmail').value = '';
+        document.getElementById('forgotError').style.display = 'none';
+        document.getElementById('forgotSuccess').style.display = 'none';
+        document.getElementById('forgotForm').style.display = 'block';
+    }
+    function closeForgotModal() {
+        document.getElementById('modalForgot').style.display = 'none';
+    }
+    document.getElementById('modalForgot').addEventListener('click', function(e) {
+        if (e.target === this) closeForgotModal();
+    });
+    async function submitForgot() {
+        const email = document.getElementById('forgotEmail').value.trim();
+        if (!email) {
+            document.getElementById('forgotErrorMsg').textContent = 'Vui lòng nhập email';
+            document.getElementById('forgotError').style.display = 'flex'; return;
         }
-        function closeForgotModal() {
-            document.getElementById('modalForgot').style.display = 'none';
+        const btn = document.getElementById('btnForgot');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+        document.getElementById('forgotError').style.display = 'none';
+        try {
+            await fetch('http://localhost:8000/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            document.getElementById('forgotForm').style.display = 'none';
+            document.getElementById('forgotSuccess').style.display = 'flex';
+        } catch(e) {
+            document.getElementById('forgotErrorMsg').textContent = 'Lỗi kết nối, vui lòng thử lại';
+            document.getElementById('forgotError').style.display = 'flex';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi link';
         }
-        document.getElementById('modalForgot')?.addEventListener('click', function(e) {
-            if (e.target === this) closeForgotModal();
-        });
-        async function submitForgot() {
-            const email = document.getElementById('forgotEmail').value.trim();
-            if (!email) {
-                document.getElementById('forgotErrorMsg').textContent = 'Vui lòng nhập email';
-                document.getElementById('forgotError').style.display = 'flex'; return;
-            }
-            const btn = document.getElementById('btnForgot');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
-            document.getElementById('forgotError').style.display = 'none';
-            try {
-                const res = await fetch('http://localhost:8000/api/auth/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                document.getElementById('forgotForm').style.display = 'none';
-                document.getElementById('forgotSuccess').style.display = 'flex';
-            } catch(e) {
-                document.getElementById('forgotErrorMsg').textContent = 'Lỗi kết nối, vui lòng thử lại';
-                document.getElementById('forgotError').style.display = 'flex';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi link';
-            }
-        }
-    </script>
+    }
+</script>
 </body>
 </html>
