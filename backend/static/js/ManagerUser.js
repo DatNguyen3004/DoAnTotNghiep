@@ -54,11 +54,6 @@ async function loadSidebarProject() {
 
         const nameEl = document.getElementById('sideProjectName');
         if (nameEl) nameEl.textContent = project.name || projectName;
-
-        const pageSubEl = document.getElementById('pageProjectDesc');
-        if (pageSubEl && project.name) {
-            pageSubEl.textContent = `Quản lý các thành viên trong dự án "${project.name}".`;
-        }
     } catch (e) {
         console.error('Failed to load project info:', e);
     }
@@ -205,7 +200,7 @@ async function deleteUser(userId, name) {
                 showToast(err.detail || 'Lỗi khi xóa tài khoản', 'error');
             }
         } catch (e) {
-            showToast('Lỗi kết nối server', 'error');
+            showToast('Không thể xóa người dùng hiện có trong dự án', 'error');
         }
     }, { title: 'Xóa tài khoản', confirmText: 'Xóa', type: 'danger' });
 }

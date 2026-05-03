@@ -124,6 +124,7 @@
             min-height: 100vh;
             display: flex;
             align-items: center;
+            justify-content: center; /* Căn giữa nội dung */
         }
 
         /* ── Left panel (60%) ── */
@@ -133,8 +134,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            /* padding: 60px 150px; */
-            padding: 60px 0px 60px 150px;
+            padding: 60px;
             position: relative;
         }
 
@@ -359,6 +359,21 @@
             .login-card { padding: 28px 20px; border-radius: 16px; }
             .social-buttons { flex-direction: column; }
         }
+        .input-wrapper.error {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
 </head>
 <body>
@@ -444,7 +459,7 @@
             <span id="loginErrorMsg">Tên đăng nhập hoặc mật khẩu không đúng</span>
         </div>
 
-        <form id="loginForm">
+        <form id="loginForm" novalidate>
             <div class="form-group">
                 <label for="username">Tên đăng nhập</label>
                 <div class="input-wrapper">
@@ -527,11 +542,32 @@
         const password = document.getElementById('password').value;
         const btn = this.querySelector('.btn-submit');
 
+        // Logic kiểm tra thiếu trường
+        if (!username) {
+            showLoginError('Vui lòng nhập tên đăng nhập!');
+            const input = document.getElementById('username');
+            input.parentElement.classList.add('shake', 'error');
+            setTimeout(() => input.parentElement.classList.remove('shake'), 500);
+            input.focus();
+            return;
+        }
+        if (!password) {
+            showLoginError('Vui lòng nhập mật khẩu!');
+            const input = document.getElementById('password');
+            input.parentElement.classList.add('shake', 'error');
+            setTimeout(() => input.parentElement.classList.remove('shake'), 500);
+            input.focus();
+            return;
+        }
+
+        // Xóa trạng thái lỗi khi bắt đầu gửi lại
+        document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error'));
+
         btn.disabled = true;
         btn.textContent = 'Đang đăng nhập...';
 
         try {
-            const res = await fetch('http://localhost:8000/api/auth/login', {
+            const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -547,7 +583,7 @@
             localStorage.setItem('access_token', data.access_token);
 
             try {
-                const meRes = await fetch('http://localhost:8000/api/auth/me', {
+                const meRes = await fetch('http://127.0.0.1:8000/api/auth/me', {
                     headers: { 'Authorization': 'Bearer ' + data.access_token }
                 });
                 if (meRes.ok) {

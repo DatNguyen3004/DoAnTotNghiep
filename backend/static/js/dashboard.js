@@ -126,6 +126,7 @@ async function loadTasks() {
         }
 
         allTasks = await res.json();
+        console.log("DEBUG - Dữ liệu nhiệm vụ nhận được:", allTasks); // Dòng này để soi lỗi
         renderTasks(allTasks);
         updateStats(allTasks);
     } catch (e) {
@@ -202,15 +203,15 @@ function updateStats(tasks) {
     const needAttention = tasks.filter(t => t.status === 'rejected' || t.status === 'under_review').length;
 
     // Hiệu suất: tính trên các task đã hoàn thành (approved hoặc reviewed)
-    const doneTasks = tasks.filter(t => (t.status === 'approved' || t.status === 'reviewed') && t.annotated_frames > 0);
-    let avgTimeDisplay = '—';
+    const doneTasks = tasks.filter(t => (t.status === 'approved' || t.status === 'reviewed'));
+    let avgTimeDisplay = 0;
     if (doneTasks.length > 0) {
-        // Tổng thời gian = labeler time + reviewer time (bao gồm cả các lần sửa lại)
-        const totalTime = doneTasks.reduce((s, t) => s + (t.time_spent || 0) + (t.reviewer_time_spent || 0), 0);
-        const totalAnnotatedFrames = doneTasks.reduce((s, t) => s + (t.annotated_frames || 0), 0);
-        if (totalAnnotatedFrames > 0 && totalTime > 0) {
-            const minPerFrame = totalTime / totalAnnotatedFrames / 60;
-            avgTimeDisplay = Math.round(minPerFrame);
+        // Tổng thời gian = labeler time + reviewer time
+        const totalTimeSeconds = doneTasks.reduce((s, t) => s + (t.time_spent || 0) + (t.reviewer_time_spent || 0), 0);
+        if (totalTimeSeconds > 0) {
+            // Tính trung bình Phút / Nhiệm vụ
+            const avgMinutes = (totalTimeSeconds / doneTasks.length) / 60;
+            avgTimeDisplay = Math.max(1, Math.round(avgMinutes)); // Tối thiểu 1 phút nếu có thời gian
         }
     }
 
@@ -677,7 +678,7 @@ async function loadSceneThumb(sceneId) {
         const frames = await framesRes.json();
         if (!frames.length) return;
 
-        const imgRes = await fetch(`${BASE_URL}/frames/${frames[0].id}/image/CAM_FRONT`, {
+        const imgRes = await fetch(`${BASE_URL}/frames/${frames[0].id}/thumb/CAM_FRONT`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!imgRes.ok) return;
@@ -734,7 +735,7 @@ async function _loadPreviewFrame(idx) {
     counter.textContent = `${idx + 1} / ${_previewFrames.length}`;
 
     try {
-        const res = await fetch(`${BASE_URL}/frames/${_previewFrames[idx].id}/image/CAM_FRONT`, {
+        const res = await fetch(`${BASE_URL}/frames/${_previewFrames[idx].id}/thumb/CAM_FRONT`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (res.ok) {

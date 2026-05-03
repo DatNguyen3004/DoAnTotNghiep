@@ -222,9 +222,62 @@ function setupNav() {
     document.getElementById('btnNext').addEventListener('click', () => goToFrame(currentFrameIdx + 1));
     document.getElementById('btnLast').addEventListener('click', () => goToFrame(frames.length - 1));
     document.addEventListener('keydown', e => {
-        if (e.key === 'ArrowRight' || e.key === 'd') goToFrame(currentFrameIdx + 1);
-        if (e.key === 'ArrowLeft'  || e.key === 'a') goToFrame(currentFrameIdx - 1);
+        // Không chạy phím tắt khi đang gõ nhận xét
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // 1. ZOOM (Ctrl + Up/Down)
+        if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            if (e.key === 'ArrowUp') zoomIn();
+            else zoomOut();
+            return;
+        }
+
+        // 2. CHUYỂN CAMERA (W/S hoặc Mũi tên Lên/Xuống)
+        if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const idx = CAMERAS.indexOf(currentCamera);
+            const nextIdx = (idx - 1 + CAMERAS.length) % CAMERAS.length;
+            switchCamera(CAMERAS[nextIdx]);
+            return;
+        }
+        if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const idx = CAMERAS.indexOf(currentCamera);
+            const nextIdx = (idx + 1) % CAMERAS.length;
+            switchCamera(CAMERAS[nextIdx]);
+            return;
+        }
+
+        // 3. ĐIỀU HƯỚNG KHUNG HÌNH
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') goToFrame(currentFrameIdx + 1);
+        if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') goToFrame(currentFrameIdx - 1);
+        if (e.key === 'Home') goToFrame(0);
+        if (e.key === 'End')  goToFrame(frames.length - 1);
+
+        // 4. CAMERA (Phím số 1-6)
+        if (['1','2','3','4','5','6'].includes(e.key)) {
+            switchCamera(CAMERAS[parseInt(e.key) - 1]);
+        }
+
+        // 5. ĐÁNH GIÁ (REVIEW)
+        if (e.key === 'c' || e.key === 'C') markFrame('correct');
+        if (e.key === 'w' || e.key === 'W' || e.key === 'x' || e.key === 'X') markFrame('wrong');
+
+        // 6. ZOOM (Phím lẻ)
+        if (e.key === '+' || e.key === '=') zoomIn();
+        if (e.key === '-' || e.key === '_') zoomOut();
+        if (e.key === '0') { zoomScale = 1; applyZoom(); }
     });
+
+    // Ctrl + Lăn chuột để Zoom
+    window.addEventListener('wheel', e => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            if (e.deltaY < 0) zoomIn();
+            else zoomOut();
+        }
+    }, { passive: false });
 }
 
 async function goToFrame(idx) {
@@ -258,7 +311,6 @@ function renderCamList(frame) {
         const active = cam === currentCamera;
         return `
         <div class="cam-row">
-            <div class="cam-number">${CAMERAS.indexOf(cam) + 1}</div>
             <div class="cam-item ${active ? 'active' : ''}" onclick="switchCamera('${cam}')">
                 <img id="thumb_${cam}" src="" style="width:100%;height:100%;object-fit:cover">
                 <div class="cam-label">${CAM_LABELS[cam] || cam}</div>

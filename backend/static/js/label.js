@@ -15,12 +15,12 @@ if (!taskId) window.location.href = 'dashboard.html';
 
 // ============= CLASSES =============
 const CLASSES = [
-    { id: 'vehicle.car',        name: 'Xe con',       icon: 'fa-car',            color: '#3B82F6' },
-    { id: 'vehicle.truck',      name: 'Xe tải',       icon: 'fa-truck',          color: '#F59E0B' },
-    { id: 'vehicle.bus',        name: 'Xe buýt',      icon: 'fa-bus',            color: '#8B5CF6' },
-    { id: 'vehicle.motorcycle', name: 'Xe máy',       icon: 'fa-motorcycle',     color: '#EC4899' },
-    { id: 'human.pedestrian',   name: 'Người đi bộ',  icon: 'fa-person-walking', color: '#10B981' },
-    { id: 'vehicle.bicycle',    name: 'Xe đạp',       icon: 'fa-bicycle',        color: '#F97316' },
+    { id: 'vehicle.car', name: 'Xe con', icon: 'fa-car', color: '#3B82F6' },
+    { id: 'vehicle.truck', name: 'Xe tải', icon: 'fa-truck', color: '#F59E0B' },
+    { id: 'vehicle.bus', name: 'Xe buýt', icon: 'fa-bus', color: '#8B5CF6' },
+    { id: 'vehicle.motorcycle', name: 'Xe máy', icon: 'fa-motorcycle', color: '#EC4899' },
+    { id: 'human.pedestrian', name: 'Người đi bộ', icon: 'fa-person-walking', color: '#10B981' },
+    { id: 'vehicle.bicycle', name: 'Xe đạp', icon: 'fa-bicycle', color: '#F97316' },
 ];
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
@@ -28,12 +28,12 @@ CLASSES.forEach(c => CLASS_MAP[c.id] = c);
 const CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT'];
 
 const CAM_LABELS = {
-    CAM_FRONT:       'Cam trước',
-    CAM_FRONT_LEFT:  'Cam trái trước',
+    CAM_FRONT: 'Cam trước',
+    CAM_FRONT_LEFT: 'Cam trái trước',
     CAM_FRONT_RIGHT: 'Cam phải trước',
-    CAM_BACK:        'Cam sau',
-    CAM_BACK_LEFT:   'Cam trái sau',
-    CAM_BACK_RIGHT:  'Cam phải sau',
+    CAM_BACK: 'Cam sau',
+    CAM_BACK_LEFT: 'Cam trái sau',
+    CAM_BACK_RIGHT: 'Cam phải sau',
 };
 
 // ============= STATE =============
@@ -141,7 +141,7 @@ async function loadTask() {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'in_progress' })
-            }).catch(() => {});
+            }).catch(() => { });
         }
     } catch (e) {
         showToast('Không thể tải nhiệm vụ', 'error');
@@ -246,29 +246,29 @@ async function goToFrame(idx) {
                         const shifted = prevAnns
                             .filter(a => a.is_ai_generated) // Chỉ copy nhãn AI, bỏ nhãn thủ công
                             .map((a, i) => {
-                            // Dùng per-bbox flow nếu có (chỉ cho camera hiện tại)
-                            let dx = 0, dy = 0;
-                            if (cam === currentCamera && flowData?.per_bbox?.[i]) {
-                                dx = flowData.per_bbox[i].dx;
-                                dy = flowData.per_bbox[i].dy;
-                            } else if (flowData?.dx !== undefined) {
-                                dx = flowData.dx;
-                                dy = flowData.dy;
-                            }
-                            return {
+                                // Dùng per-bbox flow nếu có (chỉ cho camera hiện tại)
+                                let dx = 0, dy = 0;
+                                if (cam === currentCamera && flowData?.per_bbox?.[i]) {
+                                    dx = flowData.per_bbox[i].dx;
+                                    dy = flowData.per_bbox[i].dy;
+                                } else if (flowData?.dx !== undefined) {
+                                    dx = flowData.dx;
+                                    dy = flowData.dy;
+                                }
+                                return {
+                                    ...a,
+                                    id: genId(),
+                                    bbox_x: a.bbox_x + dx,
+                                    bbox_y: a.bbox_y + dy,
+                                };
+                            }).filter(a =>
+                                a.bbox_x >= -0.05 && a.bbox_x + a.bbox_w <= 1.05 &&
+                                a.bbox_y >= -0.05 && a.bbox_y + a.bbox_h <= 1.05
+                            ).map(a => ({
                                 ...a,
-                                id: genId(),
-                                bbox_x: a.bbox_x + dx,
-                                bbox_y: a.bbox_y + dy,
-                            };
-                        }).filter(a =>
-                            a.bbox_x >= -0.05 && a.bbox_x + a.bbox_w <= 1.05 &&
-                            a.bbox_y >= -0.05 && a.bbox_y + a.bbox_h <= 1.05
-                        ).map(a => ({
-                            ...a,
-                            bbox_x: Math.max(0, Math.min(1 - a.bbox_w, a.bbox_x)),
-                            bbox_y: Math.max(0, Math.min(1 - a.bbox_h, a.bbox_y)),
-                        }));
+                                bbox_x: Math.max(0, Math.min(1 - a.bbox_w, a.bbox_x)),
+                                bbox_y: Math.max(0, Math.min(1 - a.bbox_h, a.bbox_y)),
+                            }));
                         setFrameAnns(newFrame.id, cam, shifted);
                     }
                 }
@@ -291,34 +291,67 @@ document.querySelector('.fa-angle-left')?.addEventListener('click', () => goToFr
 document.querySelector('.fa-angle-right')?.addEventListener('click', () => goToFrame(currentFrameIdx + 1));
 document.querySelector('.fa-angles-right')?.addEventListener('click', () => goToFrame(frames.length - 1));
 
-// Keyboard
+// Keyboard Navigation & Shortcuts
 document.addEventListener('keydown', e => {
+    // Không chạy phím tắt khi đang gõ văn bản
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowRight' || e.key === 'd') goToFrame(currentFrameIdx + 1);
-    if (e.key === 'ArrowLeft'  || e.key === 'a') goToFrame(currentFrameIdx - 1);
-    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
-    if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
-    // Phím tắt camera
-    if (e.key === '1') switchCamera('CAM_FRONT');
-    if (e.key === '2') switchCamera('CAM_FRONT_LEFT');
-    if (e.key === '3') switchCamera('CAM_FRONT_RIGHT');
-    if (e.key === '4') switchCamera('CAM_BACK');
-    if (e.key === '5') switchCamera('CAM_BACK_LEFT');
-    if (e.key === '6') switchCamera('CAM_BACK_RIGHT');
-    // Phím tắt công cụ
+
+    // 1. ZOOM (Ctrl + Up/Down)
+    if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        if (e.key === 'ArrowUp') zoomIn();
+        else zoomOut();
+        return;
+    }
+
+    // 2. CHUYỂN CAMERA (W/S hoặc Mũi tên Lên/Xuống)
+    if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const idx = CAMERAS.indexOf(currentCamera);
+        const nextIdx = (idx - 1 + CAMERAS.length) % CAMERAS.length;
+        switchCamera(CAMERAS[nextIdx]);
+        return;
+    }
+    if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const idx = CAMERAS.indexOf(currentCamera);
+        const nextIdx = (idx + 1) % CAMERAS.length;
+        switchCamera(CAMERAS[nextIdx]);
+        return;
+    }
+
+    // 3. ĐIỀU HƯỚNG KHUNG HÌNH
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') goToFrame(currentFrameIdx + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') goToFrame(currentFrameIdx - 1);
+    if (e.key === 'Home') goToFrame(0);
+    if (e.key === 'End') goToFrame(frames.length - 1);
+
+    // 4. CAMERA (Phím số 1-6)
+    if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
+        switchCamera(CAMERAS[parseInt(e.key) - 1]);
+    }
+
+    // 5. CÔNG CỤ
     if (e.key === 'v' || e.key === 'V') setActiveTool('pointer');
     if (e.key === 'b' || e.key === 'B') setActiveTool('box');
     if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
-    // Phím tắt điều hướng đầu/cuối
-    if (e.key === 'Home') goToFrame(0);
-    if (e.key === 'End')  goToFrame(frames.length - 1);
-    // Phím tắt zoom
+    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
+
+    // 6. ZOOM (Phím lẻ)
     if (e.key === '+' || e.key === '=') zoomIn();
     if (e.key === '-' || e.key === '_') zoomOut();
     if (e.key === '0') { zoomLevel = 100; applyZoom(); }
-    if (e.ctrlKey && e.key === 'ArrowUp')   { e.preventDefault(); zoomIn(); }
-    if (e.ctrlKey && e.key === 'ArrowDown') { e.preventDefault(); zoomOut(); }
 });
+
+// Ctrl + Lăn chuột để Zoom
+window.addEventListener('wheel', e => {
+    if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+    }
+}, { passive: false });
 
 // ============= CAMERA =============
 function renderCamList(frame) {
@@ -680,7 +713,7 @@ function redrawAnnotations() {
 
         // Label tag
         const baseLbl = cls ? cls.name : ann.category;
-        const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
+        const tNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '?';
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
         const canvasLabel = resolvedName ? `${baseLbl} ${tNum} - ${resolvedName}` : `${baseLbl} ${tNum}`;
         annCtx.font = 'bold 11px Inter, sans-serif';
@@ -714,9 +747,9 @@ function selectAt(px, py) {
     for (let i = anns.length - 1; i >= 0; i--) {
         const a = anns[i];
         if (attentionMode) {
-                const flagged = a.needs_review === true;
-                if (!flagged) continue;
-            }
+            const flagged = a.needs_review === true;
+            if (!flagged) continue;
+        }
         const x = a.bbox_x * imgDisplayW, y = a.bbox_y * imgDisplayH;
         const w = a.bbox_w * imgDisplayW, h = a.bbox_h * imgDisplayH;
         if (px >= x && px <= x + w && py >= y && py <= y + h) {
@@ -823,11 +856,11 @@ function setupDropdownItems() {
                 header.textContent = 'Thực thể đã có';
                 sub.appendChild(header);
 
-                availableTracks.sort((a,b) => a-b).forEach(tid => {
+                availableTracks.sort((a, b) => a - b).forEach(tid => {
                     const customName = getTrackName(found.id, tid);
                     const displayName = customName
-                        ? `${found.name} ${String(tid).padStart(2,'0')} - ${customName}`
-                        : `${found.name} ${String(tid).padStart(2,'0')}`;
+                        ? `${found.name} ${String(tid).padStart(2, '0')} - ${customName}`
+                        : `${found.name} ${String(tid).padStart(2, '0')}`;
                     const btn = document.createElement('div');
                     btn.className = 'dropdown-item';
                     btn.innerHTML = `<i class="fa-solid fa-link" style="color:#64748B;font-size:11px"></i> ${displayName}`;
@@ -1049,11 +1082,11 @@ function showTrackModal(ann) {
 
     document.getElementById('trackModalDesc').textContent = `"${clsName}" này là thực thể nào?`;
     const opts = document.getElementById('trackOptions');
-    opts.innerHTML = availableTracks.sort((a,b) => a-b).map(tid => {
+    opts.innerHTML = availableTracks.sort((a, b) => a - b).map(tid => {
         const customName = getTrackName(ann.category, tid);
         const displayName = customName
-            ? `${clsName} ${String(tid).padStart(2,'0')} - ${customName}`
-            : `${clsName} ${String(tid).padStart(2,'0')}`;
+            ? `${clsName} ${String(tid).padStart(2, '0')} - ${customName}`
+            : `${clsName} ${String(tid).padStart(2, '0')}`;
         return `<button onclick="confirmTrack(${tid})"
             style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
             onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
@@ -1117,7 +1150,7 @@ function changeAnnEntity(id) {
 
     const cls = CLASS_MAP[ann.category];
     const clsName = cls ? cls.name : ann.category;
-    const currentTrackNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '??';
+    const currentTrackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
 
     // Lấy tất cả track_id đã có cho class này trong toàn task
     const allTracks = new Set();
@@ -1139,11 +1172,11 @@ function changeAnnEntity(id) {
         `Đổi "${clsNameDisp} ${currentTrackNum}" thành thực thể nào?`;
 
     const opts = document.getElementById('trackOptions');
-    opts.innerHTML = [...allTracks].sort((a,b) => a-b).map(tid => {
+    opts.innerHTML = [...allTracks].sort((a, b) => a - b).map(tid => {
         const customName = getTrackName(ann.category, tid);
         const displayName = customName
-            ? `${clsNameDisp} ${String(tid).padStart(2,'0')} - ${customName}`
-            : `${clsNameDisp} ${String(tid).padStart(2,'0')}`;
+            ? `${clsNameDisp} ${String(tid).padStart(2, '0')} - ${customName}`
+            : `${clsNameDisp} ${String(tid).padStart(2, '0')}`;
         return `
         <button onclick="confirmChangeEntity(${tid})"
             style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
@@ -1159,7 +1192,7 @@ function changeAnnEntity(id) {
         <button onclick="confirmChangeEntity('new')"
             style="width:100%;height:36px;background:#EEF2FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-weight:700;color:#2563EB;cursor:pointer;text-align:left;padding:0 14px"
             onmouseover="this.style.background='#DBEAFE'" onmouseout="this.style.background='#EEF2FF'">
-            + ${clsNameDisp} ${String(nextId).padStart(2,'0')} (đối tượng mới)
+            + ${clsNameDisp} ${String(nextId).padStart(2, '0')} (đối tượng mới)
         </button>`;
 
     document.getElementById('trackModal').style.display = 'flex';
@@ -1310,6 +1343,15 @@ async function submitTask() {
     // Nếu task đang ở chế độ gán lại (rejected), không cho nộp tổng thể — phải dùng FrameList
     if (task && task.status === 'rejected') {
         showToast('Vui lòng sửa từng khung hình qua danh sách khung hình rồi nộp lại', 'info');
+        return;
+    }
+
+    // Kiểm tra có nhãn nào được gán chưa (Frontend check)
+    let totalAnns = 0;
+    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => totalAnns += ca.length));
+
+    if (totalAnns === 0) {
+        showToast('Không thể nộp vì nhiệm vụ chưa có đối tượng nào đã được gán nhãn', 'error');
         return;
     }
 
@@ -1574,12 +1616,12 @@ function getHandles(ann) {
     const h = ann.bbox_h * imgDisplayH;
     return {
         tl: { x, y },
-        tc: { x: x + w/2, y },
+        tc: { x: x + w / 2, y },
         tr: { x: x + w, y },
-        ml: { x, y: y + h/2 },
-        mr: { x: x + w, y: y + h/2 },
+        ml: { x, y: y + h / 2 },
+        mr: { x: x + w, y: y + h / 2 },
         bl: { x, y: y + h },
-        bc: { x: x + w/2, y: y + h },
+        bc: { x: x + w / 2, y: y + h },
         br: { x: x + w, y: y + h },
     };
 }
@@ -1600,7 +1642,7 @@ function drawHandles(ann) {
     annCtx.lineWidth = 1.5;
     for (const pt of Object.values(handles)) {
         annCtx.beginPath();
-        annCtx.rect(pt.x - HANDLE_SIZE/2, pt.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+        annCtx.rect(pt.x - HANDLE_SIZE / 2, pt.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
         annCtx.fill();
         annCtx.stroke();
     }
@@ -1788,7 +1830,7 @@ function resetImageFilter() {
 // ============= TOAST =============
 function showToast(msg, type = 'info', customColor = null) {
     const colors = { success: '#10B981', error: '#EF4444', info: '#2563EB', custom: customColor };
-    const icons  = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info', custom: 'fa-tag' };
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info', custom: 'fa-tag' };
     const bg = customColor || colors[type] || '#2563EB';
     const t = document.createElement('div');
     t.style.cssText = `position:fixed;top:80px;right:16px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;z-index:9999;background:${bg};box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;animation:slideIn 0.3s ease;font-family:Inter,sans-serif`;
@@ -1805,7 +1847,7 @@ document.head.appendChild(style);
 // ============= START =============
 // Đóng modal khi click ra ngoài (backdrop)
 ['modalTaskInfo', 'modalShortcuts', 'modalSettings'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', function(e) {
+    document.getElementById(id)?.addEventListener('click', function (e) {
         if (e.target === this) this.style.display = 'none';
     });
 });

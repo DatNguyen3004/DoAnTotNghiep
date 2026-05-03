@@ -220,7 +220,7 @@ def submit_task(
     if ann_count == 0:
         raise HTTPException(
             status_code=422,
-            detail="Không thể nộp: task chưa có annotation nào. Vui lòng gán nhãn trước khi nộp.",
+            detail="Không thể nộp vì nhiệm vụ chưa có đối tượng đã được gán nhãn",
         )
 
     # Update time spent if provided

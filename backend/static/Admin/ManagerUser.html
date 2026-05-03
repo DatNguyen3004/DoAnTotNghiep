@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/ManagerUser.css">
 </head>
+
 <body>
 
     <!-- Main Content Wrapper -->
@@ -37,12 +38,13 @@
             <!-- Header -->
             <div class="page-header">
                 <h1>Quản lý người dùng</h1>
-                <p id="pageProjectDesc">Quản lý các thành viên trong dự án.</p>
+                <p id="pageProjectDesc">Quản lý người dùng trên hệ thống.</p>
             </div>
 
             <!-- Toolbar -->
             <div class="toolbar">
-                <button class="btn-add" onclick="openAddModal()"><i class="fa-solid fa-user-plus"></i>  Thêm cộng tác viên</button>
+                <button class="btn-add" onclick="openAddModal()"><i class="fa-solid fa-user-plus"></i> Thêm người
+                    dùng</button>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" placeholder="Tìm kiếm theo tên hoặc email...">
@@ -142,8 +144,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="closeViewModal()">Hủy</button>
-                    <button type="button" class="btn-cancel" id="btnResetPass" onclick="resetUserPassword()" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">
-                        <i class="fa-solid fa-key"></i> Reset mật khẩu
+                    <button type="button" class="btn-cancel" id="btnResetPass" onclick="resetUserPassword()"
+                        style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">
+                        <i class="fa-solid fa-key"></i> Đặt lại mật khẩu
                     </button>
                     <button type="submit" class="btn-primary" id="btnSubmitEdit">
                         <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi
@@ -158,9 +161,9 @@
         <div class="modal">
             <div class="modal-header">
                 <div>
-                    <h3><i class="fa-solid fa-user-plus" style="color:#2563EB;margin-right:8px"></i>Thêm cộng tác viên
+                    <h3><i class="fa-solid fa-user-plus" style="color:#2563EB;margin-right:8px"></i>Thêm người dùng
                     </h3>
-                    <p>Tạo tài khoản mới cho người thực hiện trong dự án</p>
+                    <p>Tạo tài khoản người dùng mới</p>
                 </div>
                 <button class="modal-close" onclick="closeAddModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>

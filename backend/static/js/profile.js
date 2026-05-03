@@ -50,7 +50,7 @@ async function loadSidebarProject() {
             if (text) text.style.display = 'none';
         }
         if (sideEl) sideEl.textContent = p.name || projectName;
-    } catch(e) {}
+    } catch (e) { }
 }
 
 // ── Topnav avatar: ảnh hoặc initials ─────────────────────────────────────────
@@ -70,7 +70,7 @@ function updateTopnavAvatar(avatarUrl, username) {
                 span = document.createElement('span');
                 span.id = 'topnavInitials';
                 span.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif';
-                span.onclick = function() { window.location.href = isAdminPage ? '../User/Profile.html' : 'Profile.html'; };
+                span.onclick = function () { window.location.href = isAdminPage ? '../User/Profile.html' : 'Profile.html'; };
                 img.parentNode.insertBefore(span, img.nextSibling);
             }
             span.textContent = initials;
@@ -116,7 +116,7 @@ async function loadProfile() {
         if (!res.ok) throw new Error();
         const user = await res.json();
         fillForm(user);
-    } catch(e) {
+    } catch (e) {
         fillForm(currentUser);
     }
     if (readonly) setReadonly();
@@ -132,7 +132,7 @@ function fillForm(user) {
         if (bd.includes('/')) {
             const p = bd.split('/');
             // DD/MM/YYYY → YYYY-MM-DD
-            document.getElementById('pBirthDate').value = p.length === 3 ? p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0') : '';
+            document.getElementById('pBirthDate').value = p.length === 3 ? p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0') : '';
         } else {
             document.getElementById('pBirthDate').value = bd;
         }
@@ -167,7 +167,7 @@ function fillForm(user) {
 }
 
 function setReadonly() {
-    ['pFullName','pEmail','pGender','pBirthDate','pPhone','pAddress'].forEach(function(id) {
+    ['pFullName', 'pEmail', 'pGender', 'pBirthDate', 'pPhone', 'pAddress'].forEach(function (id) {
         const el = document.getElementById(id);
         if (el) { el.disabled = true; el.style.background = '#F8FAFC'; el.style.color = '#94A3B8'; }
     });
@@ -187,7 +187,7 @@ function setReadonly() {
         if (formFooter) {
             const btnReset = document.createElement('button');
             btnReset.type = 'button';
-            btnReset.innerHTML = '<i class="fa-solid fa-key"></i> Reset mật khẩu';
+            btnReset.innerHTML = '<i class="fa-solid fa-key"></i> Đặt lại mật khẩu';
             btnReset.style.cssText = 'height:40px;padding:0 20px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:8px';
             btnReset.onclick = adminResetUserPassword;
             formFooter.appendChild(btnReset);
@@ -203,37 +203,37 @@ async function adminResetUserPassword() {
     const userEmail = document.getElementById('pEmail')?.value;
     const userName = document.getElementById('pFullName')?.value || 'người dùng';
     if (!userEmail) {
-        showToast('Tài khoản này chưa có email, không thể reset mật khẩu', 'error');
+        showToast('Tài khoản này chưa có email, không thể đặt lại mật khẩu', 'error');
         return;
     }
 
     showConfirm(
-        `Gửi link reset mật khẩu đến email <strong>${userEmail}</strong> của <strong>${userName}</strong>?`,
-        async function() {
+        `Gửi link đặt lại mật khẩu đến email <strong>${userEmail}</strong> của <strong>${userName}</strong>?`,
+        async function () {
             try {
                 await fetch(BASE_URL + '/auth/forgot-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: userEmail })
                 });
-                showToast(`Đã gửi link reset mật khẩu đến ${userEmail}`, 'success');
-            } catch(e) {
+                showToast(`Đã gửi link đặt lại mật khẩu đến ${userEmail}`, 'success');
+            } catch (e) {
                 showToast('Lỗi kết nối', 'error');
             }
         },
-        { title: 'Reset mật khẩu', confirmText: 'Gửi link', type: 'warning' }
+        { title: 'Đặt lại mật khẩu', confirmText: 'Gửi link', type: 'warning' }
     );
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 const btnSave = document.querySelector('.btn-save');
 if (btnSave) {
-    btnSave.addEventListener('click', async function() {
+    btnSave.addEventListener('click', async function () {
         // Convert YYYY-MM-DD → DD/MM/YYYY for storage
         let birthDate = document.getElementById('pBirthDate').value.trim();
         if (birthDate && birthDate.includes('-') && !birthDate.includes('/')) {
             const p = birthDate.split('-');
-            if (p.length === 3) birthDate = p[2]+'/'+p[1]+'/'+p[0];
+            if (p.length === 3) birthDate = p[2] + '/' + p[1] + '/' + p[0];
         }
         const body = {
             full_name: document.getElementById('pFullName').value.trim(),
@@ -260,7 +260,7 @@ if (btnSave) {
                 const err = await res.json();
                 showToast(err.detail || 'Lỗi lưu', 'error');
             }
-        } catch(e) { showToast('Lỗi kết nối', 'error'); }
+        } catch (e) { showToast('Lỗi kết nối', 'error'); }
         finally { btnSave.disabled = false; btnSave.textContent = 'Lưu thay đổi'; }
     });
 }
@@ -268,10 +268,10 @@ if (btnSave) {
 // ── Upload avatar ─────────────────────────────────────────────────────────────
 const btnPhoto = document.querySelector('.btn-change-photo');
 if (btnPhoto) {
-    btnPhoto.addEventListener('click', function() {
+    btnPhoto.addEventListener('click', function () {
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'image/*';
-        input.onchange = async function() {
+        input.onchange = async function () {
             const file = input.files[0];
             if (!file) return;
             const fd = new FormData(); fd.append('file', file);
@@ -302,7 +302,7 @@ if (btnPhoto) {
                     }
                     showToast('Đã cập nhật ảnh đại diện', 'success');
                 }
-            } catch(e) { showToast('Lỗi tải ảnh', 'error'); }
+            } catch (e) { showToast('Lỗi tải ảnh', 'error'); }
         };
         input.click();
     });
@@ -311,10 +311,10 @@ if (btnPhoto) {
 function showToast(msg, type) {
     const colors = { success: '#10B981', error: '#EF4444' };
     const t = document.createElement('div');
-    t.style.cssText = 'position:fixed;top:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;z-index:9999;background:' + (colors[type]||'#2563EB') + ';box-shadow:0 4px 16px rgba(0,0,0,0.2);font-family:Inter,sans-serif';
+    t.style.cssText = 'position:fixed;top:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;z-index:9999;background:' + (colors[type] || '#2563EB') + ';box-shadow:0 4px 16px rgba(0,0,0,0.2);font-family:Inter,sans-serif';
     t.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(function() { t.remove(); }, 3000);
+    setTimeout(function () { t.remove(); }, 3000);
 }
 
 loadSidebarProject();

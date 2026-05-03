@@ -1,8 +1,10 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
+from PIL import Image
+import io
 
 from database import get_db
 from models.user import User
@@ -170,3 +172,54 @@ def get_frame_image(
         media_type="image/jpeg",
         headers={"Cache-Control": "public, max-age=86400"},  # cache 24h
     )
+
+# ───────────────────────────────────────────────
+# GET /api/frames/{frame_id}/thumb/{camera}
+# ───────────────────────────────────────────────
+@router.get("/frames/{frame_id}/thumb/{camera}")
+def get_frame_thumbnail(
+    frame_id: int,
+    camera: str,
+    width: int = 400,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Trả về ảnh thu nhỏ (thumbnail) đã nén để tối ưu tốc độ Dashboard."""
+    camera_upper = camera.upper()
+    column = CAMERA_CHANNEL_MAP.get(camera_upper)
+    if not column:
+        raise HTTPException(status_code=400, detail="Camera invalid")
+
+    frame = db.query(Frame).filter(Frame.id == frame_id).first()
+    if not frame:
+        raise HTTPException(status_code=404, detail="Frame not found")
+
+    relative_path = getattr(frame, column, None)
+    if not relative_path:
+        raise HTTPException(status_code=404, detail="No image")
+
+    image_path = os.path.join(NUSCENES_ROOT, relative_path)
+    if not os.path.isfile(image_path):
+        raise HTTPException(status_code=404, detail="File missing")
+
+    # Xử lý nén bằng Pillow
+    try:
+        with Image.open(image_path) as img:
+            # Resize giữ tỷ lệ
+            ratio = width / float(img.size[0])
+            height = int((float(img.size[1]) * float(ratio)))
+            img = img.resize((width, height), Image.LANCZOS)
+            
+            # Nén và lưu vào buffer
+            img_io = io.BytesIO()
+            img.save(img_io, 'JPEG', quality=60, optimize=True) # Chất lượng 60% là đủ cho thumb
+            img_io.seek(0)
+            
+            return StreamingResponse(
+                img_io, 
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=604800"} # Cache 7 ngày
+            )
+    except Exception as e:
+        # Fallback về ảnh gốc nếu lỗi xử lý
+        return FileResponse(image_path, media_type="image/jpeg")

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,87 +11,92 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/setting.css">
 </head>
+
 <body>
 
-<main class="main-wrapper" id="mainWrapper">
+    <main class="main-wrapper" id="mainWrapper">
 
-    <div id="sidebar-container"></div>
+        <div id="sidebar-container"></div>
 
-    <header class="topnav">
-        <div class="topnav-brand">
-            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
-            <span style="padding-left: 10px;">NuLabel</span>
-        </div>
-        <div class="topnav-right">
-            <a href="Profile.html">
-                <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
-            </a>
-        </div>
-    </header>
+        <header class="topnav">
+            <div class="topnav-brand">
+                <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
+                <span style="padding-left: 10px;">NuLabel</span>
+            </div>
+            <div class="topnav-right">
+                <a href="Profile.html">
+                    <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
+                </a>
+            </div>
+        </header>
 
-    <div class="settings-container">
-        <div class="page-header">
-            <h1>Cài đặt</h1>
-            <p>Cấu hình các thông số AI và hệ thống cho dự án</p>
-        </div>
-
-        <!-- AI Settings -->
-        <div class="settings-card">
-            <div class="settings-card-header">
-                <div class="settings-card-icon blue">
-                    <i class="fa-solid fa-robot"></i>
-                </div>
-                <div>
-                    <div class="settings-card-title">Cài đặt AI</div>
-                    <div class="settings-card-desc">Điều chỉnh ngưỡng tin cậy cho mô hình YOLOv8</div>
-                </div>
+        <div class="settings-container">
+            <div class="page-header">
+                <h1>Cài đặt</h1>
+                <p>Cấu hình các thông số AI và hệ thống cho dự án</p>
             </div>
 
-            <div class="setting-row">
-                <div class="setting-label">
-                    <div class="setting-label-title">Ngưỡng phát hiện (Confidence Threshold)</div>
-                    <div class="setting-label-desc">Chỉ giữ lại các dự đoán có độ tin cậy cao hơn ngưỡng này. Giá trị thấp → phát hiện nhiều hơn nhưng có thể sai. Giá trị cao → ít nhưng chính xác hơn.</div>
+            <!-- AI Settings -->
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-icon blue">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <div class="settings-card-title">Cài đặt AI</div>
+                        <div class="settings-card-desc">Điều chỉnh ngưỡng tin cậy cho mô hình YOLOv8</div>
+                    </div>
                 </div>
-                <div class="setting-control">
-                    <div class="slider-wrap">
-                        <input type="range" id="aiThreshold" min="1" max="100" value="25"
-                            oninput="updateSlider('aiThreshold', 'aiThresholdVal', 100)">
-                        <span class="slider-value" id="aiThresholdVal">0.25</span>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div class="setting-label-title">Ngưỡng phát hiện</div>
+                        <div class="setting-label-desc">Chỉ giữ lại các dự đoán có độ tin cậy cao hơn ngưỡng này. Giá
+                            trị thấp → phát hiện nhiều hơn nhưng có thể sai. Giá trị cao → ít nhưng chính xác hơn.</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="slider-wrap">
+                            <input type="range" id="aiThreshold" min="1" max="100" value="25"
+                                oninput="updateSlider('aiThreshold', 'aiThresholdVal', 100)">
+                            <span class="slider-value" id="aiThresholdVal">0.25</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div class="setting-label-title">Tải xuống dữ liệu dự án</div>
+                        <div class="setting-label-desc">Tải về file ZIP chứa toàn bộ các nhãn đã gán của dự án hiện tại,
+                            định
+                            dạng tương thích nuScenes.</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="btn-export" onclick="exportProject()" id="btnExport">
+                            <i class="fa-solid fa-download"></i> Xuất file
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div class="setting-row">
-                <div class="setting-label">
-                    <div class="setting-label-title">Xuất annotation (JSON chuẩn nuScenes)</div>
-                    <div class="setting-label-desc">Tải về file ZIP chứa toàn bộ annotation của dự án hiện tại, định dạng tương thích nuScenes.</div>
-                </div>
-                <div class="setting-control">
-                    <button class="btn-export" onclick="exportProject()" id="btnExport">
-                        <i class="fa-solid fa-download"></i> Xuất file
-                    </button>
+            <!-- Action buttons -->
+            <div class="action-row">
+                <button class="btn-save" onclick="saveSettings()">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt
+                </button>
+                <button class="btn-reset" onclick="resetSettings()">
+                    <i class="fa-solid fa-rotate-left"></i> Khôi phục mặc định
+                </button>
+                <div class="saved-badge" id="savedBadge">
+                    <i class="fa-solid fa-circle-check"></i> Đã lưu
                 </div>
             </div>
         </div>
 
-        <!-- Action buttons -->
-        <div class="action-row">
-            <button class="btn-save" onclick="saveSettings()">
-                <i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt
-            </button>
-            <button class="btn-reset" onclick="resetSettings()">
-                <i class="fa-solid fa-rotate-left"></i> Khôi phục mặc định
-            </button>
-            <div class="saved-badge" id="savedBadge">
-                <i class="fa-solid fa-circle-check"></i> Đã lưu
-            </div>
-        </div>
-    </div>
+    </main>
 
-</main>
-
-<script src="../js/sidebar.js"></script>
-<script src="../js/avatar-sync.js"></script>
-<script src="../js/setting.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/avatar-sync.js"></script>
+    <script src="../js/setting.js"></script>
 </body>
+
 </html>
