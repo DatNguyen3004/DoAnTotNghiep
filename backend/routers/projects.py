@@ -27,12 +27,17 @@ def list_projects(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.role == "admin":
+    # Chỉ admin gốc (username="admin") mới thấy tất cả
+    if current_user.username == "admin":
         projects = db.query(Project).filter(Project.is_active == True).all()
     else:
+        # Các người dùng khác chỉ thấy dự án họ tham gia HOẶC họ tự tạo
         memberships = db.query(ProjectMember).filter(ProjectMember.user_id == current_user.id).all()
         project_ids = [m.project_id for m in memberships]
-        projects = db.query(Project).filter(Project.id.in_(project_ids), Project.is_active == True).all()
+        projects = db.query(Project).filter(
+            (Project.id.in_(project_ids)) | (Project.created_by == current_user.id), 
+            Project.is_active == True
+        ).all()
     return [_to_out(p, db) for p in projects]
 
 @router.post("", response_model=ProjectOut)
