@@ -113,7 +113,7 @@
             <section class="data-section">
                 <div class="data-header">
                     <div class="data-title">
-                        <h2>Dữ liệu nuScenes</h2>
+                        <h2>Nhiệm vụ đã giao</h2>
                         <p>Quản lý và theo dõi tiến độ gán nhãn dữ liệu xe tự hành</p>
                     </div>
                     <div class="data-actions">
@@ -189,7 +189,10 @@
                         </tr>
                     </thead>
                     <tbody id="allTasksBody">
-                        <tr><td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">Nhấn vào tab để tải dữ liệu</td></tr>
+                        <tr>
+                            <td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">Nhấn vào tab để tải dữ
+                                liệu</td>
+                        </tr>
                     </tbody>
                 </table>
                 <div class="table-footer">
@@ -205,26 +208,30 @@
         <div class="modal" style="width:640px">
             <div class="modal-header">
                 <div>
-                    <h3><i class="fa-solid fa-film" style="color:var(--primary-blue);margin-right:8px"></i>Xem & Sửa tên nhiệm vụ</h3>
+                    <h3><i class="fa-solid fa-film" style="color:var(--primary-blue);margin-right:8px"></i>Xem & Sửa tên
+                        nhiệm vụ</h3>
                     <p>Xem ảnh xem trước rồi đặt tên phù hợp</p>
                 </div>
                 <button class="modal-close" onclick="closeSceneEditModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <!-- Preview với navigation -->
-                <div style="position:relative;border-radius:8px;overflow:hidden;margin-bottom:16px;background:#0F172A;height:200px;display:flex;align-items:center;justify-content:center">
+                <div
+                    style="position:relative;border-radius:8px;overflow:hidden;margin-bottom:16px;background:#0F172A;height:200px;display:flex;align-items:center;justify-content:center">
                     <img id="scenePreviewImg" src="" alt="Xem trước"
                         style="max-width:100%;max-height:200px;object-fit:contain;display:block">
                     <!-- Prev button -->
                     <button onclick="previewNavFrame(-1)"
                         style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:36px;height:36px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s"
-                        onmouseover="this.style.background='rgba(0,0,0,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.5)'">
+                        onmouseover="this.style.background='rgba(0,0,0,0.8)'"
+                        onmouseout="this.style.background='rgba(0,0,0,0.5)'">
                         <i class="fa-solid fa-angle-left"></i>
                     </button>
                     <!-- Next button -->
                     <button onclick="previewNavFrame(1)"
                         style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:36px;height:36px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s"
-                        onmouseover="this.style.background='rgba(0,0,0,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.5)'">
+                        onmouseover="this.style.background='rgba(0,0,0,0.8)'"
+                        onmouseout="this.style.background='rgba(0,0,0,0.5)'">
                         <i class="fa-solid fa-angle-right"></i>
                     </button>
                     <!-- Frame counter -->
@@ -233,17 +240,20 @@
                         1 / 1
                     </div>
                     <!-- Loading spinner -->
-                    <div id="previewLoading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.7)">
+                    <div id="previewLoading"
+                        style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.7)">
                         <i class="fa-solid fa-spinner fa-spin" style="color:#fff;font-size:24px"></i>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Tên nhiệm vụ</label>
-                    <input type="text" id="sceneEditName" style="width:100%;height:44px;padding:0 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;">
+                    <input type="text" id="sceneEditName"
+                        style="width:100%;height:44px;padding:0 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;">
                 </div>
                 <div class="form-group">
                     <label>Mô tả</label>
-                    <textarea id="sceneEditDesc" rows="3" style="width:100%;padding:12px 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;resize:vertical;font-family:Inter,sans-serif"></textarea>
+                    <textarea id="sceneEditDesc" rows="3"
+                        style="width:100%;padding:12px 16px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;resize:vertical;font-family:Inter,sans-serif"></textarea>
                 </div>
                 <input type="hidden" id="sceneEditId">
             </div>
