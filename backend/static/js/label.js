@@ -278,6 +278,7 @@ async function goToFrame(idx) {
 
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
+    prefetchNextFrame(idx + 1);
 }
 
 function updatePageNumber() {
@@ -376,13 +377,29 @@ async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
     try {
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+        // Sử dụng /thumb thay vì /image để tải nhanh hơn
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/${cam}?width=200`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) return;
         const blob = await res.blob();
         img.src = URL.createObjectURL(blob);
     } catch (e) { /* silent */ }
+}
+
+// Tải trước ảnh của các frame tiếp theo để chuyển mượt hơn
+function prefetchNextFrame(currentIdx) {
+    // Tải trước camera hiện tại cho 2 frame kế tiếp
+    [currentIdx + 1, currentIdx + 2].forEach(idx => {
+        if (idx >= frames.length) return;
+        const f = frames[idx];
+        const img = new Image();
+        fetch(`${BASE_URL}/frames/${f.id}/image/${currentCamera}`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        }).then(res => res.blob()).then(blob => {
+            img.src = URL.createObjectURL(blob);
+        }).catch(() => {});
+    });
 }
 
 async function switchCamera(cam) {
@@ -398,7 +415,7 @@ async function loadImage(frame, cam) {
     let mainImg = document.getElementById('mainImage');
     if (!mainImg) return;
 
-    mainImg.style.opacity = '0';
+    // Không set opacity=0 để tránh nháy trắng, ảnh mới sẽ đè lên ảnh cũ
     mainImg.style.display = 'block';
     selectedAnnId = null;
 
@@ -419,7 +436,6 @@ async function loadImage(frame, cam) {
             mainImg.src = URL.createObjectURL(blob);
         });
 
-        mainImg.style.opacity = '1';
         // Đợi browser render ảnh xong mới setup canvas
         requestAnimationFrame(() => {
             setupCanvas(container, mainImg);
@@ -428,7 +444,6 @@ async function loadImage(frame, cam) {
             renderAttentionList();
         });
     } catch (e) {
-        mainImg.style.opacity = '1';
         showToast('Không thể tải ảnh', 'error');
     }
 }

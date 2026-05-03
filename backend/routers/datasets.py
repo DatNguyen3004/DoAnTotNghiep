@@ -208,11 +208,11 @@ def get_frame_thumbnail(
             # Resize giữ tỷ lệ
             ratio = width / float(img.size[0])
             height = int((float(img.size[1]) * float(ratio)))
-            img = img.resize((width, height), Image.LANCZOS)
+            img = img.resize((width, height), Image.BILINEAR)
             
             # Nén và lưu vào buffer
             img_io = io.BytesIO()
-            img.save(img_io, 'JPEG', quality=60, optimize=True) # Chất lượng 60% là đủ cho thumb
+            img.save(img_io, 'JPEG', quality=60) # Bỏ optimize=True để lưu nhanh hơn
             img_io.seek(0)
             
             return StreamingResponse(
