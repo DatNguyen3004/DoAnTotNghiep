@@ -267,7 +267,7 @@ function setupNav() {
         // 6. ZOOM (Phím lẻ)
         if (e.key === '+' || e.key === '=') zoomIn();
         if (e.key === '-' || e.key === '_') zoomOut();
-        if (e.key === '0') { zoomScale = 1; applyZoom(); }
+        if (e.key === '0') { zoomScale = 1; panOffset = { x: 0, y: 0 }; applyZoom(); }
     });
 
     // Ctrl + Lăn chuột để Zoom

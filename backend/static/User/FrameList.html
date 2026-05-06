@@ -36,7 +36,7 @@
         .thumb-btn-wrong:hover, .thumb-btn-wrong.active { background:rgba(239,68,68,1); }
         .thumb-btn-wrong.active { box-shadow:inset 0 -3px 0 #DC2626; }
         .frame-body { padding:14px; }
-        .frame-desc { font-size:13px; line-height:1.5; padding:8px 10px; border-radius:6px; margin-bottom:12px; border-left:3px solid; }
+        .frame-desc { font-size:13px; line-height:1.5; padding:8px 10px; border-radius:6px; margin-bottom:12px; border-left:3px solid; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; }
         .fix-desc { color:#7C2D12; background:#FEF2F2; border-color:#EF4444; }
         .review-desc { color:#4C1D95; background:#F5F3FF; border-color:#7C3AED; }
         .empty-desc { color:#94A3B8; background:#F8FAFC; border-color:#CBD5E1; font-style:italic; }
@@ -166,10 +166,17 @@ async function init() {
 function renderPage() {
     const feedback = task.feedback || '';
     frameEntries = [];
-    feedback.split('\n').filter(l => l.trim()).forEach(line => {
+    const lines = feedback.split('\n').filter(l => l.trim());
+    lines.forEach(line => {
         // Match cả "Frame X:" và "Khung hình X:"
         const m = line.match(/(?:Frame|Khung hình)\s+(\d+)[:：](.*)/i);
-        if (m) frameEntries.push({ frameNum: parseInt(m[1]), desc: m[2].trim() });
+        if (m) {
+            frameEntries.push({ frameNum: parseInt(m[1]), desc: m[2].trim() });
+        } else if (frameEntries.length > 0) {
+            // Dòng không có tiêu đề → nối vào mô tả của frame trước
+            const last = frameEntries[frameEntries.length - 1];
+            last.desc = last.desc ? last.desc + '\n' + line.trim() : line.trim();
+        }
     });
 
     if (mode === 'fix') {

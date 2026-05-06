@@ -1,9 +1,13 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const http = require('http');
+const fs = require('fs');
 
 let mainWindow;
 let pythonProcess;
+
+const isPackaged = app.isPackaged;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -16,80 +20,76 @@ function createWindow() {
         },
         title: "NuLabel Desktop",
         autoHideMenuBar: true,
-        resizable: true, // Cho phép thay đổi kích thước
-        maximizable: true, // Mở lại nút phóng to/thu nhỏ
-        frame: true,
         show: false
     });
 
-    mainWindow.maximize(); 
-    mainWindow.show();
-    mainWindow.setMenu(null); // Xóa bỏ thanh menu trắng (nguyên nhân gây 'hở')
+    mainWindow.maximize();
+    mainWindow.setMenu(null);
 
-    // Mở trang login của ứng dụng
-    const url = 'http://127.0.0.1:8000/static/login.html';
+    const url = 'http://127.0.0.1:8000/login.html';
     
-    mainWindow.loadURL(url).catch(err => {
-        console.log("Đang đợi Server... thử lại sau 2 giây");
-        setTimeout(() => {
+    const checkServer = () => {
+        http.get(url, (res) => {
             mainWindow.loadURL(url);
-        }, 2000);
-    });
+            mainWindow.show();
+        }).on('error', (err) => {
+            console.log("Đang đợi Server... thử lại sau 1 giây");
+            setTimeout(checkServer, 1000);
+        });
+    };
 
-    // Ép buộc kích thước cố định cho TẤT CẢ các trang
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.insertCSS(`
-            body { 
-                min-width: 1300px !important; 
-                min-height: 850px !important; 
-                overflow: auto !important; 
-            }
-        `);
-    });
+    checkServer();
 
     mainWindow.on('closed', function () {
         mainWindow = null;
     });
 }
 
-// Khởi động Backend Python (FastAPI)
 function startPython() {
     console.log("Đang khởi động Backend...");
     
-    // Chạy lệnh uvicorn giống như bạn chạy ở terminal
-    // Lưu ý: Cần cd vào thư mục backend trước hoặc chỉ định rõ đường dẫn
-    pythonProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'], {
-        cwd: path.join(__dirname, 'backend')
-    });
+    let serverExe;
+    let cwd;
 
-    pythonProcess.stdout.on('data', (data) => {
-        console.log(`Python: ${data}`);
-    });
+    if (!isPackaged) {
+        console.log("Chế độ: Development");
+        serverExe = 'python';
+        const args = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'];
+        cwd = path.join(__dirname, 'backend');
+        pythonProcess = spawn(serverExe, args, { cwd });
+    } else {
+        console.log("Chế độ: Production");
+        // ĐƯỜNG DẪN CỐ ĐỊNH TRONG RESOURCES
+        const baseBackendPath = path.join(process.resourcesPath, 'backend', 'dist', 'nulabel-server');
+        serverExe = path.join(baseBackendPath, 'nulabel-server.exe');
+        cwd = baseBackendPath; // Phải chạy CWD tại đúng folder chứa exe
 
-    pythonProcess.stderr.on('data', (data) => {
-        console.error(`Python Error: ${data}`);
+        if (!fs.existsSync(serverExe)) {
+            dialog.showErrorBox("Lỗi", "Không tìm thấy file server tại: " + serverExe);
+            return;
+        }
+
+        pythonProcess = spawn(serverExe, [], { cwd });
+    }
+
+    pythonProcess.stdout.on('data', (data) => console.log(`Backend: ${data}`));
+    pythonProcess.stderr.on('data', (data) => console.error(`Backend Error: ${data}`));
+    
+    pythonProcess.on('close', (code) => {
+        console.log(`Backend process exited with code ${code}`);
     });
 }
 
 app.on('ready', () => {
     startPython();
-    // Đợi 5 giây để server kịp khởi động hoàn toàn (đề phòng máy load chậm)
-    setTimeout(createWindow, 5000);
+    createWindow();
 });
 
 app.on('window-all-closed', function () {
-    // Khi tắt app, tắt luôn process Python
     if (pythonProcess) {
-        console.log("Đang tắt Backend...");
         pythonProcess.kill();
     }
     if (process.platform !== 'darwin') {
         app.quit();
-    }
-});
-
-app.on('activate', function () {
-    if (mainWindow === null) {
-        createWindow();
     }
 });

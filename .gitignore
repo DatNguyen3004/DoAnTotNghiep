@@ -63,3 +63,6 @@ Dataset/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ── Electron build output ─────────────────────────────────────────────────────
+release/

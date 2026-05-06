@@ -342,7 +342,7 @@ document.addEventListener('keydown', e => {
     // 6. ZOOM (Phím lẻ)
     if (e.key === '+' || e.key === '=') zoomIn();
     if (e.key === '-' || e.key === '_') zoomOut();
-    if (e.key === '0') { zoomLevel = 100; applyZoom(); }
+    if (e.key === '0') { zoomLevel = 100; panOffset = { x: 0, y: 0 }; const _c = document.querySelector('.canvas-container'); if (_c) _c.style.transform = ''; applyZoom(); }
 });
 
 // Ctrl + Lăn chuột để Zoom
