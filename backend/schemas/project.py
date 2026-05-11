@@ -5,6 +5,7 @@ from datetime import datetime
 class ProjectCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    data_source: Optional[str] = "nuscenes"  # "nuscenes" | "images" | "video"
 
 class ProjectOut(BaseModel):
     id: int

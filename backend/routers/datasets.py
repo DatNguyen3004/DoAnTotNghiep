@@ -159,7 +159,11 @@ def get_frame_image(
 
     # Xây dựng đường dẫn tuyệt đối đến file ảnh trên disk
     # nuScenes lưu filename dạng: samples/CAM_FRONT/xxx.jpg
-    image_path = os.path.join(NUSCENES_ROOT, relative_path)
+    # Upload ảnh/video lưu dạng: uploads/images/... hoặc uploads/frames/...
+    if relative_path.startswith("uploads/"):
+        image_path = os.path.join("static", relative_path)
+    else:
+        image_path = os.path.join(NUSCENES_ROOT, relative_path)
 
     if not os.path.isfile(image_path):
         raise HTTPException(
@@ -198,7 +202,7 @@ def get_frame_thumbnail(
     if not relative_path:
         raise HTTPException(status_code=404, detail="No image")
 
-    image_path = os.path.join(NUSCENES_ROOT, relative_path)
+    image_path = os.path.join(NUSCENES_ROOT, relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
     if not os.path.isfile(image_path):
         raise HTTPException(status_code=404, detail="File missing")
 
