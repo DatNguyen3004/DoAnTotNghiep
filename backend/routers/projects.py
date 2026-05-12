@@ -391,8 +391,6 @@ _import_status: dict = {}
 def _extract_frames_task(
     task_id: str,
     project_id: int,
-    scene_name: str,
-    scene_desc: str,
     video_paths: dict,   # {camera_channel: filepath}
     fps_target: float,
 ):
@@ -468,15 +466,10 @@ def _extract_frames_task(
         _import_status[task_id]["message"] = "Đang lưu vào cơ sở dữ liệu..."
         db = SessionLocal()
         try:
-            scene = Scene(
-                project_id=project_id,
-                scene_token=f"video-{task_id[:16]}",
-                name=scene_name or f"Video Import {task_id[:8]}",
-                description=scene_desc or f"Imported from video, {frame_index} frames",
-                frame_count=frame_index,
-            )
-            db.add(scene)
-            db.flush()
+            SCENE_SIZE = 40
+            total = len(frame_data)
+            scene_count = max(1, (total + SCENE_SIZE - 1) // SCENE_SIZE)
+            last_scene_id = None
 
             cam_field_map = {
                 "CAM_FRONT": "cam_front",
@@ -487,25 +480,38 @@ def _extract_frames_task(
                 "CAM_BACK_RIGHT": "cam_back_right",
             }
 
-            for fd in frame_data:
-                kwargs = {
-                    "scene_id": scene.id,
-                    "frame_index": fd["frame_index"],
-                    "timestamp": fd["timestamp"],
-                }
-                for cam, path in fd["cam_paths"].items():
-                    field = cam_field_map.get(cam)
-                    if field:
-                        kwargs[field] = path
-                db.add(Frame(**kwargs))
+            for scene_idx in range(scene_count):
+                batch = frame_data[scene_idx * SCENE_SIZE : (scene_idx + 1) * SCENE_SIZE]
+                scene = Scene(
+                    project_id=project_id,
+                    scene_token=f"video-{task_id[:12]}-{scene_idx:03d}",
+                    name=f"Scene {scene_idx + 1}",
+                    description=f"Imported from video",
+                    frame_count=len(batch),
+                )
+                db.add(scene)
+                db.flush()
+                last_scene_id = scene.id
+
+                for fd in batch:
+                    kwargs = {
+                        "scene_id": scene.id,
+                        "frame_index": fd["frame_index"] % SCENE_SIZE,
+                        "timestamp": fd["timestamp"],
+                    }
+                    for cam, path in fd["cam_paths"].items():
+                        field = cam_field_map.get(cam)
+                        if field:
+                            kwargs[field] = path
+                    db.add(Frame(**kwargs))
 
             db.commit()
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {frame_index} khung hình.",
-                "scene_id": scene.id,
-                "frame_count": frame_index,
+                "message": f"Hoàn thành! Đã tạo {total} khung hình trong {scene_count} scene.",
+                "scene_id": last_scene_id,
+                "frame_count": total,
             }
         except Exception as e:
             db.rollback()
@@ -532,8 +538,6 @@ def _extract_frames_task(
 async def import_video(
     project_id: int,
     background_tasks: BackgroundTasks,
-    scene_name: Optional[str] = None,
-    scene_desc: Optional[str] = None,
     fps_target: float = 2.0,
     cam_front: Optional[UploadFile] = File(None),
     cam_front_left: Optional[UploadFile] = File(None),
@@ -591,8 +595,6 @@ async def import_video(
     background_tasks.add_task(
         _extract_frames_task,
         task_id, project_id,
-        scene_name or project.name,
-        scene_desc or "",
         video_paths,
         fps_target,
     )
@@ -627,46 +629,55 @@ def _import_images_task(
     scene_name: str,
     image_paths: list,   # list of (original_filename, saved_filepath)
 ):
-    """Background task: tạo scene + frame từ danh sách ảnh đã lưu."""
+    """Background task: tạo scene + frame từ danh sách ảnh đã lưu, mỗi scene 40 ảnh."""
+    SCENE_SIZE = 40
     try:
         _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang xử lý ảnh..."}
 
         total = len(image_paths)
+        print(f"[import_images] task={task_id[:8]} total={total} images, will create {(total+39)//40} scenes")
         if total == 0:
             _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không tìm thấy ảnh hợp lệ."}
             return
 
         db = SessionLocal()
         try:
-            scene_token = f"images-{task_id[:16]}"
-            scene = Scene(
-                project_id=project_id,
-                scene_token=scene_token,
-                name=scene_name or f"Image Import {task_id[:8]}",
-                description=f"Imported {total} images",
-                frame_count=total,
-            )
-            db.add(scene)
-            db.flush()
+            scene_count = (total + SCENE_SIZE - 1) // SCENE_SIZE
+            last_scene_id = None
+            processed = 0
 
-            for idx, (orig_name, saved_path) in enumerate(image_paths):
-                # Lưu đường dẫn tương đối từ static/
-                rel_path = os.path.relpath(saved_path, "static").replace("\\", "/")
-                db.add(Frame(
-                    scene_id=scene.id,
-                    frame_index=idx,
-                    cam_front=rel_path,
-                ))
-                progress = 5 + int((idx + 1) / total * 90)
-                _import_status[task_id]["progress"] = progress
-                _import_status[task_id]["message"] = f"Đã xử lý {idx + 1}/{total} ảnh..."
+            for scene_idx in range(scene_count):
+                batch = image_paths[scene_idx * SCENE_SIZE : (scene_idx + 1) * SCENE_SIZE]
+                scene_token = f"images-{task_id[:12]}-{scene_idx:03d}"
+                scene = Scene(
+                    project_id=project_id,
+                    scene_token=scene_token,
+                    name=f"Scene {scene_idx + 1}",
+                    description=f"Imported {len(batch)} images",
+                    frame_count=len(batch),
+                )
+                db.add(scene)
+                db.flush()
+                last_scene_id = scene.id
+
+                for frame_idx, (orig_name, saved_path) in enumerate(batch):
+                    rel_path = os.path.relpath(saved_path, "static").replace("\\", "/")
+                    db.add(Frame(
+                        scene_id=scene.id,
+                        frame_index=frame_idx,
+                        cam_front=rel_path,
+                    ))
+                    processed += 1
+                    progress = 5 + int(processed / total * 90)
+                    _import_status[task_id]["progress"] = progress
+                    _import_status[task_id]["message"] = f"Đã xử lý {processed}/{total} ảnh..."
 
             db.commit()
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} khung hình.",
-                "scene_id": scene.id,
+                "message": f"Hoàn thành! Đã tạo {total} khung hình trong {scene_count} scene.",
+                "scene_id": last_scene_id,
                 "frame_count": total,
             }
         except Exception as e:
@@ -687,67 +698,44 @@ def _import_images_task(
 async def import_images(
     project_id: int,
     background_tasks: BackgroundTasks,
-    scene_name: Optional[str] = None,
     files: Optional[List[UploadFile]] = File(None),
-    zip_file: Optional[UploadFile] = File(None),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Upload nhiều ảnh (hoặc 1 file ZIP chứa ảnh) và tạo scene mới."""
+    """Upload nhiều ảnh từ folder và tạo scene mới (mỗi scene 40 ảnh)."""
     project = db.query(Project).filter(Project.id == project_id, Project.is_active == True).first()
     if not project:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
 
-    if not files and not zip_file:
-        raise HTTPException(status_code=400, detail="Vui lòng upload ít nhất 1 file ảnh hoặc file ZIP")
+    if not files:
+        raise HTTPException(status_code=400, detail="Vui lòng upload ít nhất 1 file ảnh")
+
+    print(f"[import-images] project={project_id} received {len(files)} files")
 
     task_id = uuid.uuid4().hex
-    scene_token_short = task_id[:8]
-    save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{scene_token_short}")
+    save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{task_id[:8]}")
     os.makedirs(save_dir, exist_ok=True)
 
     image_paths = []  # list of (original_filename, saved_filepath)
 
     try:
-        if zip_file is not None:
-            # Giải nén ZIP và lấy ảnh
-            ext = os.path.splitext(zip_file.filename or "")[1].lower()
-            if ext != ".zip":
-                raise HTTPException(status_code=400, detail="zip_file phải là file .zip")
-            zip_bytes = await zip_file.read()
-            with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-                members = sorted([
-                    m for m in zf.namelist()
-                    if os.path.splitext(m)[1].lower() in IMAGE_EXTENSIONS
-                    and not os.path.basename(m).startswith(".")
-                    and not m.endswith("/")
-                ])
-                for member in members:
-                    basename = os.path.basename(member)
-                    if not basename:
-                        continue
-                    safe_name = f"{uuid.uuid4().hex[:8]}_{basename}"
-                    dest = os.path.join(save_dir, safe_name)
-                    with zf.open(member) as src, open(dest, "wb") as dst:
-                        shutil.copyfileobj(src, dst)
-                    image_paths.append((basename, dest))
-
-        if files:
-            for upload in files:
-                ext = os.path.splitext(upload.filename or "")[1].lower()
-                if ext not in IMAGE_EXTENSIONS:
-                    continue  # bỏ qua file không phải ảnh
-                safe_name = f"{uuid.uuid4().hex[:8]}_{upload.filename}"
-                dest = os.path.join(save_dir, safe_name)
-                with open(dest, "wb") as f:
-                    shutil.copyfileobj(upload.file, f)
-                image_paths.append((upload.filename, dest))
+        for upload in files:
+            ext = os.path.splitext(upload.filename or "")[1].lower()
+            if ext not in IMAGE_EXTENSIONS:
+                continue  # bỏ qua file không phải ảnh
+            # webkitdirectory gửi đường dẫn đầy đủ (folder/file.jpg) → chỉ lấy tên file
+            basename = os.path.basename(upload.filename.replace("\\", "/"))
+            safe_name = f"{uuid.uuid4().hex[:8]}_{basename}"
+            dest = os.path.join(save_dir, safe_name)
+            with open(dest, "wb") as f:
+                shutil.copyfileobj(upload.file, f)
+            image_paths.append((basename, dest))
 
         # Sort theo tên gốc để đảm bảo thứ tự frame
         image_paths.sort(key=lambda x: x[0])
 
         if not image_paths:
-            raise HTTPException(status_code=400, detail="Không tìm thấy ảnh hợp lệ trong file đã upload")
+            raise HTTPException(status_code=400, detail="Không tìm thấy ảnh hợp lệ trong folder đã upload")
 
     except HTTPException:
         raise
@@ -760,7 +748,7 @@ async def import_images(
         _import_images_task,
         task_id,
         project_id,
-        scene_name or project.name,
+        "",  # scene_name không dùng nữa, tự đặt "Scene N"
         image_paths,
     )
 
@@ -779,149 +767,3 @@ def get_import_images_status(
         raise HTTPException(status_code=404, detail="Không tìm thấy task")
     return status
 
-
-# ── Image Import ──────────────────────────────────────────────────────────────
-
-IMAGE_UPLOAD_DIR = "static/uploads/images"
-os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
-
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif"}
-
-
-def _import_images_task(
-    task_id: str,
-    project_id: int,
-    scene_name: str,
-    image_paths: list,  # list of (original_filename, saved_filepath)
-):
-    """Background task: tạo scene + frame từ danh sách ảnh đã lưu."""
-    try:
-        _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang xử lý ảnh..."}
-        total = len(image_paths)
-        if total == 0:
-            _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không tìm thấy ảnh hợp lệ."}
-            return
-
-        db = SessionLocal()
-        try:
-            scene = Scene(
-                project_id=project_id,
-                scene_token=f"images-{task_id[:16]}",
-                name=scene_name or f"Image Import {task_id[:8]}",
-                description=f"Imported {total} images",
-                frame_count=total,
-            )
-            db.add(scene)
-            db.flush()
-
-            for idx, (orig_name, saved_path) in enumerate(image_paths):
-                rel_path = os.path.relpath(saved_path, "static").replace("\\", "/")
-                db.add(Frame(
-                    scene_id=scene.id,
-                    frame_index=idx,
-                    cam_front=rel_path,
-                ))
-                _import_status[task_id]["progress"] = 5 + int((idx + 1) / total * 90)
-                _import_status[task_id]["message"] = f"Đã xử lý {idx + 1}/{total} ảnh..."
-
-            db.commit()
-            _import_status[task_id] = {
-                "status": "done",
-                "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} khung hình.",
-                "scene_id": scene.id,
-                "frame_count": total,
-            }
-        except Exception as e:
-            db.rollback()
-            raise e
-        finally:
-            db.close()
-
-    except Exception as e:
-        _import_status[task_id] = {"status": "error", "progress": 0, "message": f"Lỗi: {str(e)}"}
-
-
-@router.post("/{project_id}/import-images")
-async def import_images(
-    project_id: int,
-    background_tasks: BackgroundTasks,
-    scene_name: Optional[str] = None,
-    files: Optional[List[UploadFile]] = File(None),
-    zip_file: Optional[UploadFile] = File(None),
-    current_user: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    """Upload nhiều ảnh (hoặc 1 file ZIP chứa ảnh) và tạo scene mới."""
-    project = db.query(Project).filter(Project.id == project_id, Project.is_active == True).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
-
-    if not files and not zip_file:
-        raise HTTPException(status_code=400, detail="Vui lòng upload ít nhất 1 file ảnh hoặc file ZIP")
-
-    task_id = uuid.uuid4().hex
-    save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{task_id[:8]}")
-    os.makedirs(save_dir, exist_ok=True)
-
-    image_paths = []
-    try:
-        if zip_file is not None:
-            ext = os.path.splitext(zip_file.filename or "")[1].lower()
-            if ext != ".zip":
-                raise HTTPException(status_code=400, detail="zip_file phải là file .zip")
-            zip_bytes = await zip_file.read()
-            with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-                members = sorted([
-                    m for m in zf.namelist()
-                    if os.path.splitext(m)[1].lower() in IMAGE_EXTENSIONS
-                    and not os.path.basename(m).startswith(".")
-                    and not m.endswith("/")
-                ])
-                for member in members:
-                    basename = os.path.basename(member)
-                    if not basename:
-                        continue
-                    safe_name = f"{uuid.uuid4().hex[:8]}_{basename}"
-                    dest = os.path.join(save_dir, safe_name)
-                    with zf.open(member) as src, open(dest, "wb") as dst:
-                        shutil.copyfileobj(src, dst)
-                    image_paths.append((basename, dest))
-
-        if files:
-            for upload in files:
-                ext = os.path.splitext(upload.filename or "")[1].lower()
-                if ext not in IMAGE_EXTENSIONS:
-                    continue
-                safe_name = f"{uuid.uuid4().hex[:8]}_{upload.filename}"
-                dest = os.path.join(save_dir, safe_name)
-                with open(dest, "wb") as f:
-                    shutil.copyfileobj(upload.file, f)
-                image_paths.append((upload.filename, dest))
-
-        image_paths.sort(key=lambda x: x[0])
-
-        if not image_paths:
-            raise HTTPException(status_code=400, detail="Không tìm thấy ảnh hợp lệ trong file đã upload")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi xử lý file: {str(e)}")
-
-    _import_status[task_id] = {"status": "queued", "progress": 0, "message": "Đang chờ xử lý..."}
-    background_tasks.add_task(_import_images_task, task_id, project_id, scene_name or project.name, image_paths)
-    return {"task_id": task_id, "message": "Đang xử lý ảnh trong nền..."}
-
-
-@router.get("/{project_id}/import-images/status/{task_id}")
-def get_import_images_status(
-    project_id: int,
-    task_id: str,
-    current_user: User = Depends(require_admin),
-):
-    """Kiểm tra tiến trình import ảnh."""
-    status = _import_status.get(task_id)
-    if not status:
-        raise HTTPException(status_code=404, detail="Không tìm thấy task")
-    return status

@@ -119,35 +119,13 @@
                     <!-- Panel: Upload Ảnh -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
-                            <label>Tên Scene</label>
-                            <input type="text" id="imgSceneName" class="form-control" placeholder="Ví dụ: Đường Nguyễn Huệ buổi sáng">
-                        </div>
-                        <div class="form-group-modal">
                             <label>Tải lên ảnh</label>
-                            <div style="display:flex;gap:8px;margin-bottom:8px">
-                                <button type="button" class="img-tab-btn img-tab-active" id="tabMultiImg" onclick="switchImgTab('multi')">
-                                    <i class="fa-solid fa-images"></i> Nhiều ảnh
-                                </button>
-                                <button type="button" class="img-tab-btn" id="tabZip" onclick="switchImgTab('zip')">
-                                    <i class="fa-solid fa-file-zipper"></i> File ZIP
-                                </button>
-                            </div>
-                            <!-- Multi images -->
                             <div id="imgMultiPanel">
                                 <div class="drop-zone" onclick="document.getElementById('multiImgInput').click()" id="multiImgDropZone">
-                                    <div class="drop-icon"><i class="fa-regular fa-images"></i></div>
-                                    <div class="drop-text" id="multiImgDropText">Chọn nhiều ảnh</div>
-                                    <div class="drop-subtext">JPG, PNG, WEBP, BMP (có thể chọn nhiều file)</div>
-                                    <input type="file" id="multiImgInput" accept="image/jpeg,image/png,image/webp,image/bmp" multiple hidden>
-                                </div>
-                            </div>
-                            <!-- ZIP -->
-                            <div id="imgZipPanel" style="display:none">
-                                <div class="drop-zone" onclick="document.getElementById('zipImgInput').click()" id="zipImgDropZone">
-                                    <div class="drop-icon"><i class="fa-solid fa-file-zipper"></i></div>
-                                    <div class="drop-text" id="zipImgDropText">Chọn file ZIP chứa ảnh</div>
-                                    <div class="drop-subtext">File .zip chứa các ảnh JPG/PNG/WEBP</div>
-                                    <input type="file" id="zipImgInput" accept=".zip" hidden>
+                                    <div class="drop-icon"><i class="fa-regular fa-folder-open"></i></div>
+                                    <div class="drop-text" id="multiImgDropText">Chọn thư mục chứa ảnh</div>
+                                    <div class="drop-subtext">Chọn folder — tất cả ảnh JPG, PNG, WEBP, BMP bên trong sẽ được tải lên</div>
+                                    <input type="file" id="multiImgInput" accept="image/jpeg,image/png,image/webp,image/bmp" multiple webkitdirectory hidden>
                                 </div>
                             </div>
                         </div>
@@ -155,14 +133,6 @@
 
                     <!-- Panel: Upload Video -->
                     <div id="panelVideo" style="display:none">
-                        <div class="form-group-modal">
-                            <label>Tên scene (tùy chọn)</label>
-                            <input type="text" id="createVideoSceneName" class="form-control" placeholder="Ví dụ: Đường Nguyễn Huệ buổi sáng">
-                        </div>
-                        <div class="form-group-modal">
-                            <label>Mô tả (tùy chọn)</label>
-                            <input type="text" id="createVideoSceneDesc" class="form-control" placeholder="Mô tả nội dung video...">
-                        </div>
                         <div class="form-group-modal">
                             <label>Tần số lấy mẫu (khung hình/giây)</label>
                             <select id="createVideoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
@@ -390,16 +360,16 @@
         function renderCreateCameraGrid() {
             const grid = document.getElementById('createCameraGrid');
             grid.innerHTML = CAMERAS_CREATE.map(c => `
-                <label style="display:flex;flex-direction:column;gap:6px;cursor:pointer">
+                <div style="display:flex;flex-direction:column;gap:6px">
                     <span style="font-size:12px;font-weight:600;color:#475569">${c.label}</span>
-                    <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC"
+                    <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;cursor:pointer"
                          id="czone_${c.key}" onclick="document.getElementById('cfile_${c.key}').click()">
                         <i class="fa-solid fa-video" style="color:#94A3B8;font-size:14px"></i>
                         <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="clabel_${c.key}">Chọn video...</span>
                     </div>
                     <input type="file" id="cfile_${c.key}" accept="video/mp4,video/avi,video/quicktime,video/x-matroska,video/webm" hidden
                            onchange="onCreateVideoChange('${c.key}', this)">
-                </label>
+                </div>
             `).join('');
         }
 
@@ -419,25 +389,19 @@
             }
         }
 
-        function resetCreateModal() {
+                function resetCreateModal() {
             document.getElementById('projectName').value = '';
             document.getElementById('projectDesc').value = '';
             document.getElementById('coverDropText').textContent = 'Tải lên ảnh bìa dự án';
             document.getElementById('coverImageInput').value = '';
-            document.getElementById('imgSceneName').value = '';
-            document.getElementById('multiImgDropText').textContent = 'Chọn nhiều ảnh';
+            document.getElementById('multiImgDropText').textContent = 'Chọn thư mục chứa ảnh';
             document.getElementById('multiImgInput').value = '';
-            document.getElementById('zipImgDropText').textContent = 'Chọn file ZIP chứa ảnh';
-            document.getElementById('zipImgInput').value = '';
-            document.getElementById('createVideoSceneName').value = '';
-            document.getElementById('createVideoSceneDesc').value = '';
             document.getElementById('createImportProgress').style.display = 'none';
             document.getElementById('createProgressBar').style.width = '0%';
             document.getElementById('createProgressBar').style.background = 'linear-gradient(90deg,#7C3AED,#2563EB)';
             document.getElementById('btnCreateProject').disabled = false;
             document.getElementById('btnCreateProject').innerHTML = 'Tạo';
             selectDataSource('nuscenes');
-            switchImgTab('multi');
         }
 
         function openCreateModal() {
@@ -504,21 +468,11 @@
             }
         });
 
-        async function startImageImport(projectId) {
-            const sceneName = document.getElementById('imgSceneName').value.trim();
-            const isZipMode = document.getElementById('imgZipPanel').style.display !== 'none';
+                async function startImageImport(projectId) {
+            const multiInput = document.getElementById('multiImgInput');
+            if (!multiInput.files.length) throw new Error('Vui lòng chọn thư mục chứa ảnh.');
             const formData = new FormData();
-            if (sceneName) formData.append('scene_name', sceneName);
-
-            if (isZipMode) {
-                const zipInput = document.getElementById('zipImgInput');
-                if (!zipInput.files[0]) throw new Error('Vui lòng chọn file ZIP.');
-                formData.append('zip_file', zipInput.files[0]);
-            } else {
-                const multiInput = document.getElementById('multiImgInput');
-                if (!multiInput.files.length) throw new Error('Vui lòng chọn ít nhất 1 ảnh.');
-                for (const f of multiInput.files) formData.append('files', f);
-            }
+            for (const f of multiInput.files) formData.append('files', f);
 
             const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images`, {
                 method: 'POST',
@@ -534,8 +488,6 @@
         }
 
         async function startCreateVideoImport(projectId) {
-            const sceneName = document.getElementById('createVideoSceneName').value.trim();
-            const sceneDesc = document.getElementById('createVideoSceneDesc').value.trim();
             const fps = document.getElementById('createVideoFps').value;
 
             const formData = new FormData();
@@ -550,8 +502,6 @@
             if (!hasFile) throw new Error('Vui lòng chọn ít nhất 1 file video.');
 
             const url = new URL(`${BASE_URL}/projects/${projectId}/import-video`);
-            if (sceneName) url.searchParams.set('scene_name', sceneName);
-            if (sceneDesc) url.searchParams.set('scene_desc', sceneDesc);
             url.searchParams.set('fps_target', fps);
 
             const res = await fetch(url.toString(), {
@@ -611,11 +561,8 @@
         document.getElementById('editCoverInput').addEventListener('change', function () {
             if (this.files[0]) document.getElementById('editCoverDropText').textContent = this.files[0].name;
         });
-        document.getElementById('multiImgInput').addEventListener('change', function () {
+                document.getElementById('multiImgInput').addEventListener('change', function () {
             if (this.files.length) document.getElementById('multiImgDropText').textContent = `${this.files.length} ảnh đã chọn`;
-        });
-        document.getElementById('zipImgInput').addEventListener('change', function () {
-            if (this.files[0]) document.getElementById('zipImgDropText').textContent = this.files[0].name;
         });
 
         async function uploadCover(projectId, fileInput) {
@@ -709,14 +656,6 @@
                     </select>
                 </div>
                 <div class="form-group-modal">
-                    <label>Tên scene (tùy chọn)</label>
-                    <input type="text" id="videoSceneName" class="form-control" placeholder="Ví dụ: Đường Nguyễn Huệ buổi sáng">
-                </div>
-                <div class="form-group-modal">
-                    <label>Mô tả (tùy chọn)</label>
-                    <input type="text" id="videoSceneDesc" class="form-control" placeholder="Mô tả nội dung video...">
-                </div>
-                <div class="form-group-modal">
                     <label>Tần số lấy mẫu (khung hình/giây)</label>
                     <select id="videoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
                         <option value="1">1 khung hình/giây</option>
@@ -768,16 +707,16 @@
     function renderCameraGrid() {
         const grid = document.getElementById('cameraUploadGrid');
         grid.innerHTML = CAMERAS_IMPORT.map(c => `
-            <label style="display:flex;flex-direction:column;gap:6px;cursor:pointer">
+            <div style="display:flex;flex-direction:column;gap:6px">
                 <span style="font-size:12px;font-weight:600;color:#475569">${c.label}</span>
-                <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;transition:border-color 0.2s"
+                <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;transition:border-color 0.2s;cursor:pointer"
                      id="zone_${c.key}" onclick="document.getElementById('file_${c.key}').click()">
                     <i class="fa-solid fa-video" style="color:#94A3B8;font-size:14px"></i>
                     <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="label_${c.key}">Chọn video...</span>
                 </div>
                 <input type="file" id="file_${c.key}" accept="video/mp4,video/avi,video/quicktime,video/x-matroska,video/webm" hidden
                        onchange="onVideoFileChange('${c.key}', this)">
-            </label>
+            </div>
         `).join('');
     }
 

@@ -78,7 +78,11 @@ def predict(
     if not relative_path:
         raise HTTPException(status_code=404, detail=f"Frame không có ảnh cho camera {camera_upper}")
 
-    image_path = os.path.join(NUSCENES_ROOT, relative_path)
+    # Hỗ trợ cả ảnh upload (uploads/...) lẫn nuScenes (samples/...)
+    if relative_path.startswith("uploads/"):
+        image_path = os.path.join("static", relative_path)
+    else:
+        image_path = os.path.join(NUSCENES_ROOT, relative_path)
 
     # Chạy inference
     try:
@@ -130,8 +134,11 @@ def optical_flow(
     if not path_prev or not path_next:
         return {"dx": 0.0, "dy": 0.0}
 
-    img_prev = cv2.imread(os.path.join(NUSCENES_ROOT, path_prev))
-    img_next = cv2.imread(os.path.join(NUSCENES_ROOT, path_next))
+    def resolve_path(p):
+        return os.path.join("static", p) if p.startswith("uploads/") else os.path.join(NUSCENES_ROOT, p)
+
+    img_prev = cv2.imread(resolve_path(path_prev))
+    img_next = cv2.imread(resolve_path(path_next))
     if img_prev is None or img_next is None:
         return {"dx": 0.0, "dy": 0.0}
 
