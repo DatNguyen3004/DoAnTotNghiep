@@ -237,6 +237,30 @@ def delete_project(
     tasks = db.query(Task).filter(Task.project_id == project_id).all()
     task_ids = [t.id for t in tasks]
 
+    # 0. Thu thập đường dẫn file vật lý cần xóa
+    cam_columns = ["cam_front", "cam_front_left", "cam_front_right", "cam_back", "cam_back_left", "cam_back_right"]
+    dirs_to_delete = set()
+    files_to_delete = []
+
+    if scene_ids:
+        frames = db.query(Frame).filter(Frame.scene_id.in_(scene_ids)).all()
+        for frame in frames:
+            for col in cam_columns:
+                rel_path = getattr(frame, col, None)
+                if rel_path and rel_path.startswith("uploads/"):
+                    abs_path = os.path.join("static", rel_path)
+                    # Thu thập thư mục cha để xóa cả thư mục một lần
+                    parent_dir = os.path.dirname(abs_path)
+                    if parent_dir and parent_dir != "static/uploads/frames":
+                        dirs_to_delete.add(parent_dir)
+                    else:
+                        files_to_delete.append(abs_path)
+
+    # Xóa ảnh bìa dự án
+    if project.cover_image:
+        cover_path = os.path.join("static", project.cover_image.lstrip("/"))
+        files_to_delete.append(cover_path)
+
     # 1. Xóa annotations
     if task_ids:
         db.query(Annotation).filter(Annotation.task_id.in_(task_ids)).delete(synchronize_session=False)
@@ -257,6 +281,17 @@ def delete_project(
     # 6. Xóa project
     db.delete(project)
     db.commit()
+
+    # 7. Xóa file vật lý sau khi DB đã commit thành công
+    for d in dirs_to_delete:
+        if os.path.isdir(d):
+            shutil.rmtree(d, ignore_errors=True)
+    for f in files_to_delete:
+        if os.path.isfile(f):
+            try:
+                os.remove(f)
+            except Exception:
+                pass
 
     return {"message": "Đã xóa dự án và toàn bộ dữ liệu liên quan"}
 
