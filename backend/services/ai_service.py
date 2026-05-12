@@ -68,6 +68,69 @@ def _iou(a: Dict, b: Dict) -> float:
     return inter / union if union > 0 else 0.0
 
 
+def _overlap_ratio(small: Dict, large: Dict) -> float:
+    """Tính tỷ lệ diện tích small bị large che phủ."""
+    ax2 = small['bbox_x'] + small['bbox_w']
+    ay2 = small['bbox_y'] + small['bbox_h']
+    bx2 = large['bbox_x'] + large['bbox_w']
+    by2 = large['bbox_y'] + large['bbox_h']
+
+    ix1 = max(small['bbox_x'], large['bbox_x'])
+    iy1 = max(small['bbox_y'], large['bbox_y'])
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+
+    inter = (ix2 - ix1) * (iy2 - iy1)
+    small_area = small['bbox_w'] * small['bbox_h']
+    return inter / small_area if small_area > 0 else 0.0
+
+
+def _remove_rider_pedestrian(predictions: List[Dict], overlap_threshold: float = 0.4) -> List[Dict]:
+    """
+    Khi 'human.pedestrian' và 'vehicle.motorcycle'/'vehicle.bicycle' chồng lấp:
+    - Mở rộng bbox xe thành union(xe, người) để bao gồm cả người lái
+    - Bỏ nhãn pedestrian riêng lẻ
+    """
+    vehicle_cats = {"vehicle.motorcycle", "vehicle.bicycle"}
+    result = []
+    used_ped_ids = set()
+
+    vehicles = [p for p in predictions if p['category'] in vehicle_cats]
+    pedestrians = [p for p in predictions if p['category'] == 'human.pedestrian']
+    others = [p for p in predictions if p['category'] not in vehicle_cats and p['category'] != 'human.pedestrian']
+
+    for veh in vehicles:
+        merged = dict(veh)  # copy
+        for ped in pedestrians:
+            if id(ped) in used_ped_ids:
+                continue
+            veh_inside_ped = _overlap_ratio(veh, ped)
+            ped_inside_veh = _overlap_ratio(ped, veh)
+            if veh_inside_ped >= overlap_threshold or ped_inside_veh >= overlap_threshold:
+                # Mở rộng bbox thành union của xe + người
+                x1 = min(merged['bbox_x'], ped['bbox_x'])
+                y1 = min(merged['bbox_y'], ped['bbox_y'])
+                x2 = max(merged['bbox_x'] + merged['bbox_w'], ped['bbox_x'] + ped['bbox_w'])
+                y2 = max(merged['bbox_y'] + merged['bbox_h'], ped['bbox_y'] + ped['bbox_h'])
+                merged['bbox_x'] = round(x1, 6)
+                merged['bbox_y'] = round(y1, 6)
+                merged['bbox_w'] = round(x2 - x1, 6)
+                merged['bbox_h'] = round(y2 - y1, 6)
+                used_ped_ids.add(id(ped))
+        result.append(merged)
+
+    # Giữ lại pedestrian không liên quan đến xe
+    for ped in pedestrians:
+        if id(ped) not in used_ped_ids:
+            result.append(ped)
+
+    result.extend(others)
+    return result
+
+
 def _filter_overlapping(predictions: List[Dict], iou_threshold: float = 0.5) -> List[Dict]:
     """
     Loại bỏ bbox chồng lấp (IoU > threshold).
@@ -130,6 +193,9 @@ def run_inference(
             "is_ai_generated": True,
             "needs_review":    confidence < ai_review_threshold,
         })
+
+    # Bỏ pedestrian đang ngồi trên xe máy/xe đạp
+    predictions = _remove_rider_pedestrian(predictions, overlap_threshold=0.4)
 
     # Lọc bbox chồng lấp (giải quyết vấn đề 1 & 4)
     predictions = _filter_overlapping(predictions, iou_threshold=0.5)

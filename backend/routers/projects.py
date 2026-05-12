@@ -86,7 +86,7 @@ def create_project(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    from config import NUSCENES_ROOT, NUSCENES_META
+    import config as _cfg
 
     try:
         project = Project(
@@ -101,7 +101,7 @@ def create_project(
         # Chỉ import nuScenes nếu admin chọn nguồn mặc định
         if (body.data_source or "nuscenes") == "nuscenes":
             try:
-                _import_nuscenes_to_project(db, project.id, NUSCENES_ROOT, NUSCENES_META)
+                _import_nuscenes_to_project(db, project.id, _cfg.NUSCENES_ROOT, _cfg.NUSCENES_META)
             except Exception as e:
                 print(f"Lỗi khi nạp dữ liệu nuScenes: {e}")
 
@@ -394,7 +394,8 @@ def _extract_frames_task(
     video_paths: dict,   # {camera_channel: filepath}
     fps_target: float,
 ):
-    """Background task: cắt frame từ video và lưu vào DB."""
+    """Background task: cắt frame từ video và lưu vào DB, ghi ảnh song song theo camera."""
+    from concurrent.futures import ThreadPoolExecutor
     try:
         import cv2
         _import_status[task_id] = {"status": "running", "progress": 0, "message": "Đang xử lý video..."}
@@ -407,9 +408,8 @@ def _extract_frames_task(
         cap_check.release()
 
         frame_interval = max(1, round(src_fps / fps_target))
-        expected_count = max(1, total_frames // frame_interval)
 
-        # Tạo thư mục lưu frame cho scene này
+        # Tạo thư mục lưu frame
         scene_dir = os.path.join(FRAME_UPLOAD_DIR, f"proj{project_id}_{task_id[:8]}")
         os.makedirs(scene_dir, exist_ok=True)
 
@@ -418,45 +418,54 @@ def _extract_frames_task(
         for cam, path in video_paths.items():
             caps[cam] = cv2.VideoCapture(path)
 
+        # Hàm ghi 1 ảnh (chạy trong thread riêng)
+        def save_frame(cam, frame, frame_index):
+            fname = f"{cam}_{frame_index:06d}.jpg"
+            fpath = os.path.join(scene_dir, fname)
+            cv2.imwrite(fpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            return cam, f"uploads/frames/proj{project_id}_{task_id[:8]}/{fname}"
+
         # Cắt frame
-        frame_data = []  # list of {frame_index, timestamp, cam_paths}
+        frame_data = []
         frame_index = 0
         raw_index = 0
 
-        while True:
-            frames_read = {}
-            any_ok = False
-            for cam, cap in caps.items():
-                ret, frame = cap.read()
-                if ret:
-                    frames_read[cam] = frame
-                    any_ok = True
+        with ThreadPoolExecutor(max_workers=len(caps)) as executor:
+            while True:
+                frames_read = {}
+                any_ok = False
+                for cam, cap in caps.items():
+                    ret, frame = cap.read()
+                    if ret:
+                        frames_read[cam] = frame
+                        any_ok = True
 
-            if not any_ok:
-                break
+                if not any_ok:
+                    break
 
-            if raw_index % frame_interval == 0:
-                cam_paths = {}
-                for cam, frame in frames_read.items():
-                    fname = f"{cam}_{frame_index:06d}.jpg"
-                    fpath = os.path.join(scene_dir, fname)
-                    cv2.imwrite(fpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-                    # Lưu đường dẫn tương đối từ static/
-                    cam_paths[cam] = f"uploads/frames/proj{project_id}_{task_id[:8]}/{fname}"
+                if raw_index % frame_interval == 0:
+                    # Ghi tất cả camera song song
+                    futures = {
+                        executor.submit(save_frame, cam, frm, frame_index): cam
+                        for cam, frm in frames_read.items()
+                    }
+                    cam_paths = {}
+                    for future in futures:
+                        cam, rel_path = future.result()
+                        cam_paths[cam] = rel_path
 
-                frame_data.append({
-                    "frame_index": frame_index,
-                    "timestamp": int((raw_index / src_fps) * 1e6),  # microseconds
-                    "cam_paths": cam_paths,
-                })
-                frame_index += 1
+                    frame_data.append({
+                        "frame_index": frame_index,
+                        "timestamp": int((raw_index / src_fps) * 1e6),
+                        "cam_paths": cam_paths,
+                    })
+                    frame_index += 1
 
-                # Cập nhật progress
-                progress = min(95, int((raw_index / max(total_frames, 1)) * 95))
-                _import_status[task_id]["progress"] = progress
-                _import_status[task_id]["message"] = f"Đã cắt {frame_index} khung hình..."
+                    progress = min(95, int((raw_index / max(total_frames, 1)) * 95))
+                    _import_status[task_id]["progress"] = progress
+                    _import_status[task_id]["message"] = f"Đã cắt {frame_index} khung hình..."
 
-            raw_index += 1
+                raw_index += 1
 
         # Đóng tất cả video
         for cap in caps.values():
@@ -767,3 +776,170 @@ def get_import_images_status(
         raise HTTPException(status_code=404, detail="Không tìm thấy task")
     return status
 
+
+# ── Multi-Camera Image Import ─────────────────────────────────────────────────
+
+CAM_FIELD_MAP_IMG = {
+    "cam_front":       "cam_front",
+    "cam_front_left":  "cam_front_left",
+    "cam_front_right": "cam_front_right",
+    "cam_back":        "cam_back",
+    "cam_back_left":   "cam_back_left",
+    "cam_back_right":  "cam_back_right",
+}
+
+
+def _import_images_multicam_task(
+    task_id: str,
+    project_id: int,
+    cam_image_paths: dict,  # {cam_key: [(orig_name, saved_path), ...]}
+):
+    """Background task: ghép ảnh 6 camera theo index, tạo scene 40 frame."""
+    SCENE_SIZE = 40
+    try:
+        _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang xử lý ảnh..."}
+
+        # Lấy số ảnh ít nhất giữa các camera có dữ liệu
+        cam_counts = {k: len(v) for k, v in cam_image_paths.items() if v}
+        if not cam_counts:
+            _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không tìm thấy ảnh hợp lệ."}
+            return
+
+        total = min(cam_counts.values())
+        print(f"[import_multicam] task={task_id[:8]} total={total} frames, cams={list(cam_counts.keys())}")
+
+        db = SessionLocal()
+        try:
+            scene_count = (total + SCENE_SIZE - 1) // SCENE_SIZE
+            last_scene_id = None
+            processed = 0
+
+            for scene_idx in range(scene_count):
+                start = scene_idx * SCENE_SIZE
+                end = min(start + SCENE_SIZE, total)
+                batch_size = end - start
+
+                scene = Scene(
+                    project_id=project_id,
+                    scene_token=f"multicam-{task_id[:12]}-{scene_idx:03d}",
+                    name=f"Scene {scene_idx + 1}",
+                    description=f"Multi-camera import, {batch_size} frames",
+                    frame_count=batch_size,
+                )
+                db.add(scene)
+                db.flush()
+                last_scene_id = scene.id
+
+                for frame_idx in range(batch_size):
+                    global_idx = start + frame_idx
+                    kwargs = {
+                        "scene_id": scene.id,
+                        "frame_index": frame_idx,
+                    }
+                    for cam_key, paths in cam_image_paths.items():
+                        if global_idx < len(paths):
+                            _, saved_path = paths[global_idx]
+                            rel_path = os.path.relpath(saved_path, "static").replace("\\", "/")
+                            kwargs[cam_key] = rel_path
+
+                    db.add(Frame(**kwargs))
+                    processed += 1
+                    progress = 5 + int(processed / total * 90)
+                    _import_status[task_id]["progress"] = progress
+                    _import_status[task_id]["message"] = f"Đã xử lý {processed}/{total} khung hình..."
+
+            db.commit()
+            _import_status[task_id] = {
+                "status": "done",
+                "progress": 100,
+                "message": f"Hoàn thành! Đã tạo {total} khung hình trong {scene_count} scene.",
+                "scene_id": last_scene_id,
+                "frame_count": total,
+            }
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+
+    except Exception as e:
+        _import_status[task_id] = {"status": "error", "progress": 0, "message": f"Lỗi: {str(e)}"}
+
+
+@router.post("/{project_id}/import-images-multicam")
+async def import_images_multicam(
+    project_id: int,
+    background_tasks: BackgroundTasks,
+    cam_front: Optional[List[UploadFile]] = File(None),
+    cam_front_left: Optional[List[UploadFile]] = File(None),
+    cam_front_right: Optional[List[UploadFile]] = File(None),
+    cam_back: Optional[List[UploadFile]] = File(None),
+    cam_back_left: Optional[List[UploadFile]] = File(None),
+    cam_back_right: Optional[List[UploadFile]] = File(None),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Upload ảnh cho 6 camera riêng biệt, ghép theo index và tạo scene mới."""
+    project = db.query(Project).filter(Project.id == project_id, Project.is_active == True).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
+
+    uploads = {
+        "cam_front":       cam_front,
+        "cam_front_left":  cam_front_left,
+        "cam_front_right": cam_front_right,
+        "cam_back":        cam_back,
+        "cam_back_left":   cam_back_left,
+        "cam_back_right":  cam_back_right,
+    }
+
+    provided = {k: v for k, v in uploads.items() if v}
+    if not provided:
+        raise HTTPException(status_code=400, detail="Vui lòng upload ít nhất 1 folder ảnh")
+
+    task_id = uuid.uuid4().hex
+    save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{task_id[:8]}")
+    os.makedirs(save_dir, exist_ok=True)
+
+    cam_image_paths = {}
+    try:
+        for cam_key, file_list in provided.items():
+            paths = []
+            for upload in file_list:
+                ext = os.path.splitext(upload.filename or "")[1].lower()
+                if ext not in IMAGE_EXTENSIONS:
+                    continue
+                basename = os.path.basename(upload.filename.replace("\\", "/"))
+                safe_name = f"{cam_key}_{uuid.uuid4().hex[:6]}_{basename}"
+                dest = os.path.join(save_dir, safe_name)
+                with open(dest, "wb") as f:
+                    shutil.copyfileobj(upload.file, f)
+                paths.append((basename, dest))
+            # Sort theo tên gốc để đảm bảo thứ tự
+            paths.sort(key=lambda x: x[0])
+            if paths:
+                cam_image_paths[cam_key] = paths
+
+        if not cam_image_paths:
+            raise HTTPException(status_code=400, detail="Không tìm thấy ảnh hợp lệ")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý file: {str(e)}")
+
+    _import_status[task_id] = {"status": "queued", "progress": 0, "message": "Đang chờ xử lý..."}
+    background_tasks.add_task(_import_images_multicam_task, task_id, project_id, cam_image_paths)
+    return {"task_id": task_id, "message": "Đang xử lý ảnh trong nền..."}
+
+
+@router.get("/{project_id}/import-images-multicam/status/{task_id}")
+def get_import_images_multicam_status(
+    project_id: int,
+    task_id: str,
+    current_user: User = Depends(require_admin),
+):
+    status = _import_status.get(task_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+    return status

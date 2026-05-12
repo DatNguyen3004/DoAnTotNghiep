@@ -160,6 +160,21 @@ async function loadFrames(sceneId) {
 
         await loadAllAnnotations();
         initTrackCounters();
+
+        // Detect chế độ 1 camera: nếu chỉ có cam_front có dữ liệu → dùng film strip
+        const firstFrame = frames[0];
+        const camFields = ['cam_front_left', 'cam_front_right', 'cam_back', 'cam_back_left', 'cam_back_right'];
+        window._isSingleCam = firstFrame && camFields.every(f => !firstFrame[f]);
+        console.log('[SingleCam detect]', {
+            isSingleCam: window._isSingleCam,
+            cam_front: firstFrame?.cam_front,
+            cam_front_left: firstFrame?.cam_front_left,
+            cam_back: firstFrame?.cam_back,
+        });
+        if (window._isSingleCam) {
+            const panelHeader = document.querySelector('.panel-header');
+            if (panelHeader) panelHeader.textContent = 'KHUNG HÌNH';
+        }
         // Khôi phục frame đã lưu gần nhất
         const urlFrame = parseInt(new URLSearchParams(window.location.search).get('frame') || '-1');
         const savedFrame = parseInt(localStorage.getItem(`lastFrame_${taskId}`) || '0');
@@ -357,6 +372,10 @@ window.addEventListener('wheel', e => {
 
 // ============= CAMERA =============
 function renderCamList(frame) {
+    if (window._isSingleCam) {
+        renderFrameStrip(frame);
+        return;
+    }
     const list = document.getElementById('camList');
     if (!list) return;
     list.innerHTML = CAMERAS.map((cam, i) => {
@@ -378,13 +397,68 @@ function renderCamList(frame) {
     CAMERAS.forEach(cam => loadThumb(frame, cam));
 }
 
+// Film strip cho chế độ 1 camera: hiển thị các frame lân cận
+function renderFrameStrip(currentFrame) {
+    const list = document.getElementById('camList');
+    if (!list) return;
+
+    // Hiển thị tối đa 6 frame xung quanh frame hiện tại
+    const STRIP_COUNT = 6;
+    const half = Math.floor(STRIP_COUNT / 2);
+    let startIdx = Math.max(0, currentFrameIdx - half);
+    let endIdx = Math.min(frames.length - 1, startIdx + STRIP_COUNT - 1);
+    startIdx = Math.max(0, endIdx - STRIP_COUNT + 1);
+
+    list.innerHTML = frames.slice(startIdx, endIdx + 1).map((f, i) => {
+        const idx = startIdx + i;
+        const isActive = f.id === currentFrame.id;
+        const count = getFrameAnns(f.id, 'CAM_FRONT').length;
+        return `
+        <div class="cam-row">
+            <div class="cam-item ${isActive ? 'active' : ''}" onclick="goToFrame(${idx})">
+                <img id="strip_thumb_${f.id}" src="" alt="frame${idx}" class="hidden">
+                <div id="strip_nodata_${f.id}" style="display:none;position:absolute;inset:0;background:#E2E8F0;flex-direction:column;align-items:center;justify-content:center;gap:4px;pointer-events:none">
+                    <i class="fa-solid fa-image" style="font-size:20px;color:#94A3B8"></i>
+                </div>
+                <div class="cam-label" style="font-size:9px">#${idx + 1}</div>
+                ${count > 0 ? `<div style="position:absolute;top:4px;right:4px;background:#2563EB;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px">${count}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+
+    // Load thumbnails cho các frame trong strip
+    frames.slice(startIdx, endIdx + 1).forEach(f => loadStripThumb(f));
+}
+
+async function loadStripThumb(frame) {
+    const img = document.getElementById(`strip_thumb_${frame.id}`);
+    if (!img) return;
+    const nodata = document.getElementById(`strip_nodata_${frame.id}`);
+    try {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/CAM_FRONT?width=200`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!res.ok || res.headers.get('X-No-Data') === '1') {
+            img.classList.add('hidden');
+            if (nodata) nodata.style.display = 'flex';
+            return;
+        }
+        const blob = await res.blob();
+        img.src = URL.createObjectURL(blob);
+        img.classList.remove('hidden');
+        if (nodata) nodata.style.display = 'none';
+    } catch (e) {
+        img.classList.add('hidden');
+        if (nodata) nodata.style.display = 'flex';
+    }
+}
+
 async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
     const nodata = document.getElementById(`nodata_${cam}`);
     try {
-        // Sử dụng /thumb thay vì /image để tải nhanh hơn
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/${cam}?width=200&_=${Date.now()}`, {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/${cam}?width=200`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok || res.headers.get('X-No-Data') === '1') {
@@ -404,15 +478,18 @@ async function loadThumb(frame, cam) {
 
 // Tải trước ảnh của các frame tiếp theo để chuyển mượt hơn
 function prefetchNextFrame(currentIdx) {
-    // Tải trước camera hiện tại cho 2 frame kế tiếp
-    [currentIdx + 1, currentIdx + 2].forEach(idx => {
-        if (idx >= frames.length) return;
+    // Tải trước camera hiện tại cho 3 frame kế tiếp và 1 frame trước
+    const idxList = [currentIdx + 1, currentIdx + 2, currentIdx + 3, currentIdx - 1];
+    idxList.forEach(idx => {
+        if (idx < 0 || idx >= frames.length) return;
         const f = frames[idx];
-        const img = new Image();
+        const key = _getCacheKey(f.id, currentCamera);
+        if (_imgCache.has(key)) return; // đã cache rồi
         fetch(`${BASE_URL}/frames/${f.id}/image/${currentCamera}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         }).then(res => res.blob()).then(blob => {
-            img.src = URL.createObjectURL(blob);
+            const url = URL.createObjectURL(blob);
+            _cacheSet(key, url);
         }).catch(() => {});
     });
 }
@@ -422,6 +499,22 @@ async function switchCamera(cam) {
     currentCamera = cam;
     renderCamList(frames[currentFrameIdx]);
     await loadImage(frames[currentFrameIdx], cam);
+}
+
+// Cache ảnh đã load: key = "frameId_cam" → objectURL
+const _imgCache = new Map();
+const _IMG_CACHE_MAX = 20;
+
+function _getCacheKey(frameId, cam) { return `${frameId}_${cam}`; }
+
+function _cacheSet(key, url) {
+    if (_imgCache.size >= _IMG_CACHE_MAX) {
+        // Xóa entry cũ nhất
+        const firstKey = _imgCache.keys().next().value;
+        URL.revokeObjectURL(_imgCache.get(firstKey));
+        _imgCache.delete(firstKey);
+    }
+    _imgCache.set(key, url);
 }
 
 // ============= IMAGE LOADING =============
@@ -434,7 +527,6 @@ async function loadImage(frame, cam) {
     const oldPlaceholder = document.getElementById('mainNoData');
     if (oldPlaceholder) oldPlaceholder.remove();
 
-    // Không set opacity=0 để tránh nháy trắng, ảnh mới sẽ đè lên ảnh cũ
     mainImg.style.display = 'block';
     selectedAnnId = null;
 
@@ -442,17 +534,27 @@ async function loadImage(frame, cam) {
     panOffset = { x: 0, y: 0 };
     if (container) container.style.transform = '';
 
+    const cacheKey = _getCacheKey(frame.id, cam);
+
     try {
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}?_=${Date.now()}`, {
-            headers: { Authorization: `Bearer ${getToken()}` }
-        });
-        if (!res.ok) throw new Error();
-        const blob = await res.blob();
+        let src;
+        if (_imgCache.has(cacheKey)) {
+            // Dùng cache
+            src = _imgCache.get(cacheKey);
+        } else {
+            const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            src = URL.createObjectURL(blob);
+            _cacheSet(cacheKey, src);
+        }
 
         await new Promise((resolve, reject) => {
             mainImg.onload = resolve;
             mainImg.onerror = reject;
-            mainImg.src = URL.createObjectURL(blob);
+            mainImg.src = src;
         });
 
         // Đợi browser render ảnh xong mới setup canvas

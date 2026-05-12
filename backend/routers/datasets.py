@@ -12,7 +12,12 @@ from models.scene import Scene
 from models.frame import Frame
 from schemas.dataset import SceneOut, FrameOut, FrameMetadata
 from routers.auth import get_current_user
-from config import NUSCENES_ROOT
+from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
+import config as _cfg
+
+# Luôn đọc runtime để phản ánh cập nhật từ Settings
+def _get_nuscenes_root():
+    return _cfg.NUSCENES_ROOT
 
 router = APIRouter()
 
@@ -192,7 +197,7 @@ def get_frame_image(
     if relative_path.startswith("uploads/"):
         image_path = os.path.join("static", relative_path)
     else:
-        image_path = os.path.join(NUSCENES_ROOT, relative_path)
+        image_path = os.path.join(_get_nuscenes_root(), relative_path)
 
     if not os.path.isfile(image_path):
         return _placeholder_response(camera_upper)
@@ -228,7 +233,7 @@ def get_frame_thumbnail(
     if not relative_path:
         return _placeholder_response(camera_upper)
 
-    image_path = os.path.join(NUSCENES_ROOT, relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
+    image_path = os.path.join(_get_nuscenes_root(), relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
     if not os.path.isfile(image_path):
         return _placeholder_response(camera_upper)
 

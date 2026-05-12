@@ -9,7 +9,11 @@ from models.user import User
 from models.frame import Frame
 from routers.auth import get_current_user
 from services.ai_service import run_inference, get_model, get_model_error
-from config import NUSCENES_ROOT
+from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
+import config as _cfg
+
+def _get_nuscenes_root():
+    return _cfg.NUSCENES_ROOT
 
 router = APIRouter()
 
@@ -82,7 +86,7 @@ def predict(
     if relative_path.startswith("uploads/"):
         image_path = os.path.join("static", relative_path)
     else:
-        image_path = os.path.join(NUSCENES_ROOT, relative_path)
+        image_path = os.path.join(_get_nuscenes_root(), relative_path)
 
     # Chạy inference
     try:
@@ -135,7 +139,7 @@ def optical_flow(
         return {"dx": 0.0, "dy": 0.0}
 
     def resolve_path(p):
-        return os.path.join("static", p) if p.startswith("uploads/") else os.path.join(NUSCENES_ROOT, p)
+        return os.path.join("static", p) if p.startswith("uploads/") else os.path.join(_get_nuscenes_root(), p)
 
     img_prev = cv2.imread(resolve_path(path_prev))
     img_next = cv2.imread(resolve_path(path_next))

@@ -55,9 +55,28 @@ backend/static/uploads/covers/*
 !backend/static/uploads/avatars/.gitkeep
 !backend/static/uploads/covers/.gitkeep
 
+# Upload frames/images/videos từ người dùng (nặng, không cần commit)
+backend/static/uploads/frames/
+backend/static/uploads/images/
+backend/static/uploads/videos/
+backend/static/uploads/nuscenes/
+
 # ── Dataset ───────────────────────────────────────────────────────────────────
 Dataset/
 *.json.bak
+
+# ── Build output (PyInstaller) ────────────────────────────────────────────────
+backend/build/
+backend/dist/
+backend/*.spec
+
+# ── nuScenes dataset (nếu để trong project) ───────────────────────────────────
+v1.0-mini/
+samples/
+sweeps/
+maps/
+*.tgz
+*.tar.gz
 
 # ── Pytest / Coverage ─────────────────────────────────────────────────────────
 .pytest_cache/

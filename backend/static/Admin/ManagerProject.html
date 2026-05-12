@@ -34,6 +34,13 @@
         </div>
 
         <div class="nav-right">
+            <a href="system-settings.html"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#64748B;text-decoration:none;transition:all 0.2s"
+                onmouseover="this.style.borderColor='#4F46E5';this.style.color='#4F46E5'"
+                onmouseout="this.style.borderColor='#E2E8F0';this.style.color='#64748B'"
+                title="Cài đặt hệ thống">
+                <i class="fa-solid fa-gear"></i> Cài đặt hệ thống
+            </a>
             <div id="navAvatar" onclick="window.location.href='Profile.html'"
                 style="cursor:pointer;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"
                 title="Thông tin cá nhân"></div>
@@ -119,15 +126,12 @@
                     <!-- Panel: Upload Ảnh -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
-                            <label>Tải lên ảnh</label>
-                            <div id="imgMultiPanel">
-                                <div class="drop-zone" onclick="document.getElementById('multiImgInput').click()" id="multiImgDropZone">
-                                    <div class="drop-icon"><i class="fa-regular fa-folder-open"></i></div>
-                                    <div class="drop-text" id="multiImgDropText">Chọn thư mục chứa ảnh</div>
-                                    <div class="drop-subtext">Chọn folder — tất cả ảnh JPG, PNG, WEBP, BMP bên trong sẽ được tải lên</div>
-                                    <input type="file" id="multiImgInput" accept="image/jpeg,image/png,image/webp,image/bmp" multiple webkitdirectory hidden>
-                                </div>
+                            <label>Tải lên ảnh theo camera</label>
+                            <div style="font-size:12px;color:#64748B;margin-bottom:10px;padding:8px 12px;background:#F0F9FF;border-radius:8px;border-left:3px solid #0EA5E9">
+                                <i class="fa-solid fa-circle-info" style="color:#0EA5E9"></i>
+                                Mỗi ô tương ứng 1 camera. Chỉ cần chọn ít nhất 1 folder — nếu chỉ chọn 1 folder thì tự động dùng chế độ 1 camera.
                             </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="imgCamGrid"></div>
                         </div>
                     </div>
 
@@ -339,6 +343,7 @@
             document.getElementById('panelImages').style.display = src === 'images' ? '' : 'none';
             document.getElementById('panelVideo').style.display  = src === 'video'  ? '' : 'none';
             if (src === 'video') renderCreateCameraGrid();
+            if (src === 'images') renderImgCamGrid();
         }
 
         function switchImgTab(tab) {
@@ -389,13 +394,54 @@
             }
         }
 
-                function resetCreateModal() {
+        const CAMERAS_IMG = [
+            { key: 'cam_front',       label: 'Cam trước' },
+            { key: 'cam_front_left',  label: 'Cam trái trước' },
+            { key: 'cam_front_right', label: 'Cam phải trước' },
+            { key: 'cam_back',        label: 'Cam sau' },
+            { key: 'cam_back_left',   label: 'Cam trái sau' },
+            { key: 'cam_back_right',  label: 'Cam phải sau' },
+        ];
+
+        function renderImgCamGrid() {
+            const grid = document.getElementById('imgCamGrid');
+            if (!grid) return;
+            grid.innerHTML = CAMERAS_IMG.map(c => `
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <span style="font-size:12px;font-weight:600;color:#475569">${c.label}</span>
+                    <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;cursor:pointer"
+                         id="imgzone_${c.key}" onclick="document.getElementById('imgfile_${c.key}').click()">
+                        <i class="fa-regular fa-folder-open" style="color:#94A3B8;font-size:14px"></i>
+                        <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="imglabel_${c.key}">Chọn folder...</span>
+                    </div>
+                    <input type="file" id="imgfile_${c.key}" accept="image/jpeg,image/png,image/webp,image/bmp" multiple webkitdirectory hidden
+                           onchange="onImgCamChange('${c.key}', this)">
+                </div>
+            `).join('');
+        }
+
+        function onImgCamChange(camKey, input) {
+            const label = document.getElementById('imglabel_' + camKey);
+            const zone  = document.getElementById('imgzone_'  + camKey);
+            if (input.files.length) {
+                const imgCount = Array.from(input.files).filter(f => /\.(jpe?g|png|webp|bmp)$/i.test(f.name)).length;
+                label.textContent = `${imgCount} ảnh`;
+                label.style.color = '#0EA5E9';
+                zone.style.borderColor = '#0EA5E9';
+                zone.style.background  = '#F0F9FF';
+            } else {
+                label.textContent = 'Chọn folder...';
+                label.style.color = '#94A3B8';
+                zone.style.borderColor = '#CBD5E1';
+                zone.style.background  = '#F8FAFC';
+            }
+        }
+
+        function resetCreateModal() {
             document.getElementById('projectName').value = '';
             document.getElementById('projectDesc').value = '';
             document.getElementById('coverDropText').textContent = 'Tải lên ảnh bìa dự án';
             document.getElementById('coverImageInput').value = '';
-            document.getElementById('multiImgDropText').textContent = 'Chọn thư mục chứa ảnh';
-            document.getElementById('multiImgInput').value = '';
             document.getElementById('createImportProgress').style.display = 'none';
             document.getElementById('createProgressBar').style.width = '0%';
             document.getElementById('createProgressBar').style.background = 'linear-gradient(90deg,#7C3AED,#2563EB)';
@@ -459,7 +505,12 @@
                     taskId = await startCreateVideoImport(project.id);
                 }
                 if (taskId) {
-                    pollCreateImportStatus(project.id, taskId, _dataSource);
+                    const capturedCamCount = Object.keys(CAMERAS_IMG.reduce((acc, c) => {
+                        const inp = document.getElementById('imgfile_' + c.key);
+                        if (inp && inp.files.length) acc[c.key] = 1;
+                        return acc;
+                    }, {})).length;
+                    pollCreateImportStatus(project.id, taskId, _dataSource, capturedCamCount);
                 }
             } catch (e) {
                 alert('Import thất bại: ' + e.message);
@@ -468,23 +519,46 @@
             }
         });
 
-                async function startImageImport(projectId) {
-            const multiInput = document.getElementById('multiImgInput');
-            if (!multiInput.files.length) throw new Error('Vui lòng chọn thư mục chứa ảnh.');
-            const formData = new FormData();
-            for (const f of multiInput.files) formData.append('files', f);
-
-            const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${getToken()}` },
-                body: formData,
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'Lỗi upload ảnh');
+        async function startImageImport(projectId) {
+            // Đếm số camera có folder được chọn
+            const camFiles = {};
+            for (const c of CAMERAS_IMG) {
+                const input = document.getElementById('imgfile_' + c.key);
+                if (input && input.files.length) {
+                    const imgs = Array.from(input.files).filter(f => /\.(jpe?g|png|webp|bmp)$/i.test(f.name));
+                    if (imgs.length) camFiles[c.key] = imgs;
+                }
             }
-            const data = await res.json();
-            return data.task_id;
+
+            const camCount = Object.keys(camFiles).length;
+            if (camCount === 0) throw new Error('Vui lòng chọn ít nhất 1 folder ảnh.');
+
+            const formData = new FormData();
+
+            if (camCount === 1) {
+                // Chế độ 1 camera — dùng endpoint import-images
+                const files = Object.values(camFiles)[0];
+                for (const f of files) formData.append('files', f);
+                const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                    body: formData,
+                });
+                if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Lỗi upload ảnh'); }
+                return (await res.json()).task_id;
+            } else {
+                // Chế độ nhiều camera — dùng endpoint import-images-multicam
+                for (const [camKey, files] of Object.entries(camFiles)) {
+                    for (const f of files) formData.append(camKey, f);
+                }
+                const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images-multicam`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                    body: formData,
+                });
+                if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Lỗi upload ảnh'); }
+                return (await res.json()).task_id;
+            }
         }
 
         async function startCreateVideoImport(projectId) {
@@ -517,9 +591,11 @@
             return data.task_id;
         }
 
-        function pollCreateImportStatus(projectId, taskId, sourceType) {
+        function pollCreateImportStatus(projectId, taskId, sourceType, camCount) {
             const statusEndpoint = sourceType === 'images'
-                ? `${BASE_URL}/projects/${projectId}/import-images/status/${taskId}`
+                ? (camCount > 1
+                    ? `${BASE_URL}/projects/${projectId}/import-images-multicam/status/${taskId}`
+                    : `${BASE_URL}/projects/${projectId}/import-images/status/${taskId}`)
                 : `${BASE_URL}/projects/${projectId}/import-video/status/${taskId}`;
 
             const interval = setInterval(async () => {
@@ -560,9 +636,6 @@
         });
         document.getElementById('editCoverInput').addEventListener('change', function () {
             if (this.files[0]) document.getElementById('editCoverDropText').textContent = this.files[0].name;
-        });
-                document.getElementById('multiImgInput').addEventListener('change', function () {
-            if (this.files.length) document.getElementById('multiImgDropText').textContent = `${this.files.length} ảnh đã chọn`;
         });
 
         async function uploadCover(projectId, fileInput) {

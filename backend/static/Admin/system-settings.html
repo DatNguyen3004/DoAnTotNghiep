@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt hệ thống - NuLabel</title>
+    <link rel="icon" type="image/png" href="/static/image/NuLabel-removebg-preview.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif; }
+        body { background:#F8FAFC;min-height:100vh; }
+        .navbar { height:64px;background:#fff;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+        .nav-brand { display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;color:#2563EB;text-decoration:none; }
+        .btn-back { display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#64748B;text-decoration:none;transition:all 0.2s;background:#fff; }
+        .btn-back:hover { border-color:#2563EB;color:#2563EB; }
+        .container { max-width:640px;margin:40px auto;padding:0 24px; }
+        .page-header { margin-bottom:28px; }
+        .page-header h1 { font-size:22px;font-weight:800;color:#1E293B;margin-bottom:4px; }
+        .page-header p { font-size:13px;color:#64748B; }
+        .card { background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+        .card-header { display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #F1F5F9; }
+        .card-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+        .card-title { font-size:15px;font-weight:700;color:#1E293B; }
+        .card-desc { font-size:12px;color:#64748B;margin-top:2px; }
+        .form-label { font-size:13px;font-weight:600;color:#374151;margin-bottom:5px;display:block; }
+        .form-desc { font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.6; }
+        .form-row { display:flex;gap:10px;align-items:center; }
+        .form-control { flex:1;height:42px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif;outline:none;transition:border 0.2s;color:#1E293B; }
+        .form-control:focus { border-color:#4F46E5; }
+        .btn-primary { height:42px;padding:0 18px;background:#4F46E5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s; }
+        .btn-primary:hover { background:#4338CA; }
+        .btn-primary:disabled { background:#94A3B8;cursor:not-allowed; }
+        .status-msg { display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-top:12px;align-items:center;gap:8px; }
+        .status-msg.ok { background:#F0FDF4;border:1px solid #BBF7D0;color:#15803D;display:flex; }
+        .status-msg.err { background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;display:flex; }
+        .hint { background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px 16px;font-size:13px;color:#0369A1;line-height:1.6;margin-top:20px; }
+        .hint strong { display:block;margin-bottom:6px;font-size:13px;font-weight:700; }
+        .hint ol { padding-left:18px;margin-top:4px; }
+        .hint li { margin-bottom:4px; }
+        code { background:#E0F2FE;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:#0369A1; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="ManagerProject.html" class="nav-brand">
+        <img src="../image/NuLabel-removebg-preview.png" width="36" height="28"> NuLabel
+    </a>
+    <a href="ManagerProject.html" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fa-solid fa-gear" style="color:#4F46E5;margin-right:8px"></i>Cài đặt hệ thống</h1>
+        <p>Cấu hình bộ dữ liệu nuScenes — áp dụng cho toàn bộ dự án</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon" style="background:#EEF2FF;color:#4F46E5"><i class="fa-solid fa-database"></i></div>
+            <div>
+                <div class="card-title">Bộ dữ liệu nuScenes</div>
+                <div class="card-desc">Trỏ đến thư mục nuScenes đã giải nén trên máy</div>
+            </div>
+        </div>
+
+        <label class="form-label">Đường dẫn thư mục nuScenes</label>
+        <div class="form-desc">
+            Nhập đường dẫn đến thư mục gốc chứa bộ dữ liệu nuScenes đã giải nén.<br>
+            Thư mục phải chứa <code>v1.0-mini</code> với bản mini hoặc <code>v1.0-trainval</code> với bản gốc, <code>samples</code>, <code>sweeps</code> bên trong.
+        </div>
+        <div class="form-row">
+            <input type="text" id="nuScenesPath" class="form-control"
+                placeholder="Ví dụ: C:\Users\Tên\Downloads\nuscenes-mini">
+            <button class="btn-primary" id="btnSave" onclick="saveNuScenesPath()">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu
+            </button>
+        </div>
+        <div id="pathStatus" class="status-msg"></div>
+
+        <div class="hint">
+            <strong><i class="fa-solid fa-circle-info"></i> Hướng dẫn cài đặt nuScenes</strong>
+            <ol>
+                <li>Tải nuScenes từ <a href="https://nuscenes.org/nuscenes#download" target="_blank" style="color:#0369A1">nuscenes.org</a> — file đuôi <code>.tgz</code></li>
+                <li>Giải nén file <code>.tgz</code> bằng 7-Zip, WinRAR hoặc lệnh <code>tar -xzf file.tgz</code></li>
+                <li>Nhập đường dẫn thư mục vừa giải nén vào ô trên và nhấn <strong>Lưu</strong></li>
+                <li>Quay lại tạo dự án → chọn <strong>"nuScenes mặc định"</strong></li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = '/api';
+    function getToken() { return localStorage.getItem('access_token'); }
+    const user = JSON.parse(localStorage.getItem('current_user') || '{}');
+    if (!getToken() || user.role !== 'admin') window.location.href = '../login.html';
+
+    async function saveNuScenesPath() {
+        const path = document.getElementById('nuScenesPath').value.trim();
+        if (!path) { alert('Vui lòng nhập đường dẫn.'); return; }
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        try {
+            const res = await fetch(`${BASE_URL}/system/config/nuscenes`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuscenes_root: path })
+            });
+            const data = await res.json();
+            showStatus(res.ok, res.ok ? data.message : (data.detail || 'Lỗi'));
+        } catch (e) {
+            showStatus(false, 'Lỗi kết nối server');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu';
+        }
+    }
+
+    function showStatus(ok, msg) {
+        const el = document.getElementById('pathStatus');
+        el.className = 'status-msg ' + (ok ? 'ok' : 'err');
+        el.innerHTML = `<i class="fa-solid ${ok ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${msg}`;
+    }
+
+    async function loadConfig() {
+        try {
+            const res = await fetch(`${BASE_URL}/system/config/nuscenes`, {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById('nuScenesPath').value = data.nuscenes_root || '';
+            if (data.is_valid) showStatus(true, data.message);
+            else if (data.nuscenes_root) showStatus(false, data.message);
+        } catch (e) { /* silent */ }
+    }
+
+    loadConfig();
+</script>
+</body>
+</html>
