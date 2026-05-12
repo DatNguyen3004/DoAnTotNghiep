@@ -16,6 +16,37 @@ from config import NUSCENES_ROOT
 
 router = APIRouter()
 
+
+def _placeholder_response(camera_label: str) -> StreamingResponse:
+    """Tạo ảnh placeholder nền xám với tên camera ở giữa."""
+    img = Image.new("RGB", (1600, 900), color=(226, 232, 240))
+    from PIL import ImageDraw, ImageFont
+    draw = ImageDraw.Draw(img)
+    cx, cy = 800, 450
+
+    # Icon camera đơn giản — nét đậm, màu đen
+    lw = 8
+    draw.rectangle([cx-100, cy-80, cx+100, cy+70], outline=(0, 0, 0), width=lw)
+    draw.ellipse([cx-38, cy-38, cx+38, cy+38], outline=(0, 0, 0), width=lw-2)
+    draw.rectangle([cx+72, cy-100, cx+112, cy-62], fill=(0, 0, 0))
+
+    # Chữ "Không có dữ liệu" — to, đậm, màu đen
+    main_text = "Không có dữ liệu"
+    try:
+        font_big = ImageFont.truetype("arial.ttf", 72)
+    except Exception:
+        font_big = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), main_text, font=font_big)
+    tw = bbox[2] - bbox[0]
+    draw.text((cx - tw // 2, cy + 110), main_text, fill=(0, 0, 0), font=font_big)
+
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=80)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/jpeg",
+                             headers={"Cache-Control": "no-cache", "X-No-Data": "1"})
+
 CAMERA_COLUMNS = [
     "cam_front", "cam_front_left", "cam_front_right",
     "cam_back", "cam_back_left", "cam_back_right",
@@ -152,10 +183,8 @@ def get_frame_image(
 
     relative_path = getattr(frame, column, None)
     if not relative_path:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Frame này không có dữ liệu cho camera {camera_upper}",
-        )
+        # Trả về ảnh placeholder cho camera không có dữ liệu
+        return _placeholder_response(camera_upper)
 
     # Xây dựng đường dẫn tuyệt đối đến file ảnh trên disk
     # nuScenes lưu filename dạng: samples/CAM_FRONT/xxx.jpg
@@ -166,10 +195,7 @@ def get_frame_image(
         image_path = os.path.join(NUSCENES_ROOT, relative_path)
 
     if not os.path.isfile(image_path):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Không tìm thấy file ảnh trên server: {relative_path}",
-        )
+        return _placeholder_response(camera_upper)
 
     return FileResponse(
         image_path,
@@ -200,11 +226,11 @@ def get_frame_thumbnail(
 
     relative_path = getattr(frame, column, None)
     if not relative_path:
-        raise HTTPException(status_code=404, detail="No image")
+        return _placeholder_response(camera_upper)
 
     image_path = os.path.join(NUSCENES_ROOT, relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
     if not os.path.isfile(image_path):
-        raise HTTPException(status_code=404, detail="File missing")
+        return _placeholder_response(camera_upper)
 
     # Xử lý nén bằng Pillow
     try:

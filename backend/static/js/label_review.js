@@ -312,7 +312,11 @@ function renderCamList(frame) {
         return `
         <div class="cam-row">
             <div class="cam-item ${active ? 'active' : ''}" onclick="switchCamera('${cam}')">
-                <img id="thumb_${cam}" src="" style="width:100%;height:100%;object-fit:cover">
+                <img id="thumb_${cam}" src="" style="width:100%;height:100%;object-fit:cover" class="hidden">
+                <div id="nodata_${cam}" style="display:none;position:absolute;inset:0;background:#E2E8F0;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none">
+                    <i class="fa-solid fa-camera-slash" style="font-size:28px;color:#000"></i>
+                    <div style="font-size:12px;font-weight:700;color:#000;text-align:center;line-height:1.3">Không có<br>dữ liệu</div>
+                </div>
                 <div class="cam-label">${CAM_LABELS[cam] || cam}</div>
                 ${anns.length ? `<div style="position:absolute;top:4px;right:4px;background:#2563EB;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px">${anns.length}</div>` : ''}
             </div>
@@ -325,14 +329,24 @@ function renderCamList(frame) {
 async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
+    const nodata = document.getElementById(`nodata_${cam}`);
     try {
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}?_=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!res.ok) return;
+        if (!res.ok || res.headers.get('X-No-Data') === '1') {
+            img.classList.add('hidden');
+            if (nodata) nodata.style.display = 'flex';
+            return;
+        }
         const blob = await res.blob();
         img.src = URL.createObjectURL(blob);
-    } catch (e) { /* silent */ }
+        img.classList.remove('hidden');
+        if (nodata) nodata.style.display = 'none';
+    } catch (e) {
+        img.classList.add('hidden');
+        if (nodata) nodata.style.display = 'flex';
+    }
 }
 
 async function loadImage(frame, cam) {
@@ -340,7 +354,7 @@ async function loadImage(frame, cam) {
     const container = document.querySelector('.canvas-container');
     if (!mainImg || !container) return;
     try {
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}?_=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();

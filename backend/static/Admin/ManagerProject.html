@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="css/ManagerProject.css">
     <style>
         .ds-btn { display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid #E2E8F0;border-radius:8px;background:#F8FAFC;color:#64748B;font-size:13px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;transition:all 0.15s; }
-        .ds-btn:hover { border-color:#7C3AED;color:#7C3AED;background:#F5F3FF; }
-        .ds-btn-active { border-color:#7C3AED!important;color:#7C3AED!important;background:#F5F3FF!important; }
+        .ds-btn:hover { border-color:#0EA5E9;color:#0EA5E9;background:#F5F3FF; }
+        .ds-btn-active { border-color:#0EA5E9!important;color:#0EA5E9!important;background:#F5F3FF!important; }
         .img-tab-btn { display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid #E2E8F0;border-radius:6px;background:#F8FAFC;color:#64748B;font-size:12px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;transition:all 0.15s; }
         .img-tab-btn:hover { border-color:#0EA5E9;color:#0EA5E9; }
         .img-tab-active { border-color:#0EA5E9!important;color:#0EA5E9!important;background:#F0F9FF!important; }
@@ -81,7 +81,7 @@
                 <form id="createProjectForm">
                     <div class="form-group-modal">
                         <label>Tên dự án</label>
-                        <input type="text" id="projectName" placeholder="Ví dụ: nuScenes Detection 2024"
+                        <input type="text" id="projectName" placeholder="Nhập tên dự án..."
                             class="form-control">
                     </div>
                     <div class="form-group-modal">
@@ -108,10 +108,10 @@
                                 <i class="fa-solid fa-database"></i> nuScenes mặc định
                             </button>
                             <button type="button" class="ds-btn" data-source="images" onclick="selectDataSource('images')">
-                                <i class="fa-regular fa-images"></i> Upload Ảnh
+                                <i class="fa-regular fa-images"></i> Tải lên Ảnh
                             </button>
                             <button type="button" class="ds-btn" data-source="video" onclick="selectDataSource('video')">
-                                <i class="fa-solid fa-film"></i> Upload Video
+                                <i class="fa-solid fa-film"></i> Tải lên Video
                             </button>
                         </div>
                     </div>
@@ -119,11 +119,11 @@
                     <!-- Panel: Upload Ảnh -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
-                            <label>Tên scene (tùy chọn)</label>
+                            <label>Tên Scene</label>
                             <input type="text" id="imgSceneName" class="form-control" placeholder="Ví dụ: Đường Nguyễn Huệ buổi sáng">
                         </div>
                         <div class="form-group-modal">
-                            <label>Upload ảnh</label>
+                            <label>Tải lên ảnh</label>
                             <div style="display:flex;gap:8px;margin-bottom:8px">
                                 <button type="button" class="img-tab-btn img-tab-active" id="tabMultiImg" onclick="switchImgTab('multi')">
                                     <i class="fa-solid fa-images"></i> Nhiều ảnh
@@ -164,12 +164,12 @@
                             <input type="text" id="createVideoSceneDesc" class="form-control" placeholder="Mô tả nội dung video...">
                         </div>
                         <div class="form-group-modal">
-                            <label>Tần số lấy mẫu (frame/giây)</label>
+                            <label>Tần số lấy mẫu (khung hình/giây)</label>
                             <select id="createVideoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
-                                <option value="1">1 fps (thưa, ít frame)</option>
-                                <option value="2" selected>2 fps (chuẩn nuScenes)</option>
-                                <option value="5">5 fps (dày hơn)</option>
-                                <option value="10">10 fps (nhiều frame)</option>
+                                <option value="1">1 khung hình/giây</option>
+                                <option value="2" selected>2 khung hình/giây (chuẩn nuScenes)</option>
+                                <option value="5">5 khung hình/giây</option>
+                                <option value="10">10 khung hình/giây</option>
                             </select>
                         </div>
                         <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
@@ -182,7 +182,7 @@
                     <div id="createImportProgress" style="display:none;margin-top:16px">
                         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                             <span style="font-size:13px;font-weight:600;color:#1E293B" id="createProgressMsg">Đang xử lý...</span>
-                            <span style="font-size:13px;font-weight:700;color:#7C3AED" id="createProgressPct">0%</span>
+                            <span style="font-size:13px;font-weight:700;color:#0EA5E9" id="createProgressPct">0%</span>
                         </div>
                         <div style="height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden">
                             <div id="createProgressBar" style="height:100%;background:linear-gradient(90deg,#7C3AED,#2563EB);border-radius:4px;transition:width 0.3s;width:0%"></div>
@@ -485,7 +485,7 @@
 
             // Bắt đầu import
             document.getElementById('createImportProgress').style.display = 'block';
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang import...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên...';
 
             try {
                 let taskId;
@@ -717,12 +717,12 @@
                     <input type="text" id="videoSceneDesc" class="form-control" placeholder="Mô tả nội dung video...">
                 </div>
                 <div class="form-group-modal">
-                    <label>Tần số lấy mẫu (frame/giây)</label>
+                    <label>Tần số lấy mẫu (khung hình/giây)</label>
                     <select id="videoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
-                        <option value="1">1 fps (thưa, ít frame)</option>
-                        <option value="2" selected>2 fps (chuẩn nuScenes)</option>
-                        <option value="5">5 fps (dày hơn)</option>
-                        <option value="10">10 fps (nhiều frame)</option>
+                        <option value="1">1 khung hình/giây</option>
+                        <option value="2" selected>2 khung hình/giây(chuẩn nuScenes)</option>
+                        <option value="5">5 khung hình/giây</option>
+                        <option value="10">10 khung hình/giây</option>
                     </select>
                 </div>
 
@@ -845,7 +845,7 @@
 
         const btn = document.getElementById('btnStartImport');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang upload...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên...';
 
         try {
             const res = await fetch(url.toString(), {
@@ -864,7 +864,7 @@
         } catch (e) {
             alert(e.message);
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-upload"></i> Bắt đầu Import';
+            btn.innerHTML = '<i class="fa-solid fa-upload"></i> Bắt đầu tải lên';
         }
     }
 

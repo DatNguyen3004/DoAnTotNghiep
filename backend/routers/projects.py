@@ -421,7 +421,7 @@ def _extract_frames_task(
                 # Cập nhật progress
                 progress = min(95, int((raw_index / max(total_frames, 1)) * 95))
                 _import_status[task_id]["progress"] = progress
-                _import_status[task_id]["message"] = f"Đã cắt {frame_index} frame..."
+                _import_status[task_id]["message"] = f"Đã cắt {frame_index} khung hình..."
 
             raw_index += 1
 
@@ -468,7 +468,7 @@ def _extract_frames_task(
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {frame_index} frame.",
+                "message": f"Hoàn thành! Đã tạo {frame_index} khung hình.",
                 "scene_id": scene.id,
                 "frame_count": frame_index,
             }
@@ -630,7 +630,7 @@ def _import_images_task(
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} frame.",
+                "message": f"Hoàn thành! Đã tạo {total} khung hình.",
                 "scene_id": scene.id,
                 "frame_count": total,
             }
@@ -793,7 +793,7 @@ def _import_images_task(
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} frame.",
+                "message": f"Hoàn thành! Đã tạo {total} khung hình.",
                 "scene_id": scene.id,
                 "frame_count": total,
             }

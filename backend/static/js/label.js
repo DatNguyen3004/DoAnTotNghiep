@@ -336,6 +336,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'v' || e.key === 'V') setActiveTool('pointer');
     if (e.key === 'b' || e.key === 'B') setActiveTool('box');
     if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
+    if (e.key === 'e' || e.key === 'E') setActiveTool('resize');
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
 
@@ -363,7 +364,11 @@ function renderCamList(frame) {
         return `
         <div class="cam-row">
             <div class="cam-item ${cam === currentCamera ? 'active' : ''}" onclick="switchCamera('${cam}')">
-                <img id="thumb_${cam}" src="" alt="${cam}" onerror="this.style.background='#E2E8F0'">
+                <img id="thumb_${cam}" src="" alt="${cam}" class="hidden">
+                <div id="nodata_${cam}" style="display:none;position:absolute;inset:0;background:#E2E8F0;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none">
+                    <i class="fa-solid fa-camera-slash" style="font-size:28px;color:#000"></i>
+                    <div style="font-size:12px;font-weight:700;color:#000;text-align:center;line-height:1.3">Không có<br>dữ liệu</div>
+                </div>
                 <div class="cam-label">${CAM_LABELS[cam]}</div>
                 ${count > 0 ? `<div style="position:absolute;top:4px;right:4px;background:#2563EB;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px">${count}</div>` : ''}
             </div>
@@ -376,15 +381,25 @@ function renderCamList(frame) {
 async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
+    const nodata = document.getElementById(`nodata_${cam}`);
     try {
         // Sử dụng /thumb thay vì /image để tải nhanh hơn
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/${cam}?width=200`, {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/thumb/${cam}?width=200&_=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!res.ok) return;
+        if (!res.ok || res.headers.get('X-No-Data') === '1') {
+            img.classList.add('hidden');
+            if (nodata) nodata.style.display = 'flex';
+            return;
+        }
         const blob = await res.blob();
         img.src = URL.createObjectURL(blob);
-    } catch (e) { /* silent */ }
+        img.classList.remove('hidden');
+        if (nodata) nodata.style.display = 'none';
+    } catch (e) {
+        img.classList.add('hidden');
+        if (nodata) nodata.style.display = 'flex';
+    }
 }
 
 // Tải trước ảnh của các frame tiếp theo để chuyển mượt hơn
@@ -415,6 +430,10 @@ async function loadImage(frame, cam) {
     let mainImg = document.getElementById('mainImage');
     if (!mainImg) return;
 
+    // Xóa placeholder cũ nếu có
+    const oldPlaceholder = document.getElementById('mainNoData');
+    if (oldPlaceholder) oldPlaceholder.remove();
+
     // Không set opacity=0 để tránh nháy trắng, ảnh mới sẽ đè lên ảnh cũ
     mainImg.style.display = 'block';
     selectedAnnId = null;
@@ -424,7 +443,7 @@ async function loadImage(frame, cam) {
     if (container) container.style.transform = '';
 
     try {
-        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+        const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}?_=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
@@ -444,7 +463,18 @@ async function loadImage(frame, cam) {
             renderAttentionList();
         });
     } catch (e) {
-        showToast('Không thể tải ảnh', 'error');
+        // Hiện placeholder "Không có dữ liệu" trên màn hình chính
+        mainImg.style.display = 'none';
+        if (container) {
+            const placeholder = document.createElement('div');
+            placeholder.id = 'mainNoData';
+            placeholder.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#E2E8F0;pointer-events:none';
+            placeholder.innerHTML = `
+                <i class="fa-solid fa-camera-slash" style="font-size:64px;color:#000"></i>
+                <div style="font-size:22px;font-weight:700;color:#000">Không có dữ liệu</div>
+            `;
+            container.appendChild(placeholder);
+        }
     }
 }
 
