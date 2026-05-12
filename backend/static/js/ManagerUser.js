@@ -105,7 +105,7 @@ function renderUsers(users) {
 
     if (!users.length) {
         tbody.innerHTML = `
-            <tr><td colspan="6" style="text-align:center;padding:60px;color:#94A3B8">
+            <tr><td colspan="8" style="text-align:center;padding:60px;color:#94A3B8">
                 <i class="fa-regular fa-user" style="font-size:40px;display:block;margin-bottom:12px;color:#CBD5E1"></i>
                 <div style="font-weight:700;color:#475569;margin-bottom:6px">Chưa có người dùng nào</div>
                 <div style="font-size:13px">Nhấn "Thêm cộng tác viên" để tạo tài khoản mới.</div>
@@ -124,10 +124,12 @@ function renderUsers(users) {
         const createdAt = user.created_at
             ? new Date(user.created_at).toLocaleDateString('vi-VN')
             : '—';
-        // Avatar: ảnh hoặc initials
         const avatarHtml = user.avatar_url
             ? `<img src="${user.avatar_url}" alt="${name}" class="user-avatar" style="object-fit:cover;border-radius:50%;width:36px;height:36px;flex-shrink:0;">`
             : `<div class="user-avatar">${initials}</div>`;
+
+        // Stats placeholder — sẽ được load async
+        const statsId = `stats_${user.id}`;
 
         return `
             <tr>
@@ -145,8 +147,18 @@ function renderUsers(users) {
                 <td>
                     <span class="badge-role" style="background:${roleBg};color:${roleColor}">${role}</span>
                 </td>
+                <td style="text-align:center;" id="task_${user.id}">
+                    <span style="color:#94A3B8;font-size:12px">—</span>
+                </td>
+                <td style="text-align:center;" id="${statsId}">
+                    <span style="color:#94A3B8;font-size:12px">—</span>
+                </td>
                 <td>${createdAt}</td>
                 <td style="text-align:center;">
+                    ${user.role !== 'admin' ? `
+                    <button class="btn-action btn-view" title="Xem thống kê" onclick="openStatsModal(${user.id}, '${name}', '${user.full_name || name}')">
+                        <i class="fa-solid fa-chart-bar"></i>
+                    </button>` : ''}
                     <button class="btn-action btn-view" title="Xem thông tin" onclick="viewUser(${user.id})">
                         <i class="fa-regular fa-eye"></i>
                     </button>
@@ -161,6 +173,42 @@ function renderUsers(users) {
     if (showingText) {
         showingText.textContent = `Hiển thị ${users.length} trên tổng số ${users.length} người dùng`;
     }
+
+    // Load stats cho từng user role=user
+    users.filter(u => u.role !== 'admin').forEach(u => loadUserStatsInline(u.id));
+}
+
+async function loadUserStatsInline(userId) {
+    try {
+        const res = await fetch(`${BASE_URL}/users/${userId}/stats`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const s = await res.json();
+
+        const taskEl = document.getElementById(`task_${userId}`);
+        if (taskEl) {
+            taskEl.innerHTML = `<span style="font-weight:600;color:#1E293B">${s.total_tasks}</span>`;
+        }
+
+        const statsEl = document.getElementById(`stats_${userId}`);
+        if (!statsEl) return;
+
+        if (s.total_tasks === 0) {
+            statsEl.innerHTML = `<span style="color:#94A3B8;font-size:12px">Chưa có</span>`;
+            return;
+        }
+
+        const rate = s.quality_rate;
+        const color = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
+        const label = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
+
+        statsEl.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="font-size:13px;font-weight:700;color:${color}">${rate}%</div>
+                <div style="font-size:10px;color:${color};font-weight:600">${label}</div>
+            </div>`;
+    } catch (e) { /* silent */ }
 }
 
 // ============= SEARCH =============
@@ -177,6 +225,94 @@ if (searchInput) {
         renderUsers(filtered);
     });
 }
+
+// ============= STATS MODAL =============
+async function openStatsModal(userId, username, fullName) {
+    document.getElementById('statsUserName').textContent = fullName || username;
+    document.getElementById('statsUserSub').textContent = `@${username}`;
+    const initials = username.substring(0, 2).toUpperCase();
+    document.getElementById('statsUserAvatar').textContent = initials;
+    document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
+    document.getElementById('statsModal').classList.add('active');
+
+    try {
+        const res = await fetch(`${BASE_URL}/users/${userId}/stats`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!res.ok) throw new Error();
+        const s = await res.json();
+
+        const rate = s.quality_rate;
+        const rateColor = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
+        const rateLabel = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
+
+        const avgMin = s.avg_time_seconds > 0
+            ? `${Math.floor(s.avg_time_seconds / 60)} phút ${s.avg_time_seconds % 60} giây`
+            : '—';
+
+        document.getElementById('statsBody').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+                <div style="background:#F8FAFC;border-radius:10px;padding:14px;text-align:center">
+                    <div style="font-size:24px;font-weight:800;color:#1E293B">${s.total_tasks}</div>
+                    <div style="font-size:12px;color:#64748B;margin-top:2px">Tổng nhiệm vụ</div>
+                </div>
+                <div style="background:#F8FAFC;border-radius:10px;padding:14px;text-align:center">
+                    <div style="font-size:24px;font-weight:800;color:${rateColor}">${rate}%</div>
+                    <div style="font-size:12px;color:${rateColor};font-weight:600;margin-top:2px">${rateLabel}</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                ${statRow('fa-circle-check', '#10B981', 'Đã duyệt', s.approved)}
+                ${statRow('fa-circle-xmark', '#EF4444', 'Bị từ chối', s.rejected)}
+                ${statRow('fa-rotate-right', '#F97316', 'Tổng lần bị từ chối', s.total_rejects)}
+                ${statRow('fa-paper-plane', '#2563EB', 'Tổng lần nộp', s.total_submissions)}
+                ${statRow('fa-pen', '#7C3AED', 'Đang làm', s.in_progress)}
+                ${statRow('fa-hourglass', '#94A3B8', 'Chưa bắt đầu', s.pending)}
+                ${statRow('fa-stopwatch', '#0EA5E9', 'Thời gian trung bình/nhiệm vụ', avgMin, true)}
+            </div>
+            <div style="margin-top:16px">
+                <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Tỷ lệ chất lượng</div>
+                <div style="height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden">
+                    <div style="height:100%;width:${rate}%;background:${rateColor};border-radius:4px;transition:width 0.5s"></div>
+                </div>
+            </div>
+            <div style="margin-top:16px;padding:14px 16px;border-radius:10px;background:${rate >= 80 ? '#F0FDF4' : rate >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rate >= 80 ? '#BBF7D0' : rate >= 50 ? '#FDE68A' : '#FECACA'}">
+                <div style="font-size:13px;font-weight:700;color:${rateColor};margin-bottom:4px">
+                    <i class="fa-solid ${rate >= 80 ? 'fa-thumbs-up' : rate >= 50 ? 'fa-circle-exclamation' : 'fa-thumbs-down'}"></i>
+                    ${rate >= 80 ? 'Nên thuê lại' : rate >= 50 ? 'Cân nhắc kỹ trước khi thuê lại' : 'Không nên thuê lại'}
+                </div>
+                <div style="font-size:12px;color:#64748B">
+                    ${rate >= 80
+                        ? `Chất lượng tốt — ${s.total_rejects === 0 ? 'không có lần nào bị từ chối' : `chỉ bị từ chối ${s.total_rejects} lần`} trên ${s.total_submissions} lần nộp.`
+                        : rate >= 50
+                        ? `Chất lượng trung bình — bị từ chối ${s.total_rejects} lần trên ${s.total_submissions} lần nộp. Cần theo dõi thêm.`
+                        : `Chất lượng thấp — bị từ chối ${s.total_rejects} lần trên ${s.total_submissions} lần nộp. Cần đào tạo lại hoặc không tiếp tục.`
+                    }
+                </div>
+            </div>`;
+    } catch (e) {
+        document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#EF4444">Không thể tải thống kê</div>';
+    }
+}
+
+function statRow(icon, color, label, value, isText = false) {
+    return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#F8FAFC;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569">
+                <i class="fa-solid ${icon}" style="color:${color};width:16px;text-align:center"></i>
+                ${label}
+            </div>
+            <span style="font-size:13px;font-weight:700;color:#1E293B">${isText ? value : value}</span>
+        </div>`;
+}
+
+function closeStatsModal() {
+    document.getElementById('statsModal').classList.remove('active');
+}
+
+document.getElementById('statsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeStatsModal();
+});
 
 // ============= VIEW USER → Profile page =============
 function viewUser(userId) {

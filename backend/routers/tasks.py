@@ -306,6 +306,7 @@ def reject_task(
 
     task.status = "rejected"
     task.feedback = body.feedback.strip()
+    task.reject_count = (task.reject_count or 0) + 1
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
