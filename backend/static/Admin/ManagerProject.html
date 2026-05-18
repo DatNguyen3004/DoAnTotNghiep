@@ -126,41 +126,24 @@
                     <!-- Panel: Local Thư mục Ảnh (1 Camera) -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
-                            <label>Chọn Camera Channel</label>
-                            <select id="imageCameraChannel" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
-                                <option value="CAM_FRONT" selected>Cam trước (CAM_FRONT)</option>
-                                <option value="CAM_FRONT_LEFT">Cam trái trước (CAM_FRONT_LEFT)</option>
-                                <option value="CAM_FRONT_RIGHT">Cam phải trước (CAM_FRONT_RIGHT)</option>
-                                <option value="CAM_BACK">Cam sau (CAM_BACK)</option>
-                                <option value="CAM_BACK_LEFT">Cam trái sau (CAM_BACK_LEFT)</option>
-                                <option value="CAM_BACK_RIGHT">Cam phải sau (CAM_BACK_RIGHT)</option>
-                            </select>
-                        </div>
-                        <div class="form-group-modal">
                             <label>Đường dẫn thư mục ảnh trên máy</label>
-                            <div style="position:relative;display:flex;align-items:center">
-                                <i class="fa-regular fa-folder-open" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
-                                <input type="text" id="localImageFolderPath" class="form-control" placeholder="Ví dụ: D:\Folder-image\Scene-01" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div style="position:relative;flex:1;display:flex;align-items:center">
+                                    <i class="fa-regular fa-folder-open" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
+                                    <input type="text" id="localImageFolderPath" class="form-control" placeholder="Ví dụ: D:\Folder-image" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="browseFolder('localImageFolderPath')" style="height:40px;border-radius:8px;font-size:13px;white-space:nowrap;padding:0 16px;border:1px solid #CBD5E1;background:#F8FAFC;color:#475569;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
+                                    <i class="fa-regular fa-folder-open"></i> Chọn...
+                                </button>
                             </div>
                             <div style="font-size:11px;color:#94A3B8;margin-top:6px">
-                                * Hệ thống sẽ tự động quét toàn bộ tệp tin ảnh (.jpg, .png, ...) trong thư mục này và nạp vào dự án.
+                                * Hệ thống sẽ tự động quét các thư mục con (mỗi thư mục là một Scene) và nạp toàn bộ ảnh vào dự án làm các nhiệm vụ riêng biệt.
                             </div>
                         </div>
                     </div>
 
                     <!-- Panel: Local Tệp tin Video (1 Camera) -->
                     <div id="panelVideo" style="display:none">
-                        <div class="form-group-modal">
-                            <label>Chọn Camera Channel</label>
-                            <select id="videoCameraChannel" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
-                                <option value="CAM_FRONT" selected>Cam trước (CAM_FRONT)</option>
-                                <option value="CAM_FRONT_LEFT">Cam trái trước (CAM_FRONT_LEFT)</option>
-                                <option value="CAM_FRONT_RIGHT">Cam phải trước (CAM_FRONT_RIGHT)</option>
-                                <option value="CAM_BACK">Cam sau (CAM_BACK)</option>
-                                <option value="CAM_BACK_LEFT">Cam trái sau (CAM_BACK_LEFT)</option>
-                                <option value="CAM_BACK_RIGHT">Cam phải sau (CAM_BACK_RIGHT)</option>
-                            </select>
-                        </div>
                         <div class="form-group-modal">
                             <label>Tần số lấy mẫu (khung hình/giây)</label>
                             <select id="createVideoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
@@ -171,13 +154,18 @@
                             </select>
                         </div>
                         <div class="form-group-modal">
-                            <label>Đường dẫn tệp tin video trên máy (.mp4, .avi, ...)</label>
-                            <div style="position:relative;display:flex;align-items:center">
-                                <i class="fa-solid fa-film" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
-                                <input type="text" id="localVideoFilePath" class="form-control" placeholder="Ví dụ: D:\Folder-video\Scene-01\video01.mp4" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
+                            <label>Đường dẫn thư mục video trên máy</label>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div style="position:relative;flex:1;display:flex;align-items:center">
+                                    <i class="fa-regular fa-folder-open" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
+                                    <input type="text" id="localVideoFolderPath" class="form-control" placeholder="Ví dụ: D:\Folder-video" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="browseFolder('localVideoFolderPath')" style="height:40px;border-radius:8px;font-size:13px;white-space:nowrap;padding:0 16px;border:1px solid #CBD5E1;background:#F8FAFC;color:#475569;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
+                                    <i class="fa-regular fa-folder-open"></i> Chọn...
+                                </button>
                             </div>
                             <div style="font-size:11px;color:#94A3B8;margin-top:6px">
-                                * Hệ thống sẽ trực tiếp đọc video trên ổ đĩa, cắt khung hình tự động và dán nhãn camera này.
+                                * Hệ thống sẽ tự động quét các thư mục con (mỗi thư mục là một Scene), cắt khung hình từ video bên trong và chia nhiệm vụ tương ứng.
                             </div>
                         </div>
                     </div>
@@ -380,7 +368,7 @@
             document.getElementById('coverDropText').textContent = 'Tải lên ảnh bìa dự án';
             document.getElementById('coverImageInput').value = '';
             document.getElementById('localImageFolderPath').value = '';
-            document.getElementById('localVideoFilePath').value = '';
+            document.getElementById('localVideoFolderPath').value = '';
             document.getElementById('createImportProgress').style.display = 'none';
             document.getElementById('createProgressBar').style.width = '0%';
             document.getElementById('createProgressBar').style.background = 'linear-gradient(90deg,#7C3AED,#2563EB)';
@@ -455,7 +443,6 @@
 
         async function startImageImport(projectId) {
             const folderPath = document.getElementById('localImageFolderPath').value.trim();
-            const cameraChannel = document.getElementById('imageCameraChannel').value;
 
             if (!folderPath) throw new Error('Vui lòng nhập đường dẫn thư mục ảnh.');
 
@@ -466,8 +453,7 @@
                     Authorization: `Bearer ${getToken()}`
                 },
                 body: JSON.stringify({
-                    folder_path: folderPath,
-                    camera_channel: cameraChannel
+                    folder_path: folderPath
                 })
             });
 
@@ -479,11 +465,10 @@
         }
 
         async function startCreateVideoImport(projectId) {
-            const videoPath = document.getElementById('localVideoFilePath').value.trim();
-            const cameraChannel = document.getElementById('videoCameraChannel').value;
+            const folderPath = document.getElementById('localVideoFolderPath').value.trim();
             const fps = parseFloat(document.getElementById('createVideoFps').value);
 
-            if (!videoPath) throw new Error('Vui lòng nhập đường dẫn tệp tin video.');
+            if (!folderPath) throw new Error('Vui lòng nhập đường dẫn thư mục video.');
 
             const res = await fetch(`${BASE_URL}/projects/${projectId}/import-local-video`, {
                 method: 'POST',
@@ -492,17 +477,35 @@
                     Authorization: `Bearer ${getToken()}`
                 },
                 body: JSON.stringify({
-                    video_path: videoPath,
-                    camera_channel: cameraChannel,
+                    folder_path: folderPath,
                     fps_target: fps
                 })
             });
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.detail || 'Lỗi nạp tệp video');
+                throw new Error(err.detail || 'Lỗi nạp video');
             }
             return (await res.json()).task_id;
+        }
+
+        async function browseFolder(inputId) {
+            try {
+                const res = await fetch(`${BASE_URL}/projects/select-folder`, {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
+                });
+                if (!res.ok) {
+                    throw new Error('Không thể mở hộp thoại chọn thư mục.');
+                }
+                const data = await res.json();
+                if (data.folder_path) {
+                    document.getElementById(inputId).value = data.folder_path;
+                }
+            } catch (e) {
+                alert('Lỗi chọn thư mục: ' + e.message);
+            }
         }
 
         function pollCreateImportStatus(projectId, taskId, sourceType) {

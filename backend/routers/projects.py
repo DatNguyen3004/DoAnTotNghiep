@@ -191,6 +191,31 @@ def _import_nuscenes_to_project(db, project_id: int, nuscenes_root: str, nuscene
 
     db.commit()
 
+@router.get("/select-folder")
+def select_folder(current_user: User = Depends(require_admin)):
+    import tkinter as tk
+    from tkinter import filedialog
+    import threading
+    
+    result = []
+    def ask_dir():
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder = filedialog.askdirectory(title="Chọn thư mục nguồn")
+        if folder:
+            result.append(folder)
+        root.destroy()
+        
+    t = threading.Thread(target=ask_dir)
+    t.start()
+    t.join()
+    
+    if result:
+        return {"folder_path": result[0]}
+    return {"folder_path": ""}
+
+
 @router.get("/{project_id}", response_model=ProjectOut)
 def get_project(
     project_id: int,
@@ -952,11 +977,11 @@ import cv2
 
 class LocalImagesImportRequest(BaseModel):
     folder_path: str
-    camera_channel: str
+    camera_channel: Optional[str] = "CAM_FRONT"
 
 class LocalVideoImportRequest(BaseModel):
-    video_path: str
-    camera_channel: str
+    folder_path: str
+    camera_channel: Optional[str] = "CAM_FRONT"
     fps_target: float = 2.0
 
 
@@ -966,55 +991,73 @@ def _import_local_images_task(
     folder_path: str,
     camera_channel: str,
 ):
-    SCENE_SIZE = 40
     try:
         _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang quét thư mục ảnh..."}
         
         path_obj = Path(folder_path)
         if not path_obj.exists() or not path_obj.is_dir():
-            _import_status[task_id] = {"status": "error", "progress": 0, "message": f"Thư mục không tồn tại: {folder_path}"}
+            _import_status[task_id] = {"status": "error", "progress": 0, "message": f"Thư mục không tồn tại hoặc không phải là thư mục: {folder_path}"}
             return
             
-        all_files = []
-        for ext in IMAGE_EXTENSIONS:
-            all_files.extend(list(path_obj.glob(f"*{ext}")))
-            all_files.extend(list(path_obj.glob(f"*{ext.upper()}")))
-            
-        all_files = sorted(list(set(all_files)), key=lambda x: x.name)
-        total = len(all_files)
+        # Quét các thư mục con (mỗi thư mục con đại diện cho một Scene)
+        subdirs = sorted([d for d in path_obj.iterdir() if d.is_dir()], key=lambda x: x.name)
         
-        if total == 0:
+        scenes_to_process = []
+        if len(subdirs) == 0:
+            # Fallback nếu không có thư mục con, coi chính thư mục đó là 1 scene
+            scenes_to_process.append((path_obj.name, path_obj))
+        else:
+            for d in subdirs:
+                scenes_to_process.append((d.name, d))
+                
+        # Đếm tổng số lượng ảnh để tính phần trăm progress
+        total_images = 0
+        scene_images_map = []
+        
+        for name, dir_path in scenes_to_process:
+            img_files = []
+            for ext in IMAGE_EXTENSIONS:
+                img_files.extend(list(dir_path.glob(f"*{ext}")))
+                img_files.extend(list(dir_path.glob(f"*{ext.upper()}")))
+            img_files = sorted(list(set(img_files)), key=lambda x: x.name)
+            if img_files:
+                total_images += len(img_files)
+                scene_images_map.append((name, img_files))
+                
+        if total_images == 0:
             _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không tìm thấy ảnh hợp lệ trong thư mục."}
             return
             
-        save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{task_id[:8]}")
-        os.makedirs(save_dir, exist_ok=True)
+        base_save_dir = os.path.join(IMAGE_UPLOAD_DIR, f"{project_id}_{task_id[:8]}")
+        os.makedirs(base_save_dir, exist_ok=True)
         
         db = SessionLocal()
         try:
-            scene_count = (total + SCENE_SIZE - 1) // SCENE_SIZE
-            last_scene_id = None
             processed = 0
-            
             field_name = camera_channel.lower()
             if field_name not in ["cam_front", "cam_front_left", "cam_front_right", "cam_back", "cam_back_left", "cam_back_right"]:
                 field_name = "cam_front"
                 
-            for scene_idx in range(scene_count):
-                batch = all_files[scene_idx * SCENE_SIZE : (scene_idx + 1) * SCENE_SIZE]
+            last_scene_id = None
+            scene_count = len(scene_images_map)
+            
+            for scene_idx, (sname, files) in enumerate(scene_images_map):
+                save_dir = os.path.join(base_save_dir, sname)
+                os.makedirs(save_dir, exist_ok=True)
+                
                 scene_token = f"local-images-{task_id[:12]}-{scene_idx:03d}"
                 scene = Scene(
                     project_id=project_id,
                     scene_token=scene_token,
-                    name=f"Scene {scene_idx + 1}",
-                    description=f"Imported {len(batch)} local images",
-                    frame_count=len(batch),
+                    name=sname,
+                    description=f"Imported {len(files)} local images",
+                    frame_count=len(files),
                 )
                 db.add(scene)
                 db.flush()
                 last_scene_id = scene.id
                 
-                for frame_idx, p in enumerate(batch):
+                for frame_idx, p in enumerate(files):
                     safe_name = f"{uuid.uuid4().hex[:8]}_{p.name}"
                     dest = os.path.join(save_dir, safe_name)
                     shutil.copy2(p, dest)
@@ -1027,17 +1070,18 @@ def _import_local_images_task(
                     }
                     db.add(Frame(**kwargs))
                     processed += 1
-                    progress = 5 + int(processed / total * 90)
+                    
+                    progress = 5 + int(processed / total_images * 90)
                     _import_status[task_id]["progress"] = progress
-                    _import_status[task_id]["message"] = f"Đã xử lý {processed}/{total} ảnh..."
+                    _import_status[task_id]["message"] = f"Đang xử lý {processed}/{total_images} ảnh..."
                     
             db.commit()
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} khung hình trong {scene_count} scene.",
+                "message": f"Hoàn thành! Đã tạo {total_images} khung hình trong {scene_count} scene.",
                 "scene_id": last_scene_id,
-                "frame_count": total,
+                "frame_count": total_images,
             }
         except Exception as e:
             db.rollback()
@@ -1056,108 +1100,142 @@ def _import_local_images_task(
 def _import_local_video_task(
     task_id: str,
     project_id: int,
-    video_path: str,
+    folder_path: str,
     camera_channel: str,
     fps_target: float,
 ):
     try:
-        _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang mở file video..."}
+        _import_status[task_id] = {"status": "running", "progress": 5, "message": "Đang quét thư mục video..."}
         
-        path_obj = Path(video_path)
-        if not path_obj.exists() or not path_obj.is_file():
-            _import_status[task_id] = {"status": "error", "progress": 0, "message": f"File video không tồn tại: {video_path}"}
+        path_obj = Path(folder_path)
+        if not path_obj.exists():
+            _import_status[task_id] = {"status": "error", "progress": 0, "message": f"Đường dẫn không tồn tại: {folder_path}"}
             return
+
+        scenes_to_process = []  # List của tuple: (scene_name, list_of_video_paths)
+        VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
+
+        if path_obj.is_file():
+            # Fallback nếu truyền trực tiếp file video
+            if path_obj.suffix.lower() in VIDEO_EXTENSIONS:
+                scenes_to_process.append((path_obj.stem, [path_obj]))
+        elif path_obj.is_dir():
+            # Quét các thư mục con
+            subdirs = sorted([d for d in path_obj.iterdir() if d.is_dir()], key=lambda x: x.name)
+            if len(subdirs) > 0:
+                for d in subdirs:
+                    vfiles = []
+                    for ext in VIDEO_EXTENSIONS:
+                        vfiles.extend(list(d.glob(f"*{ext}")))
+                        vfiles.extend(list(d.glob(f"*{ext.upper()}")))
+                    vfiles = sorted(list(set(vfiles)), key=lambda x: x.name)
+                    if vfiles:
+                        scenes_to_process.append((d.name, vfiles))
             
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không thể mở file video này."}
+            # Fallback nếu không có thư mục con nào hoặc để quét thêm ở thư mục cha trực tiếp
+            if not scenes_to_process:
+                vfiles = []
+                for ext in VIDEO_EXTENSIONS:
+                    vfiles.extend(list(path_obj.glob(f"*{ext}")))
+                    vfiles.extend(list(path_obj.glob(f"*{ext.upper()}")))
+                vfiles = sorted(list(set(vfiles)), key=lambda x: x.name)
+                for vf in vfiles:
+                    scenes_to_process.append((vf.stem, [vf]))
+
+        if not scenes_to_process:
+            _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không tìm thấy video hợp lệ."}
             return
-            
-        src_fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if src_fps <= 0:
-            src_fps = 25.0
-            
-        frame_interval = max(1, round(src_fps / fps_target))
+
+        base_scene_dir = os.path.join(FRAME_UPLOAD_DIR, f"proj{project_id}_{task_id[:8]}")
+        os.makedirs(base_scene_dir, exist_ok=True)
         
-        scene_dir = os.path.join(FRAME_UPLOAD_DIR, f"proj{project_id}_{task_id[:8]}")
-        os.makedirs(scene_dir, exist_ok=True)
-        
-        frame_data = []
-        frame_index = 0
-        raw_index = 0
-        
-        field_name = camera_channel.lower()
-        if field_name not in ["cam_front", "cam_front_left", "cam_front_right", "cam_back", "cam_back_left", "cam_back_right"]:
-            field_name = "cam_front"
-            
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-                
-            if raw_index % frame_interval == 0:
-                fname = f"{camera_channel.upper()}_{frame_index:06d}.jpg"
-                fpath = os.path.join(scene_dir, fname)
-                cv2.imwrite(fpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-                rel_path = f"uploads/frames/proj{project_id}_{task_id[:8]}/{fname}"
-                
-                frame_data.append({
-                    "frame_index": frame_index,
-                    "timestamp": int((raw_index / src_fps) * 1e6),
-                    "path": rel_path,
-                })
-                frame_index += 1
-                
-                progress = min(95, int((raw_index / max(total_frames, 1)) * 95))
-                _import_status[task_id]["progress"] = progress
-                _import_status[task_id]["message"] = f"Đã cắt {frame_index} khung hình..."
-                
-            raw_index += 1
-            
-        cap.release()
-        
-        if not frame_data:
-            _import_status[task_id] = {"status": "error", "progress": 0, "message": "Không cắt được khung hình nào từ video."}
-            return
-            
-        _import_status[task_id]["message"] = "Đang lưu vào cơ sở dữ liệu..."
         db = SessionLocal()
         try:
-            SCENE_SIZE = 40
-            total = len(frame_data)
-            scene_count = max(1, (total + SCENE_SIZE - 1) // SCENE_SIZE)
+            field_name = camera_channel.lower()
+            if field_name not in ["cam_front", "cam_front_left", "cam_front_right", "cam_back", "cam_back_left", "cam_back_right"]:
+                field_name = "cam_front"
+                
             last_scene_id = None
+            total_scenes = len(scenes_to_process)
+            total_frames_created = 0
             
-            for scene_idx in range(scene_count):
-                batch = frame_data[scene_idx * SCENE_SIZE : (scene_idx + 1) * SCENE_SIZE]
+            for scene_idx, (sname, vfiles) in enumerate(scenes_to_process):
+                _import_status[task_id]["message"] = f"Đang xử lý video cho scene: {sname} ({scene_idx+1}/{total_scenes})..."
+                _import_status[task_id]["progress"] = 5 + int((scene_idx / total_scenes) * 90)
+                
+                scene_dir = os.path.join(base_scene_dir, sname)
+                os.makedirs(scene_dir, exist_ok=True)
+                
+                frame_data = []
+                frame_index = 0
+                
+                for vfile in vfiles:
+                    cap = cv2.VideoCapture(str(vfile))
+                    if not cap.isOpened():
+                        continue
+                        
+                    src_fps = cap.get(cv2.CAP_PROP_FPS)
+                    if src_fps <= 0:
+                        src_fps = 25.0
+                        
+                    frame_interval = max(1, round(src_fps / fps_target))
+                    raw_index = 0
+                    
+                    while True:
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                            
+                        if raw_index % frame_interval == 0:
+                            fname = f"{camera_channel.upper()}_{frame_index:06d}.jpg"
+                            fpath = os.path.join(scene_dir, fname)
+                            cv2.imwrite(fpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                            
+                            rel_path = os.path.relpath(fpath, "static").replace("\\", "/")
+                            
+                            frame_data.append({
+                                "frame_index": frame_index,
+                                "timestamp": int((raw_index / src_fps) * 1e6),
+                                "path": rel_path,
+                            })
+                            frame_index += 1
+                            
+                        raw_index += 1
+                    cap.release()
+                
+                if not frame_data:
+                    continue
+                
+                # Tạo Scene trong DB
                 scene = Scene(
                     project_id=project_id,
                     scene_token=f"local-video-{task_id[:12]}-{scene_idx:03d}",
-                    name=f"Scene {scene_idx + 1}",
-                    description=f"Imported from local video",
-                    frame_count=len(batch),
+                    name=sname,
+                    description=f"Imported from video in {sname}",
+                    frame_count=len(frame_data),
                 )
                 db.add(scene)
                 db.flush()
                 last_scene_id = scene.id
+                total_frames_created += len(frame_data)
                 
-                for fd in batch:
+                # Lưu Frame tương ứng vào DB
+                for fd in frame_data:
                     kwargs = {
                         "scene_id": scene.id,
-                        "frame_index": fd["frame_index"] % SCENE_SIZE,
+                        "frame_index": fd["frame_index"],
                         "timestamp": fd["timestamp"],
                         field_name: fd["path"],
                     }
                     db.add(Frame(**kwargs))
-                    
+            
             db.commit()
             _import_status[task_id] = {
                 "status": "done",
                 "progress": 100,
-                "message": f"Hoàn thành! Đã tạo {total} khung hình trong {scene_count} scene.",
+                "message": f"Hoàn thành! Đã tạo {total_frames_created} khung hình trong {total_scenes} scene.",
                 "scene_id": last_scene_id,
-                "frame_count": total,
+                "frame_count": total_frames_created,
             }
         except Exception as e:
             db.rollback()
@@ -1213,7 +1291,7 @@ async def import_local_video(
     background_tasks.add_task(
         _import_local_video_task,
         task_id, project_id,
-        payload.video_path,
+        payload.folder_path,
         payload.camera_channel,
         payload.fps_target
     )
@@ -1230,5 +1308,4 @@ def get_generic_import_status(
     if not status:
         raise HTTPException(status_code=404, detail="Không tìm thấy task")
     return status
-
 
