@@ -3,6 +3,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import warnings
+warnings.filterwarnings("ignore")
+
 
 from routers import auth, projects, users, datasets, tasks, annotations, ai, export, system
 from services.ai_service import get_model

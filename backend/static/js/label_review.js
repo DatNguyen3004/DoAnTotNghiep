@@ -3,7 +3,7 @@ const BASE_URL = 'http://localhost:8000/api';
 function getToken() { return localStorage.getItem('access_token'); }
 
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
-if (!getToken() || currentUser.role !== 'user') {
+if (!getToken() || (currentUser.role !== 'user' && currentUser.role !== 'admin')) {
     window.location.href = '../login.html';
 }
 
@@ -23,7 +23,7 @@ const CLASSES = [
 ];
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
-const CAMERAS = ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT'];
+let CAMERAS = ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT'];
 const CAM_LABELS = {
     CAM_FRONT:'Cam trước', CAM_FRONT_LEFT:'Cam trái trước', CAM_FRONT_RIGHT:'Cam phải trước',
     CAM_BACK:'Cam sau', CAM_BACK_LEFT:'Cam trái sau', CAM_BACK_RIGHT:'Cam phải sau',
@@ -128,7 +128,8 @@ async function loadTask() {
 
         if (!isReviewer && !isLabeler && !isAdmin) {
             showToast('Bạn không có quyền xem nhiệm vụ này', 'error');
-            setTimeout(() => window.location.href = 'dashboard.html', 2000);
+            const redirectUrl = currentUser.role === 'admin' ? '../Admin/dashboard.html' : 'dashboard.html';
+            setTimeout(() => window.location.href = redirectUrl, 2000);
             return;
         }
 
@@ -136,6 +137,14 @@ async function loadTask() {
         if (!isReviewer && !isAdmin) {
             const btn = document.getElementById('btnDaKiemTra');
             if (btn) btn.style.display = 'none';
+        }
+
+        // Admin: đổi label nút thành "Xác nhận kết quả" và sửa link trở về
+        if (isAdmin) {
+            const btn = document.getElementById('btnDaKiemTra');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-shield-check"></i> Xác nhận kết quả';
+            const backLink = document.getElementById('backLinkReview');
+            if (backLink) backLink.href = '../Admin/dashboard.html';
         }
 
         // Update user avatar — chỉ set initials nếu chưa có ảnh
@@ -175,6 +184,32 @@ async function loadFrames(sceneId) {
         if (!frames.length) { showToast('Nhiệm vụ không có khung hình', 'error'); return; }
 
         await loadAllAnnotations();
+
+        // Detect available cameras dynamically
+        const firstFrame = frames[0];
+        const ALL_CAM_FIELDS = {
+            'CAM_FRONT': 'cam_front',
+            'CAM_FRONT_LEFT': 'cam_front_left',
+            'CAM_FRONT_RIGHT': 'cam_front_right',
+            'CAM_BACK': 'cam_back',
+            'CAM_BACK_LEFT': 'cam_back_left',
+            'CAM_BACK_RIGHT': 'cam_back_right'
+        };
+        const detectedCams = [];
+        Object.entries(ALL_CAM_FIELDS).forEach(([camKey, fieldName]) => {
+            if (firstFrame && firstFrame[fieldName]) {
+                detectedCams.push(camKey);
+            }
+        });
+        if (detectedCams.length > 0) {
+            CAMERAS = detectedCams;
+        }
+
+        // Set default camera to first available camera if current is not available
+        if (CAMERAS.length > 0 && !CAMERAS.includes(currentCamera)) {
+            currentCamera = CAMERAS[0];
+        }
+
         const savedFrame = parseInt(localStorage.getItem(`review_frame_${taskId}`) || '0');
         const startFrame = Math.min(Math.max(0, savedFrame), frames.length - 1);
         await goToFrame(startFrame);
@@ -298,6 +333,7 @@ async function goToFrame(idx) {
 }
 
 async function switchCamera(cam) {
+    if (!cam || !CAMERAS.includes(cam) || cam === currentCamera) return;
     currentCamera = cam;
     await loadImage(frames[currentFrameIdx], cam);
     renderCamList(frames[currentFrameIdx]);
@@ -604,29 +640,47 @@ async function _doSubmitReview() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nộp...';
 
+    const isAdmin = currentUser.role === 'admin';
+    const redirectUrl = isAdmin ? '../Admin/dashboard.html' : 'dashboard.html';
+
     try {
         if (wrongFrames.length > 0) {
-            const res = await fetch(`${BASE_URL}/tasks/${taskId}/review/reject`, {
+            // Admin dùng override để reject, reviewer dùng review/reject
+            const url = isAdmin
+                ? `${BASE_URL}/tasks/${taskId}/admin/override`
+                : `${BASE_URL}/tasks/${taskId}/review/reject`;
+            const body = isAdmin
+                ? { status: 'rejected', feedback: allFeedbacks }
+                : { feedback: allFeedbacks };
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ feedback: allFeedbacks })
+                body: JSON.stringify(body)
             });
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
             showToast('Đã gửi phản hồi về cho người gán nhãn', 'success');
             localStorage.removeItem(`review_${taskId}`);
             localStorage.removeItem(`review_frame_${taskId}`);
         } else {
-            const res = await fetch(`${BASE_URL}/tasks/${taskId}/review/approve`, {
+            // Admin dùng override để approve, reviewer dùng review/approve
+            const url = isAdmin
+                ? `${BASE_URL}/tasks/${taskId}/admin/override`
+                : `${BASE_URL}/tasks/${taskId}/review/approve`;
+            const body = isAdmin
+                ? { status: 'approved' }
+                : { reviewer_time_spent: timerSeconds };
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reviewer_time_spent: timerSeconds })
+                body: JSON.stringify(body)
             });
             if (!res.ok) throw new Error((await res.json()).detail || 'Lỗi');
-            showToast('Đã xác nhận — nhiệm vụ chờ admin phê duyệt', 'success');
+            const msg = isAdmin ? 'Đã phê duyệt nhiệm vụ' : 'Đã xác nhận — nhiệm vụ chờ admin phê duyệt';
+            showToast(msg, 'success');
             localStorage.removeItem(`review_${taskId}`);
             localStorage.removeItem(`review_frame_${taskId}`);
         }
-        setTimeout(() => window.location.href = 'dashboard.html', 2000);
+        setTimeout(() => window.location.href = redirectUrl, 2000);
     } catch (e) {
         showToast(e.message || 'Lỗi kết nối', 'error');
         btn.disabled = false;

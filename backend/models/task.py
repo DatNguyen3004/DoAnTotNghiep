@@ -16,7 +16,8 @@ class Task(Base):
     feedback    = Column(Unicode(4000), nullable=True)
     time_spent          = Column(Integer, default=0)       # seconds — labeler total
     reviewer_time_spent = Column(Integer, default=0)       # seconds — reviewer total
-    reject_count        = Column(Integer, default=0)       # số lần bị reject
+    reject_count        = Column(Integer, default=0)       # số lần bị reject bởi reviewer
+    reviewer_wrong_count = Column(Integer, default=0)      # số lần reviewer approve nhưng admin reject lại
     created_at  = Column(DateTime, server_default=func.now())
     updated_at  = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

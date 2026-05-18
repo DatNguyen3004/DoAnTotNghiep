@@ -25,7 +25,7 @@ const CLASSES = [
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
 
-const CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT'];
+let CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT'];
 
 const CAM_LABELS = {
     CAM_FRONT: 'Cam trước',
@@ -161,19 +161,40 @@ async function loadFrames(sceneId) {
         await loadAllAnnotations();
         initTrackCounters();
 
-        // Detect chế độ 1 camera: nếu chỉ có cam_front có dữ liệu → dùng film strip
+        // Detect available cameras dynamically
         const firstFrame = frames[0];
-        const camFields = ['cam_front_left', 'cam_front_right', 'cam_back', 'cam_back_left', 'cam_back_right'];
-        window._isSingleCam = firstFrame && camFields.every(f => !firstFrame[f]);
-        console.log('[SingleCam detect]', {
-            isSingleCam: window._isSingleCam,
-            cam_front: firstFrame?.cam_front,
-            cam_front_left: firstFrame?.cam_front_left,
-            cam_back: firstFrame?.cam_back,
+        const ALL_CAM_FIELDS = {
+            'CAM_FRONT': 'cam_front',
+            'CAM_FRONT_LEFT': 'cam_front_left',
+            'CAM_FRONT_RIGHT': 'cam_front_right',
+            'CAM_BACK': 'cam_back',
+            'CAM_BACK_LEFT': 'cam_back_left',
+            'CAM_BACK_RIGHT': 'cam_back_right'
+        };
+        const detectedCams = [];
+        Object.entries(ALL_CAM_FIELDS).forEach(([camKey, fieldName]) => {
+            if (firstFrame && firstFrame[fieldName]) {
+                detectedCams.push(camKey);
+            }
         });
+        if (detectedCams.length > 0) {
+            CAMERAS = detectedCams;
+        }
+
+        window._isSingleCam = CAMERAS.length === 1;
+        console.log('[Camera dynamic detect]', {
+            isSingleCam: window._isSingleCam,
+            availableCameras: CAMERAS
+        });
+
         if (window._isSingleCam) {
             const panelHeader = document.querySelector('.panel-header');
             if (panelHeader) panelHeader.textContent = 'KHUNG HÌNH';
+        }
+
+        // Set default camera to first available camera if current is not available
+        if (CAMERAS.length > 0 && !CAMERAS.includes(currentCamera)) {
+            currentCamera = CAMERAS[0];
         }
         // Khôi phục frame đã lưu gần nhất
         const urlFrame = parseInt(new URLSearchParams(window.location.search).get('frame') || '-1');
@@ -495,7 +516,7 @@ function prefetchNextFrame(currentIdx) {
 }
 
 async function switchCamera(cam) {
-    if (cam === currentCamera) return;
+    if (!cam || !CAMERAS.includes(cam) || cam === currentCamera) return;
     currentCamera = cam;
     renderCamList(frames[currentFrameIdx]);
     await loadImage(frames[currentFrameIdx], cam);

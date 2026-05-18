@@ -123,20 +123,44 @@
                         </div>
                     </div>
 
-                    <!-- Panel: Upload Ảnh -->
+                    <!-- Panel: Local Thư mục Ảnh (1 Camera) -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
-                            <label>Tải lên ảnh theo camera</label>
-                            <div style="font-size:12px;color:#64748B;margin-bottom:10px;padding:8px 12px;background:#F0F9FF;border-radius:8px;border-left:3px solid #0EA5E9">
-                                <i class="fa-solid fa-circle-info" style="color:#0EA5E9"></i>
-                                Mỗi ô tương ứng 1 camera. Chỉ cần chọn ít nhất 1 folder — nếu chỉ chọn 1 folder thì tự động dùng chế độ 1 camera.
+                            <label>Chọn Camera Channel</label>
+                            <select id="imageCameraChannel" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
+                                <option value="CAM_FRONT" selected>Cam trước (CAM_FRONT)</option>
+                                <option value="CAM_FRONT_LEFT">Cam trái trước (CAM_FRONT_LEFT)</option>
+                                <option value="CAM_FRONT_RIGHT">Cam phải trước (CAM_FRONT_RIGHT)</option>
+                                <option value="CAM_BACK">Cam sau (CAM_BACK)</option>
+                                <option value="CAM_BACK_LEFT">Cam trái sau (CAM_BACK_LEFT)</option>
+                                <option value="CAM_BACK_RIGHT">Cam phải sau (CAM_BACK_RIGHT)</option>
+                            </select>
+                        </div>
+                        <div class="form-group-modal">
+                            <label>Đường dẫn thư mục ảnh trên máy</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <i class="fa-regular fa-folder-open" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
+                                <input type="text" id="localImageFolderPath" class="form-control" placeholder="Ví dụ: D:\Folder-image\Scene-01" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
                             </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="imgCamGrid"></div>
+                            <div style="font-size:11px;color:#94A3B8;margin-top:6px">
+                                * Hệ thống sẽ tự động quét toàn bộ tệp tin ảnh (.jpg, .png, ...) trong thư mục này và nạp vào dự án.
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Panel: Upload Video -->
+                    <!-- Panel: Local Tệp tin Video (1 Camera) -->
                     <div id="panelVideo" style="display:none">
+                        <div class="form-group-modal">
+                            <label>Chọn Camera Channel</label>
+                            <select id="videoCameraChannel" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
+                                <option value="CAM_FRONT" selected>Cam trước (CAM_FRONT)</option>
+                                <option value="CAM_FRONT_LEFT">Cam trái trước (CAM_FRONT_LEFT)</option>
+                                <option value="CAM_FRONT_RIGHT">Cam phải trước (CAM_FRONT_RIGHT)</option>
+                                <option value="CAM_BACK">Cam sau (CAM_BACK)</option>
+                                <option value="CAM_BACK_LEFT">Cam trái sau (CAM_BACK_LEFT)</option>
+                                <option value="CAM_BACK_RIGHT">Cam phải sau (CAM_BACK_RIGHT)</option>
+                            </select>
+                        </div>
                         <div class="form-group-modal">
                             <label>Tần số lấy mẫu (khung hình/giây)</label>
                             <select id="createVideoFps" class="form-control" style="height:40px;border:1px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;font-family:Inter,sans-serif">
@@ -146,10 +170,16 @@
                                 <option value="10">10 khung hình/giây</option>
                             </select>
                         </div>
-                        <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                            Video theo camera <span style="font-weight:400;color:#94A3B8">(ít nhất 1 camera)</span>
+                        <div class="form-group-modal">
+                            <label>Đường dẫn tệp tin video trên máy (.mp4, .avi, ...)</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <i class="fa-solid fa-film" style="position:absolute;left:14px;color:#94A3B8;font-size:14px"></i>
+                                <input type="text" id="localVideoFilePath" class="form-control" placeholder="Ví dụ: D:\Folder-video\Scene-01\video01.mp4" style="height:40px;padding-left:38px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;width:100%">
+                            </div>
+                            <div style="font-size:11px;color:#94A3B8;margin-top:6px">
+                                * Hệ thống sẽ trực tiếp đọc video trên ổ đĩa, cắt khung hình tự động và dán nhãn camera này.
+                            </div>
                         </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="createCameraGrid"></div>
                     </div>
 
                     <!-- Progress bar (hiện khi đang import) -->
@@ -342,99 +372,6 @@
             document.querySelector(`.ds-btn[data-source="${src}"]`).classList.add('ds-btn-active');
             document.getElementById('panelImages').style.display = src === 'images' ? '' : 'none';
             document.getElementById('panelVideo').style.display  = src === 'video'  ? '' : 'none';
-            if (src === 'video') renderCreateCameraGrid();
-            if (src === 'images') renderImgCamGrid();
-        }
-
-        function switchImgTab(tab) {
-            document.getElementById('imgMultiPanel').style.display = tab === 'multi' ? '' : 'none';
-            document.getElementById('imgZipPanel').style.display   = tab === 'zip'   ? '' : 'none';
-            document.getElementById('tabMultiImg').classList.toggle('img-tab-active', tab === 'multi');
-            document.getElementById('tabZip').classList.toggle('img-tab-active', tab === 'zip');
-        }
-
-        const CAMERAS_CREATE = [
-            { key: 'cam_front',       label: 'Cam trước' },
-            { key: 'cam_front_left',  label: 'Cam trái trước' },
-            { key: 'cam_front_right', label: 'Cam phải trước' },
-            { key: 'cam_back',        label: 'Cam sau' },
-            { key: 'cam_back_left',   label: 'Cam trái sau' },
-            { key: 'cam_back_right',  label: 'Cam phải sau' },
-        ];
-
-        function renderCreateCameraGrid() {
-            const grid = document.getElementById('createCameraGrid');
-            grid.innerHTML = CAMERAS_CREATE.map(c => `
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <span style="font-size:12px;font-weight:600;color:#475569">${c.label}</span>
-                    <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;cursor:pointer"
-                         id="czone_${c.key}" onclick="document.getElementById('cfile_${c.key}').click()">
-                        <i class="fa-solid fa-video" style="color:#94A3B8;font-size:14px"></i>
-                        <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="clabel_${c.key}">Chọn video...</span>
-                    </div>
-                    <input type="file" id="cfile_${c.key}" accept="video/mp4,video/avi,video/quicktime,video/x-matroska,video/webm" hidden
-                           onchange="onCreateVideoChange('${c.key}', this)">
-                </div>
-            `).join('');
-        }
-
-        function onCreateVideoChange(camKey, input) {
-            const label = document.getElementById('clabel_' + camKey);
-            const zone  = document.getElementById('czone_'  + camKey);
-            if (input.files[0]) {
-                label.textContent = input.files[0].name;
-                label.style.color = '#0EA5E9';
-                zone.style.borderColor = '#0EA5E9';
-                zone.style.background  = '#F0F9FF';
-            } else {
-                label.textContent = 'Chọn video...';
-                label.style.color = '#94A3B8';
-                zone.style.borderColor = '#CBD5E1';
-                zone.style.background  = '#F8FAFC';
-            }
-        }
-
-        const CAMERAS_IMG = [
-            { key: 'cam_front',       label: 'Cam trước' },
-            { key: 'cam_front_left',  label: 'Cam trái trước' },
-            { key: 'cam_front_right', label: 'Cam phải trước' },
-            { key: 'cam_back',        label: 'Cam sau' },
-            { key: 'cam_back_left',   label: 'Cam trái sau' },
-            { key: 'cam_back_right',  label: 'Cam phải sau' },
-        ];
-
-        function renderImgCamGrid() {
-            const grid = document.getElementById('imgCamGrid');
-            if (!grid) return;
-            grid.innerHTML = CAMERAS_IMG.map(c => `
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <span style="font-size:12px;font-weight:600;color:#475569">${c.label}</span>
-                    <div style="border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;background:#F8FAFC;cursor:pointer"
-                         id="imgzone_${c.key}" onclick="document.getElementById('imgfile_${c.key}').click()">
-                        <i class="fa-regular fa-folder-open" style="color:#94A3B8;font-size:14px"></i>
-                        <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="imglabel_${c.key}">Chọn folder...</span>
-                    </div>
-                    <input type="file" id="imgfile_${c.key}" accept="image/jpeg,image/png,image/webp,image/bmp" multiple webkitdirectory hidden
-                           onchange="onImgCamChange('${c.key}', this)">
-                </div>
-            `).join('');
-        }
-
-        function onImgCamChange(camKey, input) {
-            const label = document.getElementById('imglabel_' + camKey);
-            const zone  = document.getElementById('imgzone_'  + camKey);
-            if (input.files.length) {
-                const imgCount = Array.from(input.files).filter(f => /\.(jpe?g|png|webp|bmp)$/i.test(f.name)).length;
-                label.textContent = `${imgCount} ảnh`;
-                label.style.color = '#0EA5E9';
-                zone.style.borderColor = '#0EA5E9';
-                zone.style.background  = '#F0F9FF';
-            } else {
-                label.textContent = 'Chọn folder...';
-                label.style.color = '#94A3B8';
-                zone.style.borderColor = '#CBD5E1';
-                zone.style.background  = '#F8FAFC';
-            }
         }
 
         function resetCreateModal() {
@@ -442,6 +379,8 @@
             document.getElementById('projectDesc').value = '';
             document.getElementById('coverDropText').textContent = 'Tải lên ảnh bìa dự án';
             document.getElementById('coverImageInput').value = '';
+            document.getElementById('localImageFolderPath').value = '';
+            document.getElementById('localVideoFilePath').value = '';
             document.getElementById('createImportProgress').style.display = 'none';
             document.getElementById('createProgressBar').style.width = '0%';
             document.getElementById('createProgressBar').style.background = 'linear-gradient(90deg,#7C3AED,#2563EB)';
@@ -495,7 +434,7 @@
 
             // Bắt đầu import
             document.getElementById('createImportProgress').style.display = 'block';
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp...';
 
             try {
                 let taskId;
@@ -505,98 +444,69 @@
                     taskId = await startCreateVideoImport(project.id);
                 }
                 if (taskId) {
-                    const capturedCamCount = Object.keys(CAMERAS_IMG.reduce((acc, c) => {
-                        const inp = document.getElementById('imgfile_' + c.key);
-                        if (inp && inp.files.length) acc[c.key] = 1;
-                        return acc;
-                    }, {})).length;
-                    pollCreateImportStatus(project.id, taskId, _dataSource, capturedCamCount);
+                    pollCreateImportStatus(project.id, taskId, _dataSource);
                 }
             } catch (e) {
-                alert('Import thất bại: ' + e.message);
+                alert('Nạp dữ liệu thất bại: ' + e.message);
                 btn.disabled = false;
                 btn.innerHTML = 'Tạo';
             }
         });
 
         async function startImageImport(projectId) {
-            // Đếm số camera có folder được chọn
-            const camFiles = {};
-            for (const c of CAMERAS_IMG) {
-                const input = document.getElementById('imgfile_' + c.key);
-                if (input && input.files.length) {
-                    const imgs = Array.from(input.files).filter(f => /\.(jpe?g|png|webp|bmp)$/i.test(f.name));
-                    if (imgs.length) camFiles[c.key] = imgs;
-                }
+            const folderPath = document.getElementById('localImageFolderPath').value.trim();
+            const cameraChannel = document.getElementById('imageCameraChannel').value;
+
+            if (!folderPath) throw new Error('Vui lòng nhập đường dẫn thư mục ảnh.');
+
+            const res = await fetch(`${BASE_URL}/projects/${projectId}/import-local-images`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({
+                    folder_path: folderPath,
+                    camera_channel: cameraChannel
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Lỗi nạp thư mục ảnh');
             }
-
-            const camCount = Object.keys(camFiles).length;
-            if (camCount === 0) throw new Error('Vui lòng chọn ít nhất 1 folder ảnh.');
-
-            const formData = new FormData();
-
-            if (camCount === 1) {
-                // Chế độ 1 camera — dùng endpoint import-images
-                const files = Object.values(camFiles)[0];
-                for (const f of files) formData.append('files', f);
-                const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${getToken()}` },
-                    body: formData,
-                });
-                if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Lỗi upload ảnh'); }
-                return (await res.json()).task_id;
-            } else {
-                // Chế độ nhiều camera — dùng endpoint import-images-multicam
-                for (const [camKey, files] of Object.entries(camFiles)) {
-                    for (const f of files) formData.append(camKey, f);
-                }
-                const res = await fetch(`${BASE_URL}/projects/${projectId}/import-images-multicam`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${getToken()}` },
-                    body: formData,
-                });
-                if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Lỗi upload ảnh'); }
-                return (await res.json()).task_id;
-            }
+            return (await res.json()).task_id;
         }
 
         async function startCreateVideoImport(projectId) {
-            const fps = document.getElementById('createVideoFps').value;
+            const videoPath = document.getElementById('localVideoFilePath').value.trim();
+            const cameraChannel = document.getElementById('videoCameraChannel').value;
+            const fps = parseFloat(document.getElementById('createVideoFps').value);
 
-            const formData = new FormData();
-            let hasFile = false;
-            CAMERAS_CREATE.forEach(c => {
-                const input = document.getElementById('cfile_' + c.key);
-                if (input && input.files[0]) {
-                    formData.append(c.key, input.files[0]);
-                    hasFile = true;
-                }
-            });
-            if (!hasFile) throw new Error('Vui lòng chọn ít nhất 1 file video.');
+            if (!videoPath) throw new Error('Vui lòng nhập đường dẫn tệp tin video.');
 
-            const url = new URL(`${BASE_URL}/projects/${projectId}/import-video`);
-            url.searchParams.set('fps_target', fps);
-
-            const res = await fetch(url.toString(), {
+            const res = await fetch(`${BASE_URL}/projects/${projectId}/import-local-video`, {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${getToken()}` },
-                body: formData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({
+                    video_path: videoPath,
+                    camera_channel: cameraChannel,
+                    fps_target: fps
+                })
             });
+
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.detail || 'Lỗi upload video');
+                throw new Error(err.detail || 'Lỗi nạp tệp video');
             }
-            const data = await res.json();
-            return data.task_id;
+            return (await res.json()).task_id;
         }
 
-        function pollCreateImportStatus(projectId, taskId, sourceType, camCount) {
-            const statusEndpoint = sourceType === 'images'
-                ? (camCount > 1
-                    ? `${BASE_URL}/projects/${projectId}/import-images-multicam/status/${taskId}`
-                    : `${BASE_URL}/projects/${projectId}/import-images/status/${taskId}`)
-                : `${BASE_URL}/projects/${projectId}/import-video/status/${taskId}`;
+        function pollCreateImportStatus(projectId, taskId, sourceType) {
+            const statusEndpoint = `${BASE_URL}/projects/${projectId}/import-status/${taskId}`;
 
             const interval = setInterval(async () => {
                 try {

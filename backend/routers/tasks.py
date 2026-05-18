@@ -8,6 +8,7 @@ from models.user import User
 from models.task import Task
 from models.scene import Scene
 from models.annotation import Annotation
+from models.task_submission import TaskSubmission
 from schemas.task import (
     TaskCreate, TaskOut, TaskUserInfo, TaskStatusUpdate,
     TaskSubmit, ReviewSubmit, ReviewReject, AdminOverride,
@@ -239,6 +240,13 @@ def submit_task(
     else:
         task.status = "submitted"
 
+    # Ghi lịch sử nộp bài
+    db.add(TaskSubmission(
+        task_id=task_id,
+        action="submitted",
+        actor_id=current_user.id,
+    ))
+
     # Giữ feedback để reviewer biết frame nào cần kiểm tra lại lần 2
     db.commit()
     db.refresh(task)
@@ -275,6 +283,14 @@ def approve_task(
     task.status = "reviewed"
     if body.reviewer_time_spent is not None:
         task.reviewer_time_spent = (task.reviewer_time_spent or 0) + body.reviewer_time_spent
+
+    # Ghi lịch sử phê duyệt
+    db.add(TaskSubmission(
+        task_id=task_id,
+        action="approved",
+        actor_id=current_user.id,
+    ))
+
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
@@ -307,6 +323,15 @@ def reject_task(
     task.status = "rejected"
     task.feedback = body.feedback.strip()
     task.reject_count = (task.reject_count or 0) + 1
+
+    # Ghi lịch sử từ chối
+    db.add(TaskSubmission(
+        task_id=task_id,
+        action="rejected",
+        actor_id=current_user.id,
+        feedback=body.feedback.strip(),
+    ))
+
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
@@ -330,11 +355,67 @@ def admin_override(
     if body.status not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail=f"Status không hợp lệ: {body.status}")
 
+    prev_status = task.status  # Lưu status cũ trước khi thay đổi
+
     task.status = body.status
     if body.feedback:
         task.feedback = body.feedback
     elif body.status == "approved":
         task.feedback = None  # Xóa feedback khi admin phê duyệt cuối
+
+    # Nếu admin reject task đã được reviewer approve (reviewed) → reviewer kiểm thử sai
+    # Tăng reviewer_wrong_count để phản ánh vào chất lượng kiểm thử
+    if body.status == "rejected" and prev_status == "reviewed" and task.reviewer_id:
+        task.reviewer_wrong_count = (task.reviewer_wrong_count or 0) + 1
+
+    # Ghi lịch sử admin override
+    db.add(TaskSubmission(
+        task_id=task_id,
+        action="admin_approved" if body.status == "approved" else f"admin_{body.status}",
+        actor_id=current_user.id,
+        feedback=body.feedback,
+    ))
+
     db.commit()
     db.refresh(task)
     return _enrich_task(task, db)
+
+
+# ───────────────────────────────────────────────
+# GET /api/tasks/{task_id}/history
+# ───────────────────────────────────────────────
+@router.get("/{task_id}/history")
+def get_task_history(
+    task_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin xem lịch sử nộp bài / từ chối / phê duyệt của một task.
+    Trả về danh sách các sự kiện theo thứ tự thời gian.
+    """
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+
+    submissions = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_id == task_id)
+        .order_by(TaskSubmission.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for s in submissions:
+        actor = db.query(User).filter(User.id == s.actor_id).first() if s.actor_id else None
+        result.append({
+            "id": s.id,
+            "action": s.action,
+            "actor_id": s.actor_id,
+            "actor_username": actor.username if actor else None,
+            "actor_full_name": actor.full_name if actor else None,
+            "feedback": s.feedback,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        })
+
+    return result

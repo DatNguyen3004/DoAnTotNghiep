@@ -109,7 +109,7 @@ def get_user_stats(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Thống kê chất lượng gán nhãn của một user."""
+    """Thống kê chất lượng gán nhãn và kiểm thử của một user."""
     from models.task import Task
     from sqlalchemy import func
 
@@ -117,6 +117,7 @@ def get_user_stats(
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
 
+    # ── Thống kê gán nhãn (labeler) ──
     tasks = db.query(Task).filter(Task.assigned_to == user_id).all()
     total = len(tasks)
     approved = sum(1 for t in tasks if t.status == 'approved')
@@ -125,18 +126,23 @@ def get_user_stats(
     in_progress = sum(1 for t in tasks if t.status == 'in_progress')
     pending = sum(1 for t in tasks if t.status == 'pending')
 
-    # Tổng số lần bị reject (tích lũy qua tất cả task)
     total_rejects = sum((t.reject_count or 0) for t in tasks)
-    # Tổng số lần nộp = submitted + reject_count (mỗi lần reject là 1 lần nộp thêm)
     total_submissions = submitted + total_rejects
 
-    # Thời gian trung bình (giây) cho các task đã hoàn thành
     completed_times = [t.time_spent for t in tasks if t.time_spent and t.status in ('approved', 'submitted', 'under_review')]
     avg_time = int(sum(completed_times) / len(completed_times)) if completed_times else 0
 
-    # Tỷ lệ chất lượng: số lần nộp không bị reject / tổng lần nộp
-    # Nếu nộp 5 lần, bị reject 2 lần → quality = (5-2)/5 = 60%
     quality_rate = round((total_submissions - total_rejects) / total_submissions * 100) if total_submissions > 0 else 0
+
+    # ── Thống kê kiểm thử (reviewer) ──
+    reviewed_tasks = db.query(Task).filter(Task.reviewer_id == user_id).all()
+    total_reviewed = len(reviewed_tasks)
+    # Số lần reviewer approve nhưng admin reject lại (kiểm thử sai)
+    reviewer_wrong = sum((t.reviewer_wrong_count or 0) for t in reviewed_tasks)
+    # Tổng lần đã kiểm thử (đã có kết quả: reviewed, approved, rejected)
+    total_review_done = sum(1 for t in reviewed_tasks if t.status in ('reviewed', 'approved', 'rejected'))
+    # Tỷ lệ kiểm thử đúng
+    review_quality_rate = round((total_review_done - reviewer_wrong) / total_review_done * 100) if total_review_done > 0 else 0
 
     return {
         "user_id": user_id,
@@ -150,6 +156,11 @@ def get_user_stats(
         "total_submissions": total_submissions,
         "quality_rate": quality_rate,
         "avg_time_seconds": avg_time,
+        # Chất lượng kiểm thử
+        "total_reviewed": total_reviewed,
+        "reviewer_wrong": reviewer_wrong,
+        "review_quality_rate": review_quality_rate,
+        "suspicious_pairs": [],
     }
 
 

@@ -14,6 +14,7 @@ from schemas.dataset import SceneOut, FrameOut, FrameMetadata
 from routers.auth import get_current_user
 from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
 import config as _cfg
+from services.video_dataset import get_video_frame_path
 
 # Luôn đọc runtime để phản ánh cập nhật từ Settings
 def _get_nuscenes_root():
@@ -186,18 +187,28 @@ def get_frame_image(
     if not frame:
         raise HTTPException(status_code=404, detail="Không tìm thấy frame")
 
-    relative_path = getattr(frame, column, None)
-    if not relative_path:
-        # Trả về ảnh placeholder cho camera không có dữ liệu
-        return _placeholder_response(camera_upper)
-
-    # Xây dựng đường dẫn tuyệt đối đến file ảnh trên disk
-    # nuScenes lưu filename dạng: samples/CAM_FRONT/xxx.jpg
-    # Upload ảnh/video lưu dạng: uploads/images/... hoặc uploads/frames/...
-    if relative_path.startswith("uploads/"):
-        image_path = os.path.join("static", relative_path)
+    # Intercept for video-based nuScenes dataset
+    video_frame_path = get_video_frame_path(
+        _get_nuscenes_root(),
+        frame.scene.name,
+        camera_upper,
+        frame.frame_index
+    )
+    if video_frame_path:
+        image_path = video_frame_path
     else:
-        image_path = os.path.join(_get_nuscenes_root(), relative_path)
+        relative_path = getattr(frame, column, None)
+        if not relative_path:
+            # Trả về ảnh placeholder cho camera không có dữ liệu
+            return _placeholder_response(camera_upper)
+
+        # Xây dựng đường dẫn tuyệt đối đến file ảnh trên disk
+        # nuScenes lưu filename dạng: samples/CAM_FRONT/xxx.jpg
+        # Upload ảnh/video lưu dạng: uploads/images/... hoặc uploads/frames/...
+        if relative_path.startswith("uploads/"):
+            image_path = os.path.join("static", relative_path)
+        else:
+            image_path = os.path.join(_get_nuscenes_root(), relative_path)
 
     if not os.path.isfile(image_path):
         return _placeholder_response(camera_upper)
@@ -229,13 +240,21 @@ def get_frame_thumbnail(
     if not frame:
         raise HTTPException(status_code=404, detail="Frame not found")
 
-    relative_path = getattr(frame, column, None)
-    if not relative_path:
-        return _placeholder_response(camera_upper)
+    # Intercept for video-based nuScenes dataset
+    video_frame_path = get_video_frame_path(
+        _get_nuscenes_root(),
+        frame.scene.name,
+        camera_upper,
+        frame.frame_index
+    )
+    if video_frame_path:
+        image_path = video_frame_path
+    else:
+        relative_path = getattr(frame, column, None)
+        if not relative_path:
+            return _placeholder_response(camera_upper)
 
-    image_path = os.path.join(_get_nuscenes_root(), relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
-    if not os.path.isfile(image_path):
-        return _placeholder_response(camera_upper)
+        image_path = os.path.join(_get_nuscenes_root(), relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
 
     # Xử lý nén bằng Pillow
     try:

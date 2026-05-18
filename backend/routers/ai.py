@@ -11,6 +11,7 @@ from routers.auth import get_current_user
 from services.ai_service import run_inference, get_model, get_model_error
 from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
 import config as _cfg
+from services.video_dataset import get_video_frame_path
 
 def _get_nuscenes_root():
     return _cfg.NUSCENES_ROOT
@@ -82,11 +83,21 @@ def predict(
     if not relative_path:
         raise HTTPException(status_code=404, detail=f"Frame không có ảnh cho camera {camera_upper}")
 
-    # Hỗ trợ cả ảnh upload (uploads/...) lẫn nuScenes (samples/...)
-    if relative_path.startswith("uploads/"):
-        image_path = os.path.join("static", relative_path)
+    # Intercept for video-based nuScenes dataset
+    video_frame_path = get_video_frame_path(
+        _get_nuscenes_root(),
+        frame.scene.name,
+        camera_upper,
+        frame.frame_index
+    )
+    if video_frame_path:
+        image_path = video_frame_path
     else:
-        image_path = os.path.join(_get_nuscenes_root(), relative_path)
+        # Hỗ trợ cả ảnh upload (uploads/...) lẫn nuScenes (samples/...)
+        if relative_path.startswith("uploads/"):
+            image_path = os.path.join("static", relative_path)
+        else:
+            image_path = os.path.join(_get_nuscenes_root(), relative_path)
 
     # Chạy inference
     try:
@@ -138,11 +149,20 @@ def optical_flow(
     if not path_prev or not path_next:
         return {"dx": 0.0, "dy": 0.0}
 
-    def resolve_path(p):
+    def resolve_path(f, p):
+        # Intercept for video-based nuScenes dataset
+        vfp = get_video_frame_path(
+            _get_nuscenes_root(),
+            f.scene.name,
+            camera_upper,
+            f.frame_index
+        )
+        if vfp:
+            return vfp
         return os.path.join("static", p) if p.startswith("uploads/") else os.path.join(_get_nuscenes_root(), p)
 
-    img_prev = cv2.imread(resolve_path(path_prev))
-    img_next = cv2.imread(resolve_path(path_next))
+    img_prev = cv2.imread(resolve_path(frame_prev, path_prev))
+    img_next = cv2.imread(resolve_path(frame_next, path_next))
     if img_prev is None or img_next is None:
         return {"dx": 0.0, "dy": 0.0}
 

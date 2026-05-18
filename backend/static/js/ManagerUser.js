@@ -230,8 +230,7 @@ if (searchInput) {
 async function openStatsModal(userId, username, fullName) {
     document.getElementById('statsUserName').textContent = fullName || username;
     document.getElementById('statsUserSub').textContent = `@${username}`;
-    const initials = username.substring(0, 2).toUpperCase();
-    document.getElementById('statsUserAvatar').textContent = initials;
+    document.getElementById('statsUserAvatar').textContent = username.substring(0, 2).toUpperCase();
     document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
     document.getElementById('statsModal').classList.add('active');
 
@@ -242,68 +241,140 @@ async function openStatsModal(userId, username, fullName) {
         if (!res.ok) throw new Error();
         const s = await res.json();
 
+        // ── Tính màu & nhãn gán nhãn ──
         const rate = s.quality_rate;
         const rateColor = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
         const rateLabel = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
-
         const avgMin = s.avg_time_seconds > 0
-            ? `${Math.floor(s.avg_time_seconds / 60)} phút ${s.avg_time_seconds % 60} giây`
-            : '—';
+            ? `${Math.floor(s.avg_time_seconds / 60)}p ${s.avg_time_seconds % 60}s` : '—';
+
+        // ── Tính màu & nhãn kiểm thử ──
+        const hasReview = s.total_reviewed > 0;
+        const rr = s.review_quality_rate ?? 0;
+        const rrColor = rr >= 80 ? '#10B981' : rr >= 50 ? '#F59E0B' : '#EF4444';
+        const rrLabel = rr >= 80 ? 'Tốt' : rr >= 50 ? 'Trung bình' : 'Kém';
 
         document.getElementById('statsBody').innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-                <div style="background:#F8FAFC;border-radius:10px;padding:14px;text-align:center">
-                    <div style="font-size:24px;font-weight:800;color:#1E293B">${s.total_tasks}</div>
-                    <div style="font-size:12px;color:#64748B;margin-top:2px">Tổng nhiệm vụ</div>
+        <!-- Tab bar -->
+        <div style="display:flex;gap:4px;background:#F1F5F9;border-radius:10px;padding:4px;margin-bottom:14px">
+            <button id="stTabLabel" onclick="switchStatsTab('label')"
+                style="flex:1;height:34px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:#fff;color:#2563EB;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+                <i class="fa-solid fa-pen" style="margin-right:5px"></i>Gán nhãn
+            </button>
+            <button id="stTabReview" onclick="switchStatsTab('review')"
+                style="flex:1;height:34px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:#64748B">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right:5px"></i>Kiểm thử
+                ${hasReview && s.reviewer_wrong > 0 ? `<span style="background:#EF4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:4px">${s.reviewer_wrong}</span>` : ''}
+            </button>
+        </div>
+
+        <!-- Tab: Gán nhãn -->
+        <div id="stPanelLabel">
+            <!-- 2 số tổng quan -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
+                    <div style="font-size:22px;font-weight:800;color:#1E293B">${s.total_tasks}</div>
+                    <div style="font-size:11px;color:#64748B;margin-top:2px">Tổng nhiệm vụ</div>
                 </div>
-                <div style="background:#F8FAFC;border-radius:10px;padding:14px;text-align:center">
-                    <div style="font-size:24px;font-weight:800;color:${rateColor}">${rate}%</div>
-                    <div style="font-size:12px;color:${rateColor};font-weight:600;margin-top:2px">${rateLabel}</div>
+                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
+                    <div style="font-size:22px;font-weight:800;color:${rateColor}">${rate}%</div>
+                    <div style="font-size:11px;color:${rateColor};font-weight:600;margin-top:2px">${rateLabel}</div>
                 </div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-                ${statRow('fa-circle-check', '#10B981', 'Đã duyệt', s.approved)}
-                ${statRow('fa-circle-xmark', '#EF4444', 'Bị từ chối', s.rejected)}
-                ${statRow('fa-rotate-right', '#F97316', 'Tổng lần bị từ chối', s.total_rejects)}
-                ${statRow('fa-paper-plane', '#2563EB', 'Tổng lần nộp', s.total_submissions)}
-                ${statRow('fa-pen', '#7C3AED', 'Đang làm', s.in_progress)}
-                ${statRow('fa-hourglass', '#94A3B8', 'Chưa bắt đầu', s.pending)}
-                ${statRow('fa-stopwatch', '#0EA5E9', 'Thời gian trung bình/nhiệm vụ', avgMin, true)}
+            <!-- Thanh kéo chất lượng -->
+            <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:4px">
+                    <span>Tỷ lệ chất lượng gán nhãn</span><span style="font-weight:700;color:${rateColor}">${rate}%</span>
+                </div>
+                <input type="range" min="0" max="100" value="${rate}" disabled
+                    style="width:100%;accent-color:${rateColor};height:6px;cursor:default">
             </div>
-            <div style="margin-top:16px">
-                <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Tỷ lệ chất lượng</div>
-                <div style="height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden">
-                    <div style="height:100%;width:${rate}%;background:${rateColor};border-radius:4px;transition:width 0.5s"></div>
+            <!-- Chi tiết dạng lưới 2 cột -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+                ${miniStat('fa-circle-check','#10B981','Đã duyệt', s.approved)}
+                ${miniStat('fa-circle-xmark','#EF4444','Bị từ chối', s.rejected)}
+                ${miniStat('fa-rotate-right','#F97316','Lần bị từ chối', s.total_rejects)}
+                ${miniStat('fa-paper-plane','#2563EB','Lần nộp', s.total_submissions)}
+                ${miniStat('fa-pen','#7C3AED','Đang làm', s.in_progress)}
+                ${miniStat('fa-hourglass','#94A3B8','Chưa bắt đầu', s.pending)}
+            </div>
+            <div style="padding:8px 12px;background:#F8FAFC;border-radius:8px;font-size:12px;color:#64748B;display:flex;justify-content:space-between">
+                <span><i class="fa-solid fa-stopwatch" style="color:#0EA5E9;margin-right:4px"></i>Thời gian TB/nhiệm vụ</span>
+                <span style="font-weight:700;color:#1E293B">${avgMin}</span>
+            </div>
+            <!-- Nhận xét -->
+            <div style="margin-top:10px;padding:10px 14px;border-radius:8px;background:${rate >= 80 ? '#F0FDF4' : rate >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rate >= 80 ? '#BBF7D0' : rate >= 50 ? '#FDE68A' : '#FECACA'};font-size:12px;color:#64748B">
+                <i class="fa-solid ${rate >= 80 ? 'fa-thumbs-up' : rate >= 50 ? 'fa-circle-exclamation' : 'fa-thumbs-down'}" style="color:${rateColor};margin-right:4px"></i>
+                <strong style="color:${rateColor}">${rate >= 80 ? 'Nên thuê lại' : rate >= 50 ? 'Cân nhắc kỹ' : 'Không nên thuê lại'}</strong>
+                — ${rate >= 80
+                    ? `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`
+                    : `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`}
+            </div>
+        </div>
+
+        <!-- Tab: Kiểm thử (ẩn mặc định) -->
+        <div id="stPanelReview" style="display:none">
+            ${hasReview ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
+                    <div style="font-size:22px;font-weight:800;color:#1E293B">${s.total_reviewed}</div>
+                    <div style="font-size:11px;color:#64748B;margin-top:2px">Đã kiểm thử</div>
+                </div>
+                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
+                    <div style="font-size:22px;font-weight:800;color:${rrColor}">${rr}%</div>
+                    <div style="font-size:11px;color:${rrColor};font-weight:600;margin-top:2px">${rrLabel}</div>
                 </div>
             </div>
-            <div style="margin-top:16px;padding:14px 16px;border-radius:10px;background:${rate >= 80 ? '#F0FDF4' : rate >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rate >= 80 ? '#BBF7D0' : rate >= 50 ? '#FDE68A' : '#FECACA'}">
-                <div style="font-size:13px;font-weight:700;color:${rateColor};margin-bottom:4px">
-                    <i class="fa-solid ${rate >= 80 ? 'fa-thumbs-up' : rate >= 50 ? 'fa-circle-exclamation' : 'fa-thumbs-down'}"></i>
-                    ${rate >= 80 ? 'Nên thuê lại' : rate >= 50 ? 'Cân nhắc kỹ trước khi thuê lại' : 'Không nên thuê lại'}
+            <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:4px">
+                    <span>Tỷ lệ kiểm thử đúng</span><span style="font-weight:700;color:${rrColor}">${rr}%</span>
                 </div>
-                <div style="font-size:12px;color:#64748B">
-                    ${rate >= 80
-                        ? `Chất lượng tốt — ${s.total_rejects === 0 ? 'không có lần nào bị từ chối' : `chỉ bị từ chối ${s.total_rejects} lần`} trên ${s.total_submissions} lần nộp.`
-                        : rate >= 50
-                        ? `Chất lượng trung bình — bị từ chối ${s.total_rejects} lần trên ${s.total_submissions} lần nộp. Cần theo dõi thêm.`
-                        : `Chất lượng thấp — bị từ chối ${s.total_rejects} lần trên ${s.total_submissions} lần nộp. Cần đào tạo lại hoặc không tiếp tục.`
-                    }
-                </div>
-            </div>`;
+                <input type="range" min="0" max="100" value="${rr}" disabled
+                    style="width:100%;accent-color:${rrColor};height:6px;cursor:default">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+                ${miniStat('fa-circle-check','#10B981','Kiểm thử đúng', s.total_reviewed - s.reviewer_wrong)}
+                ${miniStat('fa-triangle-exclamation','#EF4444','Kiểm thử sai', s.reviewer_wrong)}
+            </div>
+            <div style="padding:10px 14px;border-radius:8px;background:${rr >= 80 ? '#F0FDF4' : rr >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rr >= 80 ? '#BBF7D0' : rr >= 50 ? '#FDE68A' : '#FECACA'};font-size:12px;color:#64748B">
+                <i class="fa-solid ${rr >= 80 ? 'fa-shield-check' : rr >= 50 ? 'fa-circle-exclamation' : 'fa-shield-xmark'}" style="color:${rrColor};margin-right:4px"></i>
+                ${s.reviewer_wrong === 0
+                    ? 'Chưa có lần kiểm thử nào bị admin từ chối lại.'
+                    : `Đã kiểm thử sai <strong style="color:${rrColor}">${s.reviewer_wrong}</strong> lần — admin phải từ chối lại bài đã duyệt.`}
+            </div>` : `
+            <div style="text-align:center;padding:32px;color:#94A3B8">
+                <i class="fa-solid fa-magnifying-glass" style="font-size:28px;display:block;margin-bottom:8px;color:#CBD5E1"></i>
+                Người dùng này chưa thực hiện kiểm thử nhiệm vụ nào.
+            </div>`}
+        </div>`;
+
     } catch (e) {
         document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#EF4444">Không thể tải thống kê</div>';
     }
 }
 
-function statRow(icon, color, label, value, isText = false) {
-    return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#F8FAFC;border-radius:8px">
-            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569">
-                <i class="fa-solid ${icon}" style="color:${color};width:16px;text-align:center"></i>
-                ${label}
-            </div>
-            <span style="font-size:13px;font-weight:700;color:#1E293B">${isText ? value : value}</span>
-        </div>`;
+function switchStatsTab(tab) {
+    const isLabel = tab === 'label';
+    document.getElementById('stPanelLabel').style.display  = isLabel ? '' : 'none';
+    document.getElementById('stPanelReview').style.display = isLabel ? 'none' : '';
+    const btnL = document.getElementById('stTabLabel');
+    const btnR = document.getElementById('stTabReview');
+    btnL.style.background   = isLabel ? '#fff' : 'transparent';
+    btnL.style.color        = isLabel ? '#2563EB' : '#64748B';
+    btnL.style.boxShadow    = isLabel ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
+    btnR.style.background   = isLabel ? 'transparent' : '#fff';
+    btnR.style.color        = isLabel ? '#64748B' : '#7C3AED';
+    btnR.style.boxShadow    = isLabel ? 'none' : '0 1px 4px rgba(0,0,0,0.08)';
+}
+
+function miniStat(icon, color, label, value) {
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F8FAFC;border-radius:8px">
+        <i class="fa-solid ${icon}" style="color:${color};font-size:13px;width:14px;text-align:center;flex-shrink:0"></i>
+        <div style="flex:1;min-width:0">
+            <div style="font-size:10px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+            <div style="font-size:14px;font-weight:800;color:#1E293B">${value}</div>
+        </div>
+    </div>`;
 }
 
 function closeStatsModal() {

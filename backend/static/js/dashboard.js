@@ -811,36 +811,73 @@ async function showAdminTaskDetail(taskId) {
 
     const modal = document.createElement('div');
     modal.id = 'adminTaskDetailModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-    modal.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-            <div style="font-size:16px;font-weight:800;color:#1E293B">Chi tiết nhiệm vụ</div>
-            <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px"><i class="fa-solid fa-xmark"></i></button>
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+
+    modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,0.18);font-family:Inter,sans-serif;display:flex;flex-direction:column;max-height:90vh">
+
+        <!-- Header -->
+        <div style="padding:20px 24px 16px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+            <div>
+                <div style="font-size:16px;font-weight:800;color:#1E293B">Chi tiết nhiệm vụ</div>
+                <div style="font-size:13px;color:#64748B;margin-top:2px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
+            </div>
+            <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px;padding:4px"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:16px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-user" style="margin-right:6px"></i>Người gán nhãn</span>
-                <span style="font-size:13px;font-weight:700;color:#1E293B">${labeler?.username || '—'}</span>
+
+        <!-- Body scrollable -->
+        <div style="overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+
+            <!-- Thông tin cơ bản -->
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Thông tin nhiệm vụ</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-user" style="margin-right:4px"></i>Người gán nhãn</div>
+                        <div style="font-size:13px;font-weight:700;color:#1E293B">${labeler?.full_name || labeler?.username || '—'}</div>
+                        ${labeler?.full_name ? `<div style="font-size:11px;color:#94A3B8">@${labeler.username}</div>` : ''}
+                    </div>
+                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-magnifying-glass" style="margin-right:4px"></i>Người kiểm thử</div>
+                        <div style="font-size:13px;font-weight:700;color:#1E293B">${reviewer?.full_name || reviewer?.username || '—'}</div>
+                        ${reviewer?.full_name ? `<div style="font-size:11px;color:#94A3B8">@${reviewer.username}</div>` : ''}
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-circle-dot" style="margin-right:4px"></i>Trạng thái</div>
+                        <div style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</div>
+                    </div>
+                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-rotate-right" style="margin-right:4px"></i>Số lần bị từ chối</div>
+                        <div style="font-size:13px;font-weight:700;color:${(task.reject_count || 0) > 0 ? '#EF4444' : '#10B981'}">${task.reject_count || 0} lần</div>
+                    </div>
+                </div>
+                ${task.feedback ? `
+                <div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
+                    <div style="font-size:11px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:4px"></i>Phản hồi từ chối gần nhất</div>
+                    <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
+                </div>` : ''}
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px"></i>Người kiểm thử</span>
-                <span style="font-size:13px;font-weight:700;color:#1E293B">${reviewer?.username || '—'}</span>
+
+            <!-- Lịch sử nộp bài -->
+            <div>
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Lịch sử nộp bài</div>
+                <div id="taskHistoryList" style="display:flex;flex-direction:column;gap:6px">
+                    <div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải lịch sử...
+                    </div>
+                </div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                <span style="font-size:13px;color:#64748B"><i class="fa-solid fa-circle-dot" style="margin-right:6px"></i>Trạng thái</span>
-                <span style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</span>
-            </div>
-            ${reviewerApproved ? `<div style="padding:10px 14px;background:#F0FDF4;border-radius:8px;border-left:3px solid #10B981">
-                <div style="font-size:12px;font-weight:700;color:#065F46"><i class="fa-solid fa-circle-check" style="margin-right:6px"></i>Đã kiểm thử — Không có lỗi</div>
-                <div style="font-size:12px;color:#16A34A;margin-top:2px">Người kiểm tra đã xác nhận bài làm đúng</div>
-            </div>` : ''}
-            ${task.feedback && s !== 'reviewed' ? `<div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
-                <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:6px"></i>Phản hồi từ người kiểm tra</div>
-                <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
-            </div>` : ''}
+
         </div>
-        <div style="display:flex;gap:10px">
+
+        <!-- Footer -->
+        <div style="padding:16px 24px;border-top:1px solid #F1F5F9;display:flex;gap:10px;flex-shrink:0">
+            <a href="../User/Label_Review.html?taskId=${taskId}" target="_blank"
+               style="height:42px;padding:0 16px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap">
+                <i class="fa-solid fa-eye"></i> Xem nhãn hiện tại
+            </a>
             ${reviewerApproved
                 ? `<button onclick="adminApproveTask(${taskId})" style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
                     <i class="fa-solid fa-check-double"></i> Phê duyệt
@@ -852,43 +889,70 @@ async function showAdminTaskDetail(taskId) {
             <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
         </div>
     </div>`;
+
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
+
+    // Tải lịch sử nộp bài
+    loadTaskHistory(taskId);
 }
 
-async function adminApproveTask(taskId) {
+async function loadTaskHistory(taskId) {
+    const container = document.getElementById('taskHistoryList');
+    if (!container) return;
+
     try {
-        const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'approved' })
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/history`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (res.ok) {
-            showToast('Đã phê duyệt nhiệm vụ', 'success');
-            document.getElementById('adminTaskDetailModal')?.remove();
-            // Đánh dấu admin đã phê duyệt task này
-            try {
-                const approved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
-                if (!approved.includes(taskId)) approved.push(taskId);
-                localStorage.setItem('admin_approved_tasks', JSON.stringify(approved));
-            } catch(e) {}
-            loadTasks();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi phê duyệt', 'error');
-        }
-    } catch (e) {
-        showToast('Lỗi kết nối', 'error');
-    }
-}
 
-// ============= TOAST =============
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}" style="margin-right:8px"></i>${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+        if (!res.ok) throw new Error();
+        const history = await res.json();
+
+        if (!history.length) {
+            container.innerHTML = `<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:8px">
+                Chưa có lịch sử nộp bài nào được ghi lại.
+            </div>`;
+            return;
+        }
+
+        const ACTION_CONFIG = {
+            submitted:      { icon: 'fa-paper-plane',   color: '#2563EB', bg: '#EFF6FF', label: 'Nộp bài' },
+            rejected:       { icon: 'fa-circle-xmark',  color: '#EF4444', bg: '#FEF2F2', label: 'Từ chối' },
+            approved:       { icon: 'fa-circle-check',  color: '#10B981', bg: '#F0FDF4', label: 'Kiểm tra xong' },
+            admin_approved: { icon: 'fa-check-double',  color: '#7C3AED', bg: '#F5F3FF', label: 'Admin phê duyệt' },
+            admin_rejected: { icon: 'fa-triangle-exclamation', color: '#DC2626', bg: '#FEF2F2', label: 'Admin từ chối' },
+        };
+
+        container.innerHTML = history.map((h, idx) => {
+            const cfg = ACTION_CONFIG[h.action] || { icon: 'fa-circle', color: '#64748B', bg: '#F8FAFC', label: h.action };
+            const actor = h.actor_full_name ? `${h.actor_full_name} (@${h.actor_username})` : (h.actor_username ? `@${h.actor_username}` : '—');
+            const time = h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—';
+
+            return `
+            <div style="display:flex;gap:10px;align-items:flex-start">
+                <!-- Timeline dot -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:2px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:${cfg.bg};color:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">
+                        <i class="fa-solid ${cfg.icon}"></i>
+                    </div>
+                    ${idx < history.length - 1 ? `<div style="width:2px;flex:1;min-height:12px;background:#E2E8F0;margin-top:4px"></div>` : ''}
+                </div>
+                <!-- Content -->
+                <div style="flex:1;padding-bottom:${idx < history.length - 1 ? '8px' : '0'}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                        <span style="font-size:13px;font-weight:700;color:${cfg.color}">${cfg.label}</span>
+                        <span style="font-size:11px;color:#94A3B8">${time}</span>
+                    </div>
+                    <div style="font-size:12px;color:#64748B;margin-top:2px">${actor}</div>
+                    ${h.feedback ? `<div style="margin-top:6px;padding:8px 10px;background:#FEF2F2;border-radius:6px;font-size:12px;color:#7F1D1D;white-space:pre-line;border-left:2px solid #EF4444">${h.feedback}</div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+
+    } catch (e) {
+        container.innerHTML = `<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Không thể tải lịch sử</div>`;
+    }
 }
 
 async function adminApproveTask(taskId) {
