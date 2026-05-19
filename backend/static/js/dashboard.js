@@ -116,7 +116,7 @@ async function loadTasks() {
         </td></tr>`;
 
     try {
-        const tasksRes = await fetch(`${BASE_URL}/tasks?project_id=${projectId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+        const tasksRes = await fetch(`${BASE_URL}/tasks?project_id=${projectId}&t=${Date.now()}`, { headers: { Authorization: `Bearer ${getToken()}` } });
 
         if (!tasksRes.ok) {
             showDemoTasks();
@@ -567,7 +567,7 @@ async function loadAllTasks() {
     </td></tr>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes`, {
+        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes?t=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
@@ -625,7 +625,7 @@ async function loadAllScenes() {
     </div>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes`, {
+        const res = await fetch(`${BASE_URL}/projects/${projectId}/scenes?t=${Date.now()}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
@@ -978,6 +978,15 @@ async function loadTaskHistory(taskId) {
     } catch (e) {
         container.innerHTML = `<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Không thể tải lịch sử</div>`;
     }
+}
+
+// ============= TOAST =============
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}" style="margin-right:8px"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 function showConfirmModal(options) {
