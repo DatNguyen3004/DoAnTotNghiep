@@ -227,6 +227,59 @@ def get_project(
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
     return project
 
+@router.get("/{project_id}/similarity-stats")
+def get_ai_similarity_stats(
+    project_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Tính toán % tương đồng giữa AI và người dùng (IoU trung bình) cho các nhãn AI."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
+        
+    from models.annotation import Annotation
+    from models.task import Task
+    
+    # Lấy tất cả các nhãn do AI tạo ra trong dự án này (những nhãn chưa bị xóa)
+    annotations = db.query(Annotation).join(Task).filter(
+        Task.project_id == project_id,
+        Annotation.is_ai_generated == True,
+        Annotation.ai_bbox_w.isnot(None)
+    ).all()
+    
+    if not annotations:
+        return {"total_ai_labels_kept": 0, "average_iou": 0.0, "similarity_percent": 0.0}
+        
+    total_iou = 0.0
+    for ann in annotations:
+        # Tính IoU
+        ax1, ay1 = ann.bbox_x, ann.bbox_y
+        ax2, ay2 = ann.bbox_x + ann.bbox_w, ann.bbox_y + ann.bbox_h
+        
+        bx1, by1 = ann.ai_bbox_x, ann.ai_bbox_y
+        bx2, by2 = ann.ai_bbox_x + ann.ai_bbox_w, ann.ai_bbox_y + ann.ai_bbox_h
+        
+        ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+        ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+        
+        if ix2 <= ix1 or iy2 <= iy1:
+            iou = 0.0
+        else:
+            inter = (ix2 - ix1) * (iy2 - iy1)
+            union = (ann.bbox_w * ann.bbox_h) + (ann.ai_bbox_w * ann.ai_bbox_h) - inter
+            iou = inter / union if union > 0 else 0.0
+            
+        total_iou += iou
+        
+    avg_iou = total_iou / len(annotations)
+    
+    return {
+        "total_ai_labels_kept": len(annotations),
+        "average_iou": round(avg_iou, 4),
+        "similarity_percent": round(avg_iou * 100, 2)
+    }
+
 @router.put("/{project_id}", response_model=ProjectOut)
 def update_project(
     project_id: int,

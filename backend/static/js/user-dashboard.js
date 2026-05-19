@@ -53,13 +53,13 @@ function switchTab(evt, tabId) {
 
 // ============= STATUS HELPERS =============
 const STATUS_MAP = {
-    pending:      { label: 'Chờ xử lý',     cls: 'st-pending' },
-    in_progress:  { label: 'Đang làm',       cls: 'st-in_progress' },
-    submitted:    { label: 'Đợi kiểm tra',   cls: 'st-submitted' },
-    under_review: { label: 'Đang kiểm tra',  cls: 'st-under_review' },
-    reviewed:     { label: 'Đã kiểm tra',    cls: 'st-approved' },
-    approved:     { label: 'Đã duyệt',       cls: 'st-approved' },
-    rejected:     { label: 'Có lỗi',         cls: 'st-rejected' }
+    pending: { label: 'Chờ xử lý', cls: 'st-pending' },
+    in_progress: { label: 'Đang làm', cls: 'st-in_progress' },
+    submitted: { label: 'Đợi kiểm tra', cls: 'st-submitted' },
+    under_review: { label: 'Đang kiểm tra', cls: 'st-under_review' },
+    reviewed: { label: 'Đạt', cls: 'st-approved' },
+    approved: { label: 'Đạt', cls: 'st-approved' },
+    rejected: { label: 'Chưa đạt', cls: 'st-rejected' }
 };
 
 function getStatusBadge(status) {
@@ -141,11 +141,9 @@ function getMyTaskAction(task) {
     if (s === 'under_review')
         return `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     if (s === 'rejected')
-        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link" onclick="sessionStorage.setItem('projectId',${task.project_id||'null'})"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
-    if (s === 'reviewed')
-        return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>';
-    if (s === 'approved')
-        return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>';
+        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
+    if (s === 'reviewed' || s === 'approved')
+        return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đạt</span>';
     return '<span style="color:#94A3B8">—</span>';
 }
 
@@ -212,7 +210,7 @@ async function loadReviewTasks() {
         <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
     </td></tr>`;
     try {
-        const res = await fetch(`${BASE_URL}/tasks?role=reviewer`, {
+        const res = await fetch(`${BASE_URL}/tasks?project_id=${projectId}&role=reviewer`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
@@ -252,9 +250,9 @@ function renderReviewTasks(tasks) {
             <td>${getStatusBadge(task.status)}</td>
             <td>${canReview
                 ? (task.feedback
-                    ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id||'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
+                    ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
                     : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`)
-                : `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`
+                : `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đạt</span>`
             }</td>        </tr>`;
     }).join('');
     document.getElementById('showingReview').textContent = `${tasks.length} bài cần kiểm thử`;

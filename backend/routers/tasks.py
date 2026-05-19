@@ -15,6 +15,64 @@ from schemas.task import (
 )
 from routers.auth import get_current_user, require_admin
 from services.task_service import assign_reviewer
+import json
+import os
+from models.frame import Frame
+from services.ai_service import run_inference
+import config as _cfg
+from services.video_dataset import get_video_frame_path
+
+CAMERA_COLUMN_MAP = {
+    "CAM_FRONT":       "cam_front",
+    "CAM_FRONT_LEFT":  "cam_front_left",
+    "CAM_FRONT_RIGHT": "cam_front_right",
+    "CAM_BACK":        "cam_back",
+    "CAM_BACK_LEFT":   "cam_back_left",
+    "CAM_BACK_RIGHT":  "cam_back_right",
+}
+
+def get_ai_predictions_for_frame_cam(db: Session, frame_id: int, camera: str) -> list:
+    """Chạy YOLOv8 inference trên một frame/camera để lấy danh sách dự đoán của AI."""
+    frame = db.query(Frame).filter(Frame.id == frame_id).first()
+    if not frame:
+        return []
+
+    camera_upper = camera.upper()
+    column = CAMERA_COLUMN_MAP.get(camera_upper)
+    if not column:
+        return []
+
+    relative_path = getattr(frame, column, None)
+    if not relative_path:
+        return []
+
+    nuscenes_root = _cfg.NUSCENES_ROOT
+
+    # Intercept for video-based nuScenes dataset
+    video_frame_path = get_video_frame_path(
+        nuscenes_root,
+        frame.scene.name,
+        camera_upper,
+        frame.frame_index
+    )
+    if video_frame_path:
+        image_path = video_frame_path
+    else:
+        if relative_path.startswith("uploads/"):
+            image_path = os.path.join("static", relative_path)
+        else:
+            image_path = os.path.join(nuscenes_root, relative_path)
+
+    try:
+        predictions = run_inference(
+            image_path=image_path,
+            conf_threshold=0.25,
+            ai_review_threshold=0.85,
+        )
+        return predictions
+    except Exception as e:
+        print(f"Error running inference for frame {frame_id} {camera}: {e}")
+        return []
 
 router = APIRouter()
 
@@ -419,3 +477,146 @@ def get_task_history(
         })
 
     return result
+
+
+# ───────────────────────────────────────────────
+# GET /api/tasks/{task_id}/similarity-stats
+# ───────────────────────────────────────────────
+@router.get("/{task_id}/similarity-stats")
+def get_task_ai_similarity_stats(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Tính toán % tương đồng giữa AI và người dùng cho một task cụ thể theo cơ chế đối sánh chặt chẽ."""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+        
+    # Lấy tất cả các annotation hiện có của task trong DB
+    user_annotations = db.query(Annotation).filter(Annotation.task_id == task_id).all()
+    if not user_annotations:
+        return {"total_ai_labels_kept": 0, "average_iou": 0.0, "similarity_percent": None}
+
+    # Đường dẫn file cache dự đoán AI cho task này
+    cache_dir = os.path.join("static", "cache", "predictions")
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f"task_{task_id}.json")
+
+    # Nạp hoặc khởi tạo cache AI
+    all_ai_preds = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                all_ai_preds = json.load(f)
+        except Exception as e:
+            all_ai_preds = {}
+
+    # Nếu chưa có cache, chạy YOLOv8 để sinh cache
+    if not all_ai_preds:
+        # Lấy tất cả frame của scene tương ứng với task
+        frames = db.query(Frame).filter(Frame.scene_id == task.scene_id).order_by(Frame.frame_index.asc()).all()
+        for f in frames:
+            for cam in CAMERA_COLUMN_MAP.keys():
+                column = CAMERA_COLUMN_MAP[cam]
+                if getattr(f, column, None):
+                    preds = get_ai_predictions_for_frame_cam(db, f.id, cam)
+                    key = f"{f.id}_{cam}"
+                    all_ai_preds[key] = preds
+        
+        # Lưu vào cache
+        try:
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(all_ai_preds, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error saving AI prediction cache: {e}")
+
+    # Nhóm annotation của người dùng theo frame_id và camera
+    user_ann_groups = {}
+    for ann in user_annotations:
+        key = f"{ann.frame_id}_{ann.camera}"
+        if key not in user_ann_groups:
+            user_ann_groups[key] = []
+        user_ann_groups[key].append(ann)
+
+    # IoU helper
+    def py_iou(boxA, boxB):
+        ax1, ay1 = boxA["bbox_x"], boxA["bbox_y"]
+        ax2, ay2 = boxA["bbox_x"] + boxA["bbox_w"], boxA["bbox_y"] + boxA["bbox_h"]
+        bx1, by1 = boxB["bbox_x"], boxB["bbox_y"]
+        bx2, by2 = boxB["bbox_x"] + boxB["bbox_w"], boxB["bbox_y"] + boxB["bbox_h"]
+        
+        ix1 = max(ax1, bx1)
+        iy1 = max(ay1, by1)
+        ix2 = min(ax2, bx2)
+        iy2 = min(ay2, by2)
+        
+        if ix2 <= ix1 or iy2 <= iy1:
+            return 0.0
+        inter = (ix2 - ix1) * (iy2 - iy1)
+        union = (boxA["bbox_w"] * boxA["bbox_h"]) + (boxB["bbox_w"] * boxB["bbox_h"]) - inter
+        return inter / union if union > 0.0 else 0.0
+
+    total_objects = 0
+    total_iou = 0.0
+
+    # Lấy tất cả frame_id và camera có trong cache AI hoặc trong user annotations
+    all_keys = set(all_ai_preds.keys()).union(user_ann_groups.keys())
+
+    for key in all_keys:
+        ai_list = all_ai_preds.get(key, [])
+        user_list = user_ann_groups.get(key, [])
+
+        if not ai_list and not user_list:
+            continue
+
+        available_ai = [dict(p) for p in ai_list]
+        matched_user_ids = set()
+
+        for user_ann in user_list:
+            user_box = {
+                "bbox_x": user_ann.bbox_x,
+                "bbox_y": user_ann.bbox_y,
+                "bbox_w": user_ann.bbox_w,
+                "bbox_h": user_ann.bbox_h
+            }
+            
+            best_match = None
+            best_iou = 0.1
+            best_idx = -1
+            
+            for idx, ai_box in enumerate(available_ai):
+                if ai_box["category"] == user_ann.category:
+                    iou_val = py_iou(user_box, ai_box)
+                    if iou_val > best_iou:
+                        best_iou = iou_val
+                        best_match = ai_box
+                        best_idx = idx
+
+            if best_match:
+                total_iou += best_iou
+                total_objects += 1
+                available_ai.pop(best_idx)
+                matched_user_ids.add(user_ann.id)
+
+        # AI box bị bỏ sót -> 0% IoU, tính là 1 đối tượng bị phạt điểm
+        for ai_box in available_ai:
+            total_iou += 0.0
+            total_objects += 1
+
+        # User box vẽ dư (AI không phát hiện) -> 0% IoU, tính là 1 đối tượng bị phạt điểm
+        for user_ann in user_list:
+            if user_ann.id not in matched_user_ids:
+                total_iou += 0.0
+                total_objects += 1
+
+    if total_objects == 0:
+        return {"total_ai_labels_kept": 0, "average_iou": 0.0, "similarity_percent": None}
+
+    avg_iou = total_iou / total_objects
+    return {
+        "total_ai_labels_kept": len(user_annotations),
+        "average_iou": round(avg_iou, 4),
+        "similarity_percent": round(avg_iou * 100, 2)
+    }
+

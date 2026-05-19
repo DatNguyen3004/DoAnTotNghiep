@@ -18,6 +18,13 @@ class Annotation(Base):
     bbox_h          = Column(Float, nullable=False)
     confidence      = Column(Float, nullable=True)        # NULL = manual, 0-1 = AI
     is_ai_generated = Column(Boolean, default=False)
+    
+    # Store original AI coordinates to calculate similarity/IoU later
+    ai_bbox_x       = Column(Float, nullable=True)
+    ai_bbox_y       = Column(Float, nullable=True)
+    ai_bbox_w       = Column(Float, nullable=True)
+    ai_bbox_h       = Column(Float, nullable=True)
+
     needs_review    = Column(Boolean, default=False)
     track_id        = Column(Integer, nullable=True)
     custom_name     = Column(Unicode(200), nullable=True)

@@ -76,6 +76,10 @@ class AnnotationItem(BaseModel):
     bbox_h: float
     confidence: Optional[float] = None
     is_ai_generated: bool = False
+    ai_bbox_x: Optional[float] = None
+    ai_bbox_y: Optional[float] = None
+    ai_bbox_w: Optional[float] = None
+    ai_bbox_h: Optional[float] = None
     needs_review: bool = False
     track_id: Optional[int] = None
     custom_name: Optional[str] = None
@@ -98,6 +102,10 @@ class AnnotationOut(BaseModel):
     bbox_h: float
     confidence: Optional[float] = None
     is_ai_generated: bool = False
+    ai_bbox_x: Optional[float] = None
+    ai_bbox_y: Optional[float] = None
+    ai_bbox_w: Optional[float] = None
+    ai_bbox_h: Optional[float] = None
     needs_review: bool = False
     track_id: Optional[int] = None
     custom_name: Optional[str] = None

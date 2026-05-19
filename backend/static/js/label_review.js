@@ -237,6 +237,10 @@ async function loadAllAnnotations() {
                 bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
                 confidence: ann.confidence,
                 is_ai_generated: ann.is_ai_generated || false,
+                ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
+                ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
+                ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
+                ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
                 needs_review: ann.needs_review || false,
                 track_id: ann.track_id || null,
                 custom_name: ann.custom_name || null,
@@ -450,7 +454,25 @@ function redrawAnnotations() {
         // Label tag
         const baseLbl = cls ? cls.name : ann.category;
         const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
-        const label = ann.custom_name ? `${baseLbl} ${tNum} - ${ann.custom_name}` : `${baseLbl} ${tNum}`;
+        
+        let similarityText = '';
+        if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
+            const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
+            const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
+            const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+            let iou = 0;
+            if (ix2 > ix1 && iy2 > iy1) {
+                const inter = (ix2 - ix1) * (iy2 - iy1);
+                const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
+                iou = union > 0 ? inter / union : 0;
+            }
+            similarityText = ` [AI: ${Math.round(iou * 100)}%]`;
+        }
+
+        const label = ann.custom_name 
+            ? `${baseLbl} ${tNum} - ${ann.custom_name}${similarityText}` 
+            : `${baseLbl} ${tNum}${similarityText}`;
         annCtx.font = 'bold 11px Inter, sans-serif';
         const tw = annCtx.measureText(label).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
@@ -494,8 +516,23 @@ function renderLabelList() {
         const sel = ann.id === selectedAnnId;
         const flagMark = ann.needs_review
             ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px"></i>' : '';
+        
+        let similarityText = '';
+        if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
+            const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
+            const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
+            const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+            let iou = 0;
+            if (ix2 > ix1 && iy2 > iy1) {
+                const inter = (ix2 - ix1) * (iy2 - iy1);
+                const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
+                iou = union > 0 ? inter / union : 0;
+            }
+            similarityText = ` (${Math.round(iou * 100)}%)`;
+        }
         const aiMark = ann.is_ai_generated
-            ? ' <span style="font-size:10px;color:#9333EA">AI</span>' : '';
+            ? ` <span style="font-size:10px;color:#9333EA">AI${similarityText}</span>` : '';
         return `
         <div class="review-label-item ${sel ? 'active' : ''}" onclick="selectAnn('${ann.id}')">
             <div class="label-info">

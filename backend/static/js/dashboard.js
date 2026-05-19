@@ -55,13 +55,13 @@ function switchTab(evt, tabId) {
 
 // ============= STATUS HELPERS =============
 const STATUS_MAP = {
-    pending:      { label: 'Chờ xử lý',    class: 'st-pending' },
-    in_progress:  { label: 'Đang làm',      class: 'st-in_progress' },
-    submitted:    { label: 'Đợi kiểm tra',  class: 'st-submitted' },
+    pending: { label: 'Chờ xử lý', class: 'st-pending' },
+    in_progress: { label: 'Đang làm', class: 'st-in_progress' },
+    submitted: { label: 'Đợi kiểm tra', class: 'st-submitted' },
     under_review: { label: 'Đang kiểm tra', class: 'st-under_review' },
-    reviewed:     { label: 'Đã kiểm tra',   class: 'st-approved' },
-    approved:     { label: 'Đã duyệt',      class: 'st-approved' },
-    rejected:     { label: 'Có lỗi',        class: 'st-rejected' }
+    reviewed: { label: 'Đã kiểm tra', class: 'st-approved' },
+    approved: { label: 'Đã duyệt', class: 'st-approved' },
+    rejected: { label: 'Có lỗi', class: 'st-rejected' }
 };
 
 function getStatusBadge(status) {
@@ -81,9 +81,9 @@ function getActionLink(task) {
     else if (s === 'reviewed')
         mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Phê duyệt</button>`;
     else if (s === 'approved')
-        mainLink = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>`;
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'rejected')
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link"><i class="fa-solid fa-eye"></i> Xem</button>`;
+        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
 
     const deleteBtn = `<button onclick="deleteTask(${task.id})" title="Xóa nhiệm vụ"
         style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:15px;padding:4px 6px;margin-left:6px;transition:color 0.2s;vertical-align:middle"
@@ -116,16 +116,14 @@ async function loadTasks() {
         </td></tr>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/tasks?project_id=${projectId}`, {
-            headers: { Authorization: `Bearer ${getToken()}` }
-        });
+        const tasksRes = await fetch(`${BASE_URL}/tasks?project_id=${projectId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
 
-        if (!res.ok) {
+        if (!tasksRes.ok) {
             showDemoTasks();
             return;
         }
 
-        allTasks = await res.json();
+        allTasks = await tasksRes.json();
         console.log("DEBUG - Dữ liệu nhiệm vụ nhận được:", allTasks); // Dòng này để soi lỗi
         renderTasks(allTasks);
         updateStats(allTasks);
@@ -564,7 +562,7 @@ async function deleteTask(taskId) {
 // ============= ALL TASKS TAB =============
 async function loadAllTasks() {
     const tbody = document.getElementById('allTasksBody');
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
     </td></tr>`;
 
@@ -597,7 +595,7 @@ async function loadAllTasks() {
                 </td>
                 <td><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} khung hình</span></td>
                 <td>
-                    <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g,'\\"')}",scene_description:"${(scene.description||'').replace(/"/g,'\\"')}",_previewSceneId:${scene.id}})'
+                    <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g, '\\"')}",scene_description:"${(scene.description || '').replace(/"/g, '\\"')}",_previewSceneId:${scene.id}})'
                         class="action-link" style="font-size:12px">
                         <i class="fa-solid fa-pen"></i> Sửa tên
                     </button>
@@ -647,7 +645,7 @@ function renderScenesGrid(scenes) {
     grid.innerHTML = scenes.map(scene => `
         <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;transition:box-shadow 0.2s"
              onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
-            <div style="height:140px;background:#0F172A;position:relative;cursor:pointer" onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name||'').replace(/'/g,"\\'")}',scene_description:'${(scene.description||'').replace(/'/g,"\\'")}',_previewSceneId:${scene.id}})">
+            <div style="height:140px;background:#0F172A;position:relative;cursor:pointer" onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name || '').replace(/'/g, "\\'")}',scene_description:'${(scene.description || '').replace(/'/g, "\\'")}',_previewSceneId:${scene.id}})">
                 <img id="sceneThumb_${scene.id}" src="" alt="${scene.name}"
                     style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s">
                 <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#475569;font-size:12px" id="sceneThumbLoading_${scene.id}">
@@ -657,7 +655,7 @@ function renderScenesGrid(scenes) {
             <div style="padding:14px">
                 <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${scene.name || 'Chưa đặt tên'}</div>
                 <div style="font-size:12px;color:#64748B;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${scene.description || '—'}</div>
-                <button onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name||'').replace(/'/g,"\\'")}',scene_description:'${(scene.description||'').replace(/'/g,"\\'")}',_previewSceneId:${scene.id}})"
+                <button onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name || '').replace(/'/g, "\\'")}',scene_description:'${(scene.description || '').replace(/'/g, "\\'")}',_previewSceneId:${scene.id}})"
                     style="width:100%;height:34px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:700;color:#475569;cursor:pointer;transition:all 0.2s"
                     onmouseover="this.style.background='#2563EB';this.style.color='#fff'" onmouseout="this.style.background='#F1F5F9';this.style.color='#475569'">
                     <i class="fa-solid fa-pen" style="margin-right:6px"></i>Sửa tên & mô tả
@@ -756,7 +754,7 @@ function closeSceneEditModal() {
     document.getElementById('sceneEditModal').classList.remove('active');
 }
 
-document.getElementById('sceneEditModal').addEventListener('click', function(e) {
+document.getElementById('sceneEditModal').addEventListener('click', function (e) {
     if (e.target === this) closeSceneEditModal();
 });
 
@@ -843,21 +841,31 @@ async function showAdminTaskDetail(taskId) {
                         ${reviewer?.full_name ? `<div style="font-size:11px;color:#94A3B8">@${reviewer.username}</div>` : ''}
                     </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-circle-dot" style="margin-right:4px"></i>Trạng thái</div>
-                        <div style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</div>
-                    </div>
-                    <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
-                        <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-rotate-right" style="margin-right:4px"></i>Số lần bị từ chối</div>
-                        <div style="font-size:13px;font-weight:700;color:${(task.reject_count || 0) > 0 ? '#EF4444' : '#10B981'}">${task.reject_count || 0} lần</div>
-                    </div>
+                <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px">
+                    <div style="font-size:11px;color:#94A3B8;margin-bottom:3px"><i class="fa-solid fa-circle-dot" style="margin-right:4px"></i>Trạng thái</div>
+                    <div style="font-size:13px;font-weight:700;color:${statusColor}">${statusLabel}</div>
                 </div>
                 ${task.feedback ? `
                 <div style="padding:10px 14px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
                     <div style="font-size:11px;font-weight:700;color:#991B1B;margin-bottom:4px"><i class="fa-solid fa-comment-dots" style="margin-right:4px"></i>Phản hồi từ chối gần nhất</div>
                     <div style="font-size:12px;color:#7F1D1D;white-space:pre-line">${task.feedback}</div>
                 </div>` : ''}
+            </div>
+
+            <!-- Tỉ lệ tương đồng với AI -->
+            <div id="aiSimilaritySection" style="padding:12px 14px;background:#F5F3FF;border-radius:8px;border-left:4px solid #8B5CF6;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div id="aiSimilarityIcon" style="width:36px;height:36px;border-radius:50%;background:#EDE9FE;color:#8B5CF6;display:flex;align-items:center;justify-content:center;font-size:16px">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <div id="aiSimilarityTitle" style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.5px">Tỉ lệ tương đồng với AI</div>
+                        <div id="aiSimilaritySubtitle" style="font-size:12px;color:#6D28D9">So sánh giữa nhãn người dùng sửa cuối cùng và nhãn gốc của AI</div>
+                    </div>
+                </div>
+                <div id="aiSimilarityValue" style="font-size:16px;font-weight:800;color:#7C3AED">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Đang tính...
+                </div>
             </div>
 
             <!-- Lịch sử nộp bài -->
@@ -874,27 +882,44 @@ async function showAdminTaskDetail(taskId) {
 
         <!-- Footer -->
         <div style="padding:16px 24px;border-top:1px solid #F1F5F9;display:flex;gap:10px;flex-shrink:0">
-            <a href="../User/Label_Review.html?taskId=${taskId}" target="_blank"
-               style="height:42px;padding:0 16px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap">
-                <i class="fa-solid fa-eye"></i> Xem nhãn hiện tại
-            </a>
-            ${reviewerApproved
-                ? `<button onclick="adminApproveTask(${taskId})" style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
-                    <i class="fa-solid fa-check-double"></i> Phê duyệt
-                   </button>`
-                : `<span style="flex:1;height:42px;background:#F1F5F9;color:#94A3B8;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
-                    <i class="fa-solid fa-clock"></i> Chờ kiểm thử xong
-                   </span>`
+            ${s === 'reviewed'
+            ? `
+               <button onclick="adminRejectTask(${taskId})" style="flex:1;height:42px;background:#FEF2F2;color:#EF4444;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
+                   <i class="fa-solid fa-circle-xmark"></i> Chưa đạt yêu cầu
+               </button>
+               <button onclick="adminApproveTask(${taskId})" style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
+                   <i class="fa-solid fa-circle-check"></i> Đạt yêu cầu
+               </button>
+              `
+            : (s === 'approved' || s === 'rejected')
+            ? `
+               <button disabled style="flex:1;height:42px;background:${s === 'rejected' ? '#FEF2F2' : '#F1F5F9'};color:${s === 'rejected' ? '#EF4444' : '#94A3B8'};border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;opacity:${s === 'rejected' ? '1' : '0.5'}">
+                   <i class="fa-solid fa-circle-xmark"></i> Chưa đạt yêu cầu
+               </button>
+               <button disabled style="flex:1;height:42px;background:${s === 'approved' ? '#10B981' : '#F1F5F9'};color:${s === 'approved' ? '#fff' : '#94A3B8'};border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;opacity:${s === 'approved' ? '0.6' : '0.5'}">
+                   <i class="fa-solid fa-circle-check"></i> Đạt yêu cầu
+               </button>
+              `
+            : `
+               <a href="../User/Label_Review.html?taskId=${taskId}" target="_blank"
+                  style="height:42px;padding:0 16px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap">
+                   <i class="fa-solid fa-eye"></i> Xem nhãn hiện tại
+               </a>
+               <span style="flex:1;height:42px;background:#F1F5F9;color:#94A3B8;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
+                   <i class="fa-solid fa-clock"></i> Chờ kiểm thử xong
+               </span>
+               <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
+              `
             }
-            <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
         </div>
     </div>`;
 
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
 
-    // Tải lịch sử nộp bài
+    // Tải thông tin
     loadTaskHistory(taskId);
+    loadAiSimilarity(taskId);
 }
 
 async function loadTaskHistory(taskId) {
@@ -917,10 +942,10 @@ async function loadTaskHistory(taskId) {
         }
 
         const ACTION_CONFIG = {
-            submitted:      { icon: 'fa-paper-plane',   color: '#2563EB', bg: '#EFF6FF', label: 'Nộp bài' },
-            rejected:       { icon: 'fa-circle-xmark',  color: '#EF4444', bg: '#FEF2F2', label: 'Từ chối' },
-            approved:       { icon: 'fa-circle-check',  color: '#10B981', bg: '#F0FDF4', label: 'Kiểm tra xong' },
-            admin_approved: { icon: 'fa-check-double',  color: '#7C3AED', bg: '#F5F3FF', label: 'Admin phê duyệt' },
+            submitted: { icon: 'fa-paper-plane', color: '#2563EB', bg: '#EFF6FF', label: 'Nộp bài' },
+            rejected: { icon: 'fa-circle-xmark', color: '#EF4444', bg: '#FEF2F2', label: 'Từ chối' },
+            approved: { icon: 'fa-circle-check', color: '#10B981', bg: '#F0FDF4', label: 'Kiểm tra xong' },
+            admin_approved: { icon: 'fa-check-double', color: '#7C3AED', bg: '#F5F3FF', label: 'Admin phê duyệt' },
             admin_rejected: { icon: 'fa-triangle-exclamation', color: '#DC2626', bg: '#FEF2F2', label: 'Admin từ chối' },
         };
 
@@ -955,41 +980,177 @@ async function loadTaskHistory(taskId) {
     }
 }
 
-async function adminApproveTask(taskId) {
-    try {
-        const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'approved' })
-        });
-        if (res.ok) {
-            showToast('Đã phê duyệt nhiệm vụ', 'success');
-            document.getElementById('adminTaskDetailModal')?.remove();
-            try {
-                const approved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
-                if (!approved.includes(taskId)) approved.push(taskId);
-                localStorage.setItem('admin_approved_tasks', JSON.stringify(approved));
-            } catch(e) {}
-            loadTasks();
-        } else {
-            const err = await res.json();
-            showToast(err.detail || 'Lỗi phê duyệt', 'error');
-        }
-    } catch (e) {
-        showToast('Lỗi kết nối', 'error');
-    }
+function showConfirmModal(options) {
+    const { title, message, confirmText, confirmColor, icon, onConfirm } = options;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);animation:fadeIn 0.2s ease';
+    
+    const iconColor = confirmColor === 'danger' ? '#EF4444' : '#10B981';
+    const iconBg = confirmColor === 'danger' ? '#FEE2E2' : '#D1FAE5';
+    const btnBg = confirmColor === 'danger' ? '#EF4444' : '#10B981';
+
+    overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,0.2);padding:24px;font-family:Inter,sans-serif;transform:scale(0.95);animation:scaleIn 0.2s forwards ease-out">
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center">
+            <div style="width:54px;height:54px;border-radius:50%;background:${iconBg};color:${iconColor};display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px">
+                <i class="fa-solid ${icon}"></i>
+            </div>
+            <h3 style="margin:0 0 8px;font-size:18px;font-weight:700;color:#1E293B">${title}</h3>
+            <p style="margin:0 0 24px;font-size:14px;color:#64748B;line-height:1.5">${message}</p>
+        </div>
+        <div style="display:flex;gap:12px">
+            <button class="cancel-btn" style="flex:1;height:44px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s">Hủy bỏ</button>
+            <button class="confirm-btn" style="flex:1;height:44px;background:${btnBg};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s">${confirmText}</button>
+        </div>
+    </div>
+    <style>
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes scaleIn { from { transform: scale(0.95) } to { transform: scale(1) } }
+        .cancel-btn:hover { background: #E2E8F0 !important }
+        .confirm-btn:hover { opacity: 0.9 !important }
+    </style>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.cancel-btn').onclick = () => overlay.remove();
+    overlay.querySelector('.confirm-btn').onclick = () => {
+        overlay.remove();
+        if (onConfirm) onConfirm();
+    };
 }
 
-// ============= TOAST =============
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}" style="margin-right:8px"></i>${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+function adminApproveTask(taskId) {
+    showConfirmModal({
+        title: 'Đạt yêu cầu',
+        message: 'Bạn có chắc chắn muốn phê duyệt nhiệm vụ này là Đạt yêu cầu?',
+        confirmText: 'Xác nhận Đạt',
+        confirmColor: 'success',
+        icon: 'fa-circle-check',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'approved' })
+                });
+                if (res.ok) {
+                    showToast('Đã phê duyệt nhiệm vụ', 'success');
+                    document.getElementById('adminTaskDetailModal')?.remove();
+                    try {
+                        const approved = JSON.parse(localStorage.getItem('admin_approved_tasks') || '[]');
+                        if (!approved.includes(taskId)) approved.push(taskId);
+                        localStorage.setItem('admin_approved_tasks', JSON.stringify(approved));
+                    } catch (e) { }
+                    loadTasks();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Lỗi phê duyệt', 'error');
+                }
+            } catch (e) {
+                showToast('Lỗi kết nối', 'error');
+            }
+        }
+    });
+}
+
+function adminRejectTask(taskId) {
+    showConfirmModal({
+        title: 'Chưa đạt yêu cầu',
+        message: 'Bạn có chắc chắn muốn đánh giá nhiệm vụ này là Chưa đạt yêu cầu?',
+        confirmText: 'Xác nhận',
+        confirmColor: 'danger',
+        icon: 'fa-triangle-exclamation',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'rejected', feedback: '' })
+                });
+                if (res.ok) {
+                    showToast('Đã đánh giá: Chưa đạt', 'success');
+                    document.getElementById('adminTaskDetailModal')?.remove();
+                    loadTasks();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Lỗi từ chối', 'error');
+                }
+            } catch (e) {
+                showToast('Lỗi kết nối', 'error');
+            }
+        }
+    });
+}
+
+async function loadAiSimilarity(taskId) {
+    const valueEl = document.getElementById('aiSimilarityValue');
+    const sectionEl = document.getElementById('aiSimilaritySection');
+    const iconEl = document.getElementById('aiSimilarityIcon');
+    const titleEl = document.getElementById('aiSimilarityTitle');
+    const subtitleEl = document.getElementById('aiSimilaritySubtitle');
+    if (!valueEl) return;
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/similarity-stats`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.similarity_percent !== null && data.similarity_percent !== undefined) {
+                const percent = data.similarity_percent;
+                valueEl.textContent = `${percent}%`;
+                
+                let theme = {};
+                let noteText = '';
+                
+                if (percent <= 50) {
+                    theme = { bg: '#FEF2F2', border: '#EF4444', iconBg: '#FEE2E2', iconColor: '#EF4444', text: '#DC2626', subText: '#B91C1C' };
+                    noteText = 'Tỉ lệ tương đồng thấp, chưa đạt yêu cầu.';
+                } else if (percent <= 65) {
+                    theme = { bg: '#FFFBEB', border: '#F59E0B', iconBg: '#FEF3C7', iconColor: '#F59E0B', text: '#D97706', subText: '#B45309' };
+                    noteText = 'Tỉ lệ tương đồng khá thấp, có thể cân nhắc kiểm tra.';
+                } else if (percent <= 75) {
+                    theme = { bg: '#EFF6FF', border: '#3B82F6', iconBg: '#DBEAFE', iconColor: '#3B82F6', text: '#2563EB', subText: '#1D4ED8' };
+                    noteText = 'Tỉ lệ tương đồng ở mức trung bình, có thể chấp nhận đạt yêu cầu.';
+                } else if (percent <= 92) {
+                    theme = { bg: '#F0FDF4', border: '#10B981', iconBg: '#DCFCE7', iconColor: '#10B981', text: '#059669', subText: '#047857' };
+                    noteText = 'Tỉ lệ tương đồng cao, đạt yêu cầu.';
+                } else if (percent <= 98) {
+                    theme = { bg: '#FFFBEB', border: '#F59E0B', iconBg: '#FEF3C7', iconColor: '#F59E0B', text: '#D97706', subText: '#B45309' };
+                    noteText = 'Tỉ lệ tương đồng khá cao, có thể cân nhắc kiểm tra.';
+                } else {
+                    theme = { bg: '#FEF2F2', border: '#EF4444', iconBg: '#FEE2E2', iconColor: '#EF4444', text: '#DC2626', subText: '#B91C1C' };
+                    noteText = 'tỉ lệ tương đồng rất cao, có thể người gán nhãn chỉ dùng AI không kiểm tra lại.';
+                }
+                
+                if (sectionEl) {
+                    sectionEl.style.background = theme.bg;
+                    sectionEl.style.borderLeft = `4px solid ${theme.border}`;
+                }
+                if (iconEl) {
+                    iconEl.style.background = theme.iconBg;
+                    iconEl.style.color = theme.iconColor;
+                }
+                if (titleEl) titleEl.style.color = theme.text;
+                if (subtitleEl) {
+                    subtitleEl.textContent = noteText;
+                    subtitleEl.style.color = theme.subText;
+                    subtitleEl.style.fontWeight = '600';
+                }
+                if (valueEl) valueEl.style.color = theme.text;
+            } else {
+                valueEl.textContent = 'Không có dữ liệu AI';
+            }
+        } else {
+            valueEl.textContent = 'Lỗi tải dữ liệu';
+        }
+    } catch (e) {
+        valueEl.textContent = 'Lỗi kết nối';
+    }
 }
 
 // ============= INIT =============
 loadSidebarProject();
 loadTasks();
 loadMembers();
+

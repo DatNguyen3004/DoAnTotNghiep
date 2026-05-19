@@ -227,6 +227,10 @@ async function loadAllAnnotations() {
                 bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
                 confidence: ann.confidence,
                 is_ai_generated: ann.is_ai_generated || false,
+                ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
+                ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
+                ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
+                ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
                 needs_review: ann.needs_review || false,
                 hidden: false,
                 track_id: ann.track_id || null,
@@ -243,6 +247,23 @@ async function loadAllAnnotations() {
 async function goToFrame(idx) {
     if (idx < 0 || idx >= frames.length) return;
     const prevIdx = currentFrameIdx;
+    
+    // Tự động lưu frame cũ nếu có thay đổi chưa lưu
+    if (unsaved && prevIdx >= 0 && prevIdx < frames.length) {
+        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        const saveBtn = document.querySelector('.btn-submit');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+            saveBtn.style.background = '#F59E0B';
+        }
+        await saveCurrentFrame(false);
+        unsaved = false;
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Lưu';
+            saveBtn.style.background = '';
+        }
+    }
+
     currentFrameIdx = idx;
     sessionReviewedIds.clear(); // Reset khi chuyển frame
     updatePageNumber();
@@ -511,12 +532,29 @@ function prefetchNextFrame(currentIdx) {
         }).then(res => res.blob()).then(blob => {
             const url = URL.createObjectURL(blob);
             _cacheSet(key, url);
-        }).catch(() => {});
+        }).catch(() => { });
     });
 }
 
 async function switchCamera(cam) {
     if (!cam || !CAMERAS.includes(cam) || cam === currentCamera) return;
+
+    // Tự động lưu camera cũ nếu có thay đổi chưa lưu
+    if (unsaved) {
+        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        const saveBtn = document.querySelector('.btn-submit');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+            saveBtn.style.background = '#F59E0B';
+        }
+        await saveCurrentFrame(false);
+        unsaved = false;
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Lưu';
+            saveBtn.style.background = '';
+        }
+    }
+
     currentCamera = cam;
     renderCamList(frames[currentFrameIdx]);
     await loadImage(frames[currentFrameIdx], cam);
@@ -883,7 +921,25 @@ function redrawAnnotations() {
         const baseLbl = cls ? cls.name : ann.category;
         const tNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '?';
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
-        const canvasLabel = resolvedName ? `${baseLbl} ${tNum} - ${resolvedName}` : `${baseLbl} ${tNum}`;
+        
+        let similarityText = '';
+        if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
+            const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
+            const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
+            const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+            let iou = 0;
+            if (ix2 > ix1 && iy2 > iy1) {
+                const inter = (ix2 - ix1) * (iy2 - iy1);
+                const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
+                iou = union > 0 ? inter / union : 0;
+            }
+            similarityText = ` [AI: ${Math.round(iou * 100)}%]`;
+        }
+
+        const canvasLabel = resolvedName 
+            ? `${baseLbl} ${tNum} - ${resolvedName}${similarityText}` 
+            : `${baseLbl} ${tNum}${similarityText}`;
         annCtx.font = 'bold 11px Inter, sans-serif';
         const tw = annCtx.measureText(canvasLabel).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
@@ -1147,7 +1203,22 @@ function renderLabelList() {
             const label = resolvedName
                 ? `${baseName} ${trackNum} - ${resolvedName}`
                 : `${baseName} ${trackNum}`;
-            const aiMark = ann.is_ai_generated ? ' <span style="font-size:10px;color:#9333EA">AI</span>' : '';
+            
+            let similarityText = '';
+            if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
+                const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
+                const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
+                const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+                const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+                let iou = 0;
+                if (ix2 > ix1 && iy2 > iy1) {
+                    const inter = (ix2 - ix1) * (iy2 - iy1);
+                    const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
+                    iou = union > 0 ? inter / union : 0;
+                }
+                similarityText = ` (${Math.round(iou * 100)}%)`;
+            }
+            const aiMark = ann.is_ai_generated ? ` <span style="font-size:10px;color:#9333EA">AI${similarityText}</span>` : '';
             const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
             const needsFlag = ann.needs_review === true;
             const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
@@ -1427,10 +1498,36 @@ function updateCamBadge() {
 
 // ============= SAVE =============
 let unsaved = false;
+let autoSaveTimeout = null;
 
 function markUnsaved() {
     unsaved = true;
-    // Không auto-save — chỉ lưu khi nhấn nút Lưu
+
+    // Auto-save sau 1.5 giây không có thao tác mới
+    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+
+    const saveBtn = document.querySelector('.btn-submit');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Tự động lưu...';
+        saveBtn.style.background = '#F59E0B'; // Màu cam cảnh báo đang chờ lưu
+    }
+
+    autoSaveTimeout = setTimeout(async () => {
+        if (unsaved) {
+            await saveCurrentFrame(false);
+            unsaved = false;
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Đã lưu';
+                saveBtn.style.background = '#10B981'; // Màu xanh lá biểu thị đã lưu
+                setTimeout(() => {
+                    if (!unsaved) {
+                        saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Lưu';
+                        saveBtn.style.background = ''; // reset lại style mặc định
+                    }
+                }, 1500);
+            }
+        }
+    }, 1500);
 }
 
 async function saveCurrentFrame(showMsg) {
@@ -1446,6 +1543,10 @@ async function saveCurrentFrame(showMsg) {
                 bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
                 confidence: ann.confidence,
                 is_ai_generated: ann.is_ai_generated || false,
+                ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
+                ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
+                ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
+                ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
                 needs_review: ann.needs_review || false,
                 track_id: ann.track_id || null,
                 custom_name: ann.custom_name || null,
@@ -1480,6 +1581,10 @@ async function saveAnnotations(showMsg = true) {
                     bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
                     confidence: ann.confidence,
                     is_ai_generated: ann.is_ai_generated || false,
+                    ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
+                    ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
+                    ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
+                    ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
                     needs_review: ann.needs_review || false,
                     track_id: ann.track_id || null,
                     custom_name: getTrackName(ann.category, ann.track_id) || ann.custom_name || null,
@@ -1634,6 +1739,10 @@ async function runAI() {
                 bbox_w: p.bbox_w, bbox_h: p.bbox_h,
                 confidence: p.confidence,
                 is_ai_generated: true,
+                ai_bbox_x: p.bbox_x,
+                ai_bbox_y: p.bbox_y,
+                ai_bbox_w: p.bbox_w,
+                ai_bbox_h: p.bbox_h,
                 needs_review: p.confidence < reviewThreshold,
                 hidden: false,
                 custom_name: null,
