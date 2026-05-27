@@ -40,6 +40,7 @@ class TaskOut(BaseModel):
     annotated_frames: int = 0
     assigned_user: Optional[TaskUserInfo] = None
     reviewer_user: Optional[TaskUserInfo] = None
+    admin_moderated: bool = False
 
     class Config:
         from_attributes = True

@@ -96,6 +96,14 @@ def _enrich_task(task: Task, db: Session) -> dict:
     assignee = db.query(User).filter(User.id == task.assigned_to).first()
     reviewer = db.query(User).filter(User.id == task.reviewer_id).first() if task.reviewer_id else None
 
+    latest_sub = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_id == task.id)
+        .order_by(TaskSubmission.created_at.desc())
+        .first()
+    )
+    admin_moderated = latest_sub is not None and latest_sub.action in ("admin_approved", "admin_rejected")
+
     return TaskOut(
         id=task.id,
         project_id=task.project_id,
@@ -115,6 +123,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
         annotated_frames=annotated_frames,
         assigned_user=TaskUserInfo.model_validate(assignee) if assignee else None,
         reviewer_user=TaskUserInfo.model_validate(reviewer) if reviewer else None,
+        admin_moderated=admin_moderated,
     ).model_dump()
 
 

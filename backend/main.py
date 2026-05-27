@@ -1,3 +1,15 @@
+# Sửa lỗi weights_only mặc định của PyTorch 2.6 cho Ultralytics YOLO
+try:
+    import torch
+    orig_load = torch.load
+    def patched_load(*args, **kwargs):
+        if 'weights_only' not in kwargs:
+            kwargs['weights_only'] = False
+        return orig_load(*args, **kwargs)
+    torch.load = patched_load
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse

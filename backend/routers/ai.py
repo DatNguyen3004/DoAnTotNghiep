@@ -7,8 +7,8 @@ import os
 from database import get_db
 from models.user import User
 from models.frame import Frame
-from routers.auth import get_current_user
-from services.ai_service import run_inference, get_model, get_model_error
+from routers.auth import get_current_user, require_admin
+from services.ai_service import run_inference, get_model, get_model_error, reload_model
 from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
 import config as _cfg
 from services.video_dataset import get_video_frame_path
@@ -56,6 +56,20 @@ def ai_status(current_user: User = Depends(get_current_user)):
         return {"status": "error", "message": error}
     else:
         return {"status": "not_loaded", "message": "Model chưa được load"}
+
+
+# ───────────────────────────────────────────────
+# POST /api/ai/reload  (Admin only)
+# ───────────────────────────────────────────────
+@router.post("/reload")
+def reload_ai_model(current_user: User = Depends(require_admin)):
+    """Admin reload model AI mà không cần restart server."""
+    model = reload_model()
+    error = get_model_error()
+    if model is not None:
+        return {"status": "ready", "message": "Model YOLOv8 đã load lại thành công"}
+    else:
+        return {"status": "error", "message": error or "Không thể load model"}
 
 
 # ───────────────────────────────────────────────

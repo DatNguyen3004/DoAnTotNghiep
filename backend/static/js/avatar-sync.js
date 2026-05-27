@@ -1,6 +1,6 @@
 // avatar-sync.js — load avatar từ localStorage vào topnav
 (function() {
-    var BASE_URL = 'http://localhost:8000';
+    var BASE_URL = '';
     var cu = JSON.parse(localStorage.getItem('current_user') || '{}');
 
     // Tự detect đường dẫn Profile dựa vào vị trí file hiện tại

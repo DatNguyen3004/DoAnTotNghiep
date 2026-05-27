@@ -1,5 +1,5 @@
 // ============= CONFIG =============
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = '/api';
 function getToken() { return localStorage.getItem('access_token'); }
 
 // Auth guard
@@ -775,6 +775,7 @@ async function saveSceneEdit() {
             showToast('Đã cập nhật tên nhiệm vụ', 'success');
             closeSceneEditModal();
             loadTasks();
+            loadAllTasks(); // Tải lại bảng dữ liệu trong tab Tất cả các nhiệm vụ
             // Reload scenes grid nếu đang ở tab đó
             if (allScenesData.length > 0) loadAllScenes();
         } else {

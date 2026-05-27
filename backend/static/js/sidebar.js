@@ -125,7 +125,7 @@
         // Fetch project info background
         if (projectId) {
             var token = localStorage.getItem('access_token');
-            fetch('http://localhost:8000/api/projects/' + projectId, {
+            fetch('/api/projects/' + projectId, {
                 headers: { Authorization: 'Bearer ' + token }
             }).then(function (r) { return r.ok ? r.json() : null; })
               .then(function (p) {

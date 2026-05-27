@@ -47,7 +47,7 @@
     </main>
 
     <script>
-        const BASE_URL = 'http://localhost:8000/api';
+        const BASE_URL = '/api';
         function getToken() { return localStorage.getItem('access_token'); }
 
         // Auth guard
@@ -63,7 +63,7 @@
             var avatarUrl = user.avatar_url;
             if (avatarUrl) {
                 var img = document.createElement('img');
-                img.src = avatarUrl.startsWith('http') ? avatarUrl : 'http://localhost:8000' + avatarUrl;
+                img.src = avatarUrl;
                 img.style.cssText = 'width:100%;height:100%;object-fit:cover';
                 img.onerror = function() { el.textContent = (user.username||'NL').substring(0,2).toUpperCase(); };
                 el.appendChild(img);

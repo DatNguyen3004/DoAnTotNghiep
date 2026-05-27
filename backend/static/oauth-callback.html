@@ -52,7 +52,7 @@
 
             // Lấy thông tin user đầy đủ
             try {
-                const res = await fetch('http://localhost:8000/api/auth/me', {
+                const res = await fetch('/api/auth/me', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 if (res.ok) {

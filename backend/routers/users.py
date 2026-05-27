@@ -132,7 +132,48 @@ def get_user_stats(
     completed_times = [t.time_spent for t in tasks if t.time_spent and t.status in ('approved', 'submitted', 'under_review')]
     avg_time = int(sum(completed_times) / len(completed_times)) if completed_times else 0
 
-    quality_rate = round((total_submissions - total_rejects) / total_submissions * 100) if total_submissions > 0 else 0
+    import re
+    from models.task_submission import TaskSubmission
+
+    total_score = 0
+    scored_tasks_count = 0
+
+    for t in tasks:
+        if t.status in ('submitted', 'under_review', 'approved', 'rejected'):
+            # Lấy tất cả lịch sử reject theo thứ tự thời gian tăng dần
+            submissions = db.query(TaskSubmission).filter(
+                TaskSubmission.task_id == t.id,
+                TaskSubmission.action == 'rejected'
+            ).order_by(TaskSubmission.created_at.asc()).all()
+
+            deductions = 0
+            for idx, sub in enumerate(submissions):
+                fb = sub.feedback or ""
+                # Đếm số khung hình lỗi trong lần reject này
+                matches = re.findall(r'(?:Frame|Khung\s+hình)\s+(\d+)', fb, re.IGNORECASE)
+                num_error_frames = len(set(int(m) for m in matches))
+
+                if idx == 0:
+                    # Lần đầu sửa lỗi: chỉ trừ 2 điểm / khung hình lỗi (không trừ 5 điểm phạt gốc)
+                    deductions += num_error_frames * 2
+                else:
+                    # Từ lần 2 trở đi: trừ thêm 5 điểm phạt gốc + 2 điểm / khung hình lỗi chưa sửa
+                    deductions += 5 + (num_error_frames * 2)
+
+            # Phạt do Admin từ chối (trừ cực nặng 50 điểm)
+            admin_rejects = db.query(TaskSubmission).filter(
+                TaskSubmission.task_id == t.id,
+                TaskSubmission.action == 'admin_rejected'
+            ).count()
+            deductions += admin_rejects * 50
+
+            task_score = 100 - deductions
+            task_score = max(0, task_score)
+
+            total_score += task_score
+            scored_tasks_count += 1
+
+    quality_rate = round(total_score / scored_tasks_count) if scored_tasks_count > 0 else 0
 
     # ── Thống kê kiểm thử (reviewer) ──
     reviewed_tasks = db.query(Task).filter(Task.reviewer_id == user_id).all()

@@ -97,7 +97,7 @@
 
 </main>
 <script>
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = '/api';
 function getToken() { return localStorage.getItem('access_token'); }
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
 if (!getToken()) window.location.href = '../login.html';
@@ -157,6 +157,7 @@ async function init() {
         frames = await r2.json();
         // Đánh dấu đang trong chế độ FrameList để disable nút tổng thể ở giao diện cũ
         localStorage.setItem('framelist_mode_' + taskId, mode);
+        checkReturnedFrame();
         renderPage();
     } catch(e) {
         document.getElementById('frameGrid').innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation" style="color:#EF4444"></i><h3>Không thể tải dữ liệu</h3></div>';
@@ -308,6 +309,14 @@ function checkReturnedFrame() {
 
 window.addEventListener('focus', function() { if (checkReturnedFrame() && task) { renderCards(); updateProgress(); } });
 document.addEventListener('visibilitychange', function() { if (!document.hidden && checkReturnedFrame() && task) { renderCards(); updateProgress(); } });
+window.addEventListener('pageshow', function(event) {
+    const isBackNavigation = event.persisted || 
+        (window.performance && window.performance.navigation && window.performance.navigation.type === 2) ||
+        (window.performance && window.performance.getEntriesByType && window.performance.getEntriesByType("navigation")[0] && window.performance.getEntriesByType("navigation")[0].type === "back_forward");
+    if (isBackNavigation) {
+        window.location.reload();
+    }
+});
 
 async function submitTask(autoApprove) {
     if (!autoApprove) {

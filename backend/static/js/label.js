@@ -1,5 +1,5 @@
 // ============= CONFIG =============
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = '/api';
 function getToken() { return localStorage.getItem('access_token'); }
 
 // Auth guard
@@ -19,8 +19,8 @@ const CLASSES = [
     { id: 'vehicle.truck', name: 'Xe tải', icon: 'fa-truck', color: '#F59E0B' },
     { id: 'vehicle.bus', name: 'Xe buýt', icon: 'fa-bus', color: '#8B5CF6' },
     { id: 'vehicle.motorcycle', name: 'Xe máy', icon: 'fa-motorcycle', color: '#EC4899' },
-    { id: 'human.pedestrian', name: 'Người đi bộ', icon: 'fa-person-walking', color: '#10B981' },
     { id: 'vehicle.bicycle', name: 'Xe đạp', icon: 'fa-bicycle', color: '#F97316' },
+    { id: 'human.pedestrian', name: 'Người đi bộ', icon: 'fa-person-walking', color: '#10B981' },
 ];
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
@@ -44,6 +44,7 @@ let currentCamera = 'CAM_FRONT';
 let selectedClass = CLASSES[0].id;
 let selectedAnnId = null;
 let currentTool = 'pointer'; // mặc định là con trỏ
+let collapsedCategories = {};
 
 // annotations[frameId][camera] = [{id, category, bbox_x, bbox_y, bbox_w, bbox_h, confidence, is_ai_generated}]
 let annotations = {};
@@ -923,23 +924,10 @@ function redrawAnnotations() {
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
         
         let similarityText = '';
-        if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
-            const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
-            const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
-            const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
-            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
-            let iou = 0;
-            if (ix2 > ix1 && iy2 > iy1) {
-                const inter = (ix2 - ix1) * (iy2 - iy1);
-                const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
-                iou = union > 0 ? inter / union : 0;
-            }
-            similarityText = ` [AI: ${Math.round(iou * 100)}%]`;
-        }
 
         const canvasLabel = resolvedName 
-            ? `${baseLbl} ${tNum} - ${resolvedName}${similarityText}` 
-            : `${baseLbl} ${tNum}${similarityText}`;
+            ? `${tNum} - ${resolvedName}${similarityText}` 
+            : `${tNum}${similarityText}`;
         annCtx.font = 'bold 11px Inter, sans-serif';
         const tw = annCtx.measureText(canvasLabel).width + 8;
         const tagY = y > 18 ? y - 18 : y + h;
@@ -1083,8 +1071,8 @@ function setupDropdownItems() {
                 availableTracks.sort((a, b) => a - b).forEach(tid => {
                     const customName = getTrackName(found.id, tid);
                     const displayName = customName
-                        ? `${found.name} ${String(tid).padStart(2, '0')} - ${customName}`
-                        : `${found.name} ${String(tid).padStart(2, '0')}`;
+                        ? `${String(tid).padStart(2, '0')} - ${customName}`
+                        : `${String(tid).padStart(2, '0')}`;
                     const btn = document.createElement('div');
                     btn.className = 'dropdown-item';
                     btn.innerHTML = `<i class="fa-solid fa-link" style="color:#64748B;font-size:11px"></i> ${displayName}`;
@@ -1180,6 +1168,11 @@ function currentAnns() {
 }
 
 // ============= LABEL LIST =============
+function toggleCategoryCollapse(category) {
+    collapsedCategories[category] = !collapsedCategories[category];
+    renderLabelList();
+}
+
 function renderLabelList() {
     const list = document.getElementById('labelList');
     const badge = document.getElementById('labelsBadge');
@@ -1193,33 +1186,48 @@ function renderLabelList() {
         return;
     }
 
-    list.innerHTML = (() => {
-        return anns.map((ann) => {
-            const cls = CLASS_MAP[ann.category];
-            const color = cls ? cls.color : '#14B8A6';
-            const baseName = cls ? cls.name : ann.category;
+    // Group annotations by category ID
+    const grouped = {};
+    CLASSES.forEach(c => grouped[c.id] = []);
+    anns.forEach(ann => {
+        if (!grouped[ann.category]) {
+            grouped[ann.category] = [];
+        }
+        grouped[ann.category].push(ann);
+    });
+
+    let html = '';
+    CLASSES.forEach(cls => {
+        const groupAnns = grouped[cls.id] || [];
+        if (groupAnns.length === 0) return;
+
+        const isCollapsed = collapsedCategories[cls.id] || false;
+        
+        // Render Group Header
+        html += `
+        <div class="category-group-header" onclick="toggleCategoryCollapse('${cls.id}')" 
+             style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:8px 0 4px 0;cursor:pointer;background:#F1F5F9;border-radius:8px;user-select:none;transition:background 0.2s">
+            <div style="display:flex;align-items:center;gap:8px">
+                <i class="fa-solid ${cls.icon}" style="color:${cls.color};font-size:13px"></i>
+                <span style="font-weight:700;font-size:13px;color:#1E293B">${cls.name}</span>
+                <span style="background:${cls.color}15;color:${cls.color};font-size:11px;font-weight:700;padding:1px 6px;border-radius:10px">${groupAnns.length}</span>
+            </div>
+            <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#64748B;transition:transform 0.2s;${isCollapsed ? 'transform:rotate(-90deg)' : ''}"></i>
+        </div>
+        <div class="category-group-content" style="${isCollapsed ? 'display:none' : ''}">
+        `;
+
+        // Render Label Items in Group
+        html += groupAnns.map((ann) => {
+            const color = cls.color;
+            const baseName = cls.name;
             const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
             const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
             const label = resolvedName
-                ? `${baseName} ${trackNum} - ${resolvedName}`
-                : `${baseName} ${trackNum}`;
+                ? `${trackNum} - ${resolvedName}`
+                : `${trackNum}`;
             
-            let similarityText = '';
-            if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
-                const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
-                const bx1 = ann.bbox_x, by1 = ann.bbox_y, bx2 = ann.bbox_x + ann.bbox_w, by2 = ann.bbox_y + ann.bbox_h;
-                const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
-                const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
-                let iou = 0;
-                if (ix2 > ix1 && iy2 > iy1) {
-                    const inter = (ix2 - ix1) * (iy2 - iy1);
-                    const union = ann.ai_bbox_w * ann.ai_bbox_h + ann.bbox_w * ann.bbox_h - inter;
-                    iou = union > 0 ? inter / union : 0;
-                }
-                similarityText = ` (${Math.round(iou * 100)}%)`;
-            }
-            const aiMark = ann.is_ai_generated ? ` <span style="font-size:10px;color:#9333EA">AI${similarityText}</span>` : '';
-            const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
+            const aiMark = ann.is_ai_generated ? ` <span style="font-size:10px;color:#9333EA">AI</span>` : '';
             const needsFlag = ann.needs_review === true;
             const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
             const sel = ann.id === selectedAnnId;
@@ -1248,7 +1256,11 @@ function renderLabelList() {
                 </div>
             </div>`;
         }).join('');
-    })();
+
+        html += `</div>`; // Close category-group-content
+    });
+
+    list.innerHTML = html;
 
     // Cập nhật attention list đồng thời
     renderAttentionList();
@@ -1324,8 +1336,8 @@ function showTrackModal(ann) {
     opts.innerHTML = availableTracks.sort((a, b) => a - b).map(tid => {
         const customName = getTrackName(ann.category, tid);
         const displayName = customName
-            ? `${clsName} ${String(tid).padStart(2, '0')} - ${customName}`
-            : `${clsName} ${String(tid).padStart(2, '0')}`;
+            ? `${String(tid).padStart(2, '0')} - ${customName}`
+            : `${String(tid).padStart(2, '0')}`;
         return `<button onclick="confirmTrack(${tid})"
             style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
             onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
@@ -1408,14 +1420,14 @@ function changeAnnEntity(id) {
     pendingAnn = { ...ann, _changeId: id };
     const clsNameDisp = clsName;
     document.getElementById('trackModalDesc').textContent =
-        `Đổi "${clsNameDisp} ${currentTrackNum}" thành thực thể nào?`;
+        `Đổi "${currentTrackNum}" thành thực thể nào?`;
 
     const opts = document.getElementById('trackOptions');
     opts.innerHTML = [...allTracks].sort((a, b) => a - b).map(tid => {
         const customName = getTrackName(ann.category, tid);
         const displayName = customName
-            ? `${clsNameDisp} ${String(tid).padStart(2, '0')} - ${customName}`
-            : `${clsNameDisp} ${String(tid).padStart(2, '0')}`;
+            ? `${String(tid).padStart(2, '0')} - ${customName}`
+            : `${String(tid).padStart(2, '0')}`;
         return `
         <button onclick="confirmChangeEntity(${tid})"
             style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
@@ -1431,7 +1443,7 @@ function changeAnnEntity(id) {
         <button onclick="confirmChangeEntity('new')"
             style="width:100%;height:36px;background:#EEF2FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-weight:700;color:#2563EB;cursor:pointer;text-align:left;padding:0 14px"
             onmouseover="this.style.background='#DBEAFE'" onmouseout="this.style.background='#EEF2FF'">
-            + ${clsNameDisp} ${String(nextId).padStart(2, '0')} (đối tượng mới)
+            + ${String(nextId).padStart(2, '0')} (đối tượng mới)
         </button>`;
 
     document.getElementById('trackModal').style.display = 'flex';
@@ -1974,7 +1986,7 @@ function renameAnn(id) {
     const baseName = cls ? cls.name : ann.category;
     const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
     const current = getTrackName(ann.category, ann.track_id) || ann.custom_name || '';
-    const newName = prompt(`Đổi tên cho "${baseName} ${trackNum}":\n(Để trống để dùng tên mặc định)`, current);
+    const newName = prompt(`Đổi tên cho "${trackNum}":\n(Để trống để dùng tên mặc định)`, current);
     if (newName === null) return;
     const trimmed = newName.trim() || null;
     ann.custom_name = trimmed;
@@ -2015,7 +2027,7 @@ function renderAttentionList() {
         const baseName = cls ? cls.name : ann.category;
         const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
         const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
-        const label = resolvedName ? `${baseName} ${trackNum} - ${resolvedName}` : `${baseName} ${trackNum}`;
+        const label = resolvedName ? `${trackNum} - ${resolvedName}` : `${trackNum}`;
         const conf = ann.confidence != null ? `${Math.round(ann.confidence * 100)}%` : '';
         const sel = ann.id === selectedAnnId;
         return `
@@ -2118,7 +2130,11 @@ function showToast(msg, type = 'info', customColor = null) {
 
 // CSS animation for toast
 const style = document.createElement('style');
-style.textContent = `@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}`;
+style.textContent = `
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+.category-group-header:hover { background: #E2E8F0 !important; }
+.category-group-content { margin-left: 4px; border-left: 2px solid #F1F5F9; padding-left: 4px; }
+`;
 document.head.appendChild(style);
 
 // ============= START =============

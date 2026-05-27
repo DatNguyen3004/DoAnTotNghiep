@@ -1,5 +1,5 @@
 // ============= CONFIG =============
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = '/api';
 function getToken() { return localStorage.getItem('access_token'); }
 
 // Auth guard
@@ -65,7 +65,7 @@ let allUsers = [];
 async function loadUsers() {
     const tbody = document.querySelector('tbody');
     tbody.innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:40px;">
+        <tr><td colspan="7" style="text-align:center;padding:40px;">
             <div style="color:#94A3B8">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;margin-bottom:12px;display:block"></i>
                 Đang tải danh sách người dùng...
@@ -105,7 +105,7 @@ function renderUsers(users) {
 
     if (!users.length) {
         tbody.innerHTML = `
-            <tr><td colspan="8" style="text-align:center;padding:60px;color:#94A3B8">
+            <tr><td colspan="7" style="text-align:center;padding:60px;color:#94A3B8">
                 <i class="fa-regular fa-user" style="font-size:40px;display:block;margin-bottom:12px;color:#CBD5E1"></i>
                 <div style="font-weight:700;color:#475569;margin-bottom:6px">Chưa có người dùng nào</div>
                 <div style="font-size:13px">Nhấn "Thêm cộng tác viên" để tạo tài khoản mới.</div>
@@ -146,9 +146,6 @@ function renderUsers(users) {
                 <td title="${email}">${email}</td>
                 <td>
                     <span class="badge-role" style="background:${roleBg};color:${roleColor}">${role}</span>
-                </td>
-                <td style="text-align:center;" id="task_${user.id}">
-                    <span style="color:#94A3B8;font-size:12px">—</span>
                 </td>
                 <td style="text-align:center;" id="${statsId}">
                     <span style="color:#94A3B8;font-size:12px">—</span>
@@ -248,27 +245,8 @@ async function openStatsModal(userId, username, fullName) {
         const avgMin = s.avg_time_seconds > 0
             ? `${Math.floor(s.avg_time_seconds / 60)}p ${s.avg_time_seconds % 60}s` : '—';
 
-        // ── Tính màu & nhãn kiểm thử ──
-        const hasReview = s.total_reviewed > 0;
-        const rr = s.review_quality_rate ?? 0;
-        const rrColor = rr >= 80 ? '#10B981' : rr >= 50 ? '#F59E0B' : '#EF4444';
-        const rrLabel = rr >= 80 ? 'Tốt' : rr >= 50 ? 'Trung bình' : 'Kém';
-
         document.getElementById('statsBody').innerHTML = `
-        <!-- Tab bar -->
-        <div style="display:flex;gap:4px;background:#F1F5F9;border-radius:10px;padding:4px;margin-bottom:14px">
-            <button id="stTabLabel" onclick="switchStatsTab('label')"
-                style="flex:1;height:34px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:#fff;color:#2563EB;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
-                <i class="fa-solid fa-pen" style="margin-right:5px"></i>Gán nhãn
-            </button>
-            <button id="stTabReview" onclick="switchStatsTab('review')"
-                style="flex:1;height:34px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:#64748B">
-                <i class="fa-solid fa-magnifying-glass" style="margin-right:5px"></i>Kiểm thử
-                ${hasReview && s.reviewer_wrong > 0 ? `<span style="background:#EF4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:4px">${s.reviewer_wrong}</span>` : ''}
-            </button>
-        </div>
-
-        <!-- Tab: Gán nhãn -->
+        <!-- Panel: Gán nhãn -->
         <div id="stPanelLabel">
             <!-- 2 số tổng quan -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
@@ -310,61 +288,10 @@ async function openStatsModal(userId, username, fullName) {
                     ? `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`
                     : `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`}
             </div>
-        </div>
-
-        <!-- Tab: Kiểm thử (ẩn mặc định) -->
-        <div id="stPanelReview" style="display:none">
-            ${hasReview ? `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
-                    <div style="font-size:22px;font-weight:800;color:#1E293B">${s.total_reviewed}</div>
-                    <div style="font-size:11px;color:#64748B;margin-top:2px">Đã kiểm thử</div>
-                </div>
-                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
-                    <div style="font-size:22px;font-weight:800;color:${rrColor}">${rr}%</div>
-                    <div style="font-size:11px;color:${rrColor};font-weight:600;margin-top:2px">${rrLabel}</div>
-                </div>
-            </div>
-            <div style="margin-bottom:12px">
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:4px">
-                    <span>Tỷ lệ kiểm thử đúng</span><span style="font-weight:700;color:${rrColor}">${rr}%</span>
-                </div>
-                <input type="range" min="0" max="100" value="${rr}" disabled
-                    style="width:100%;accent-color:${rrColor};height:6px;cursor:default">
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
-                ${miniStat('fa-circle-check','#10B981','Kiểm thử đúng', s.total_reviewed - s.reviewer_wrong)}
-                ${miniStat('fa-triangle-exclamation','#EF4444','Kiểm thử sai', s.reviewer_wrong)}
-            </div>
-            <div style="padding:10px 14px;border-radius:8px;background:${rr >= 80 ? '#F0FDF4' : rr >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rr >= 80 ? '#BBF7D0' : rr >= 50 ? '#FDE68A' : '#FECACA'};font-size:12px;color:#64748B">
-                <i class="fa-solid ${rr >= 80 ? 'fa-shield-check' : rr >= 50 ? 'fa-circle-exclamation' : 'fa-shield-xmark'}" style="color:${rrColor};margin-right:4px"></i>
-                ${s.reviewer_wrong === 0
-                    ? 'Chưa có lần kiểm thử nào bị admin từ chối lại.'
-                    : `Đã kiểm thử sai <strong style="color:${rrColor}">${s.reviewer_wrong}</strong> lần — admin phải từ chối lại bài đã duyệt.`}
-            </div>` : `
-            <div style="text-align:center;padding:32px;color:#94A3B8">
-                <i class="fa-solid fa-magnifying-glass" style="font-size:28px;display:block;margin-bottom:8px;color:#CBD5E1"></i>
-                Người dùng này chưa thực hiện kiểm thử nhiệm vụ nào.
-            </div>`}
         </div>`;
-
     } catch (e) {
         document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#EF4444">Không thể tải thống kê</div>';
     }
-}
-
-function switchStatsTab(tab) {
-    const isLabel = tab === 'label';
-    document.getElementById('stPanelLabel').style.display  = isLabel ? '' : 'none';
-    document.getElementById('stPanelReview').style.display = isLabel ? 'none' : '';
-    const btnL = document.getElementById('stTabLabel');
-    const btnR = document.getElementById('stTabReview');
-    btnL.style.background   = isLabel ? '#fff' : 'transparent';
-    btnL.style.color        = isLabel ? '#2563EB' : '#64748B';
-    btnL.style.boxShadow    = isLabel ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
-    btnR.style.background   = isLabel ? 'transparent' : '#fff';
-    btnR.style.color        = isLabel ? '#64748B' : '#7C3AED';
-    btnR.style.boxShadow    = isLabel ? 'none' : '0 1px 4px rgba(0,0,0,0.08)';
 }
 
 function miniStat(icon, color, label, value) {

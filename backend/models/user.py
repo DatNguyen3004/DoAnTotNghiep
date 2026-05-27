@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Unicode, Boolean, DateTime
+from sqlalchemy import Column, Integer, Unicode, Boolean, DateTime, Index
 from sqlalchemy.sql import func
 from database import Base
 
@@ -7,7 +7,7 @@ class User(Base):
 
     id            = Column(Integer, primary_key=True, index=True)
     username      = Column(Unicode(50), unique=True, nullable=False)
-    email         = Column(Unicode(100), unique=True, nullable=True)
+    email         = Column(Unicode(100), nullable=True)
     password_hash = Column(Unicode(255), nullable=False)
     role          = Column(Unicode(10), nullable=False)
     full_name     = Column(Unicode(100), nullable=True)
@@ -20,3 +20,12 @@ class User(Base):
     reset_expires = Column(DateTime, nullable=True)
     created_at    = Column(DateTime, server_default=func.now())
     is_active     = Column(Boolean, default=True)
+
+    __table_args__ = (
+        Index(
+            "uq_users_email",
+            "email",
+            unique=True,
+            mssql_where="email IS NOT NULL"
+        ),
+    )

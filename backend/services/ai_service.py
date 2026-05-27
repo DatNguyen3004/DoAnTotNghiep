@@ -21,20 +21,34 @@ _model_error = None
 
 def get_model():
     global _model, _model_loaded, _model_error
-    if _model_loaded:
+    if _model_loaded and _model is not None:
         return _model
+    # Nếu chưa load hoặc load thất bại → thử lại
     try:
+        import torch
+
+        # PyTorch 2.6+ đổi default weights_only=True, gây lỗi với ultralytics.
+        # Patch torch.load để force weights_only=False khi load YOLO weights.
+        _original_torch_load = torch.load
+        def _patched_torch_load(f, *args, **kwargs):
+            kwargs.setdefault('weights_only', False)
+            return _original_torch_load(f, *args, **kwargs)
+        torch.load = _patched_torch_load
+
         from ultralytics import YOLO
         weights_path = os.path.join(os.path.dirname(__file__), "..", "weights", "yolov8m.pt")
         weights_path = os.path.abspath(weights_path)
         if not os.path.isfile(weights_path):
             _model_error = f"Không tìm thấy file weights: {weights_path}"
             _model_loaded = True
+            torch.load = _original_torch_load
             return None
+
         _model = YOLO(weights_path)
         _model_loaded = True
+        torch.load = _original_torch_load  # restore sau khi load xong
+
         # Warm-up trên GPU nếu có
-        import torch
         _model.to('cuda' if torch.cuda.is_available() else 'cpu')
         _model_error = None
         return _model
@@ -42,6 +56,15 @@ def get_model():
         _model_error = str(e)
         _model_loaded = True
         return None
+
+
+def reload_model():
+    """Reset cache và load lại model — dùng khi server đang chạy mà model bị lỗi."""
+    global _model, _model_loaded, _model_error
+    _model = None
+    _model_loaded = False
+    _model_error = None
+    return get_model()
 
 
 def get_model_error() -> Optional[str]:

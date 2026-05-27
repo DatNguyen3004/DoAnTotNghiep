@@ -13,6 +13,21 @@ def assign_reviewer(db: Session, task_id: int, project_id: int, labeler_id: int)
     Tìm Labeler khác trong project có ít task under_review nhất (least-loaded).
     Trả về reviewer_id hoặc None nếu không tìm thấy.
     """
+    # Đếm tổng số member hoạt động có role 'user' trong dự án
+    total_active_users = (
+        db.query(ProjectMember.user_id)
+        .join(User, User.id == ProjectMember.user_id)
+        .filter(
+            ProjectMember.project_id == project_id,
+            User.role == "user",
+            User.is_active == True,
+        )
+        .count()
+    )
+
+    if total_active_users <= 1:
+        return labeler_id
+
     # Lấy tất cả member role='user' trong project, trừ labeler hiện tại
     members = (
         db.query(ProjectMember.user_id)

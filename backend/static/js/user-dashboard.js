@@ -1,5 +1,5 @@
 // ============= CONFIG =============
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = '/api';
 function getToken() { return localStorage.getItem('access_token'); }
 
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
@@ -57,8 +57,8 @@ const STATUS_MAP = {
     in_progress: { label: 'Đang làm', cls: 'st-in_progress' },
     submitted: { label: 'Đợi kiểm tra', cls: 'st-submitted' },
     under_review: { label: 'Đang kiểm tra', cls: 'st-under_review' },
-    reviewed: { label: 'Đạt', cls: 'st-approved' },
-    approved: { label: 'Đạt', cls: 'st-approved' },
+    reviewed: { label: 'Đã kiểm tra', cls: 'st-approved' },
+    approved: { label: 'Đã duyệt', cls: 'st-approved' },
     rejected: { label: 'Chưa đạt', cls: 'st-rejected' }
 };
 
@@ -133,6 +133,9 @@ function renderMyTasks(tasks) {
 }
 
 function getMyTaskAction(task) {
+    if (task.admin_moderated) {
+        return `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
+    }
     const s = task.status;
     if (s === 'pending' || s === 'in_progress')
         return `<a href="Label.html?taskId=${task.id}" class="action-link"><i class="fa-solid fa-pen-to-square"></i> Gán nhãn</a>`;
@@ -141,64 +144,12 @@ function getMyTaskAction(task) {
     if (s === 'under_review')
         return `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     if (s === 'rejected')
-        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-wrench"></i> Sửa lỗi</a>`;
-    if (s === 'reviewed' || s === 'approved')
-        return '<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đạt</span>';
+        return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link rejected-link"><i class="fa-solid fa-triangle-exclamation"></i> Sửa lại</a>`;
+    if (s === 'reviewed')
+        return `<span style="color:#2563EB;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`;
+    if (s === 'approved')
+        return `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
     return '<span style="color:#94A3B8">—</span>';
-}
-
-// ============= REJECTED DETAIL MODAL =============
-async function showRejectedDetail(taskId) {
-    const task = myTasks.find(t => t.id === taskId);
-    if (!task) return;
-    const feedback = task.feedback || '';
-    const lines = feedback.split('\n').filter(l => l.trim());
-    let frameItems = '';
-    if (lines.length) {
-        frameItems = lines.map(line => {
-            const match = line.match(/Frame\s+(\d+)[:：](.*)/i);
-            if (match) {
-                const frameNum = parseInt(match[1]);
-                const desc = match[2].trim();
-                return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#FEF2F2;border-radius:8px;border-left:3px solid #EF4444">
-                    <div style="flex-shrink:0"><span style="background:#EF4444;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">Khung hình ${frameNum}</span></div>
-                    <div style="flex:1">
-                        <div style="font-size:13px;color:#1E293B;margin-bottom:8px">${desc || 'Có lỗi cần sửa'}</div>
-                        <a href="Label.html?taskId=${taskId}&frame=${frameNum - 1}"
-                           style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#EF4444;color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none">
-                            <i class="fa-solid fa-pen"></i> Sửa lại
-                        </a>
-                    </div>
-                </div>`;
-            }
-            return `<div style="padding:10px;background:#FEF2F2;border-radius:8px;font-size:13px;color:#1E293B">${line}</div>`;
-        }).join('');
-    } else {
-        frameItems = `<div style="padding:12px;background:#FEF2F2;border-radius:8px;font-size:13px;color:#1E293B">${feedback || 'Không có mô tả chi tiết'}</div>`;
-    }
-    const existing = document.getElementById('rejectedDetailModal');
-    if (existing) existing.remove();
-    const modal = document.createElement('div');
-    modal.id = 'rejectedDetailModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-    modal.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:Inter,sans-serif">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-            <div>
-                <div style="font-size:16px;font-weight:800;color:#1E293B">Kết quả kiểm tra</div>
-                <div style="font-size:12px;color:#64748B;margin-top:2px">${task.scene_name || 'Nhiệm vụ #' + taskId}</div>
-            </div>
-            <button onclick="document.getElementById('rejectedDetailModal').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:20px;padding:4px"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">${frameItems}</div>
-        <div style="display:flex;gap:10px">
-            <a href="Label.html?taskId=${taskId}" style="flex:1;height:40px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none">
-                <i class="fa-solid fa-rotate-right"></i> Sửa lại từ đầu
-            </a>
-            <button onclick="document.getElementById('rejectedDetailModal').remove()" style="height:40px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
-        </div>
-    </div>`;
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-    document.body.appendChild(modal);
 }
 
 // ============= REVIEW TASKS =============
@@ -239,7 +190,24 @@ function renderReviewTasks(tasks) {
         const name = task.scene_name || `Nhiệm vụ #${task.id}`;
         const desc = task.scene_description || '';
         const canReview = task.status === 'under_review';
-        const isDone = task.status === 'reviewed' || task.status === 'approved';
+        
+        let actionHtml = '';
+        if (task.admin_moderated) {
+            actionHtml = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
+        } else if (canReview) {
+            actionHtml = task.feedback
+                ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
+                : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`;
+        } else if (task.status === 'reviewed') {
+            actionHtml = `<span style="color:#2563EB;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`;
+        } else if (task.status === 'approved') {
+            actionHtml = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
+        } else if (task.status === 'rejected') {
+            actionHtml = `<span style="color:#EF4444;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-xmark"></i> Chưa đạt</span>`;
+        } else {
+            actionHtml = `<span style="color:#94A3B8">—</span>`;
+        }
+
         return `<tr>
             <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
             <td><div class="scene-name">
@@ -248,12 +216,8 @@ function renderReviewTasks(tasks) {
             </div></td>
             <td>${getUserCell(task.assigned_user)}</td>
             <td>${getStatusBadge(task.status)}</td>
-            <td>${canReview
-                ? (task.feedback
-                    ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
-                    : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`)
-                : `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đạt</span>`
-            }</td>        </tr>`;
+            <td>${actionHtml}</td>
+        </tr>`;
     }).join('');
     document.getElementById('showingReview').textContent = `${tasks.length} bài cần kiểm thử`;
     document.getElementById('tabBadgeReview').textContent = tasks.length;

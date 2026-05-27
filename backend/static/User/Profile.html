@@ -190,7 +190,7 @@ async function submitChangePass() {
         const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
 
         // Xác minh mật khẩu cũ bằng cách login lại
-        const verifyRes = await fetch('http://localhost:8000/api/auth/login', {
+        const verifyRes = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: cu.username, password: oldPass })
@@ -198,7 +198,7 @@ async function submitChangePass() {
         if (!verifyRes.ok) return showChangePassError('Mật khẩu hiện tại không đúng');
 
         // Đổi mật khẩu
-        const res = await fetch('http://localhost:8000/api/users/' + cu.id, {
+        const res = await fetch('/api/users/' + cu.id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
             body: JSON.stringify({ new_password: newPass })

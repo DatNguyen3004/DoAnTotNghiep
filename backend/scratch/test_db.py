@@ -1,12 +1,22 @@
 import sys
-import os
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
 
-# Add the current directory to sys.path so we can import from backend
-sys.path.append(os.getcwd())
+from database import SessionLocal
+from models.user import User
 
-try:
-    from database import engine
-    with engine.connect() as connection:
-        print("Successfully connected to the database.")
-except Exception as e:
-    print(f"Error connecting to the database: {e}")
+def test():
+    print("Testing DB connection...")
+    try:
+        db = SessionLocal()
+        users = db.query(User).all()
+        print(f"Connection successful! Found {len(users)} users.")
+        for u in users:
+            print(f"User: {u.username}, Role: {u.role}")
+    except Exception as e:
+        print("Error details:")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    test()
