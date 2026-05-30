@@ -19,7 +19,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-from routers import auth, projects, users, datasets, tasks, annotations, ai, export, system
+from routers import auth, projects, users, datasets, tasks, annotations, ai, export, system, chat
 from services.ai_service import get_model
 
 
@@ -57,6 +57,7 @@ app.include_router(annotations.router, prefix="/api",             tags=["annotat
 app.include_router(ai.router,          prefix="/api/ai",          tags=["ai"])
 app.include_router(export.router,      prefix="/api/projects",    tags=["export"])
 app.include_router(system.router,      prefix="/api/system",      tags=["system"])
+app.include_router(chat.router,        prefix="/api/chat",        tags=["chat"])
 
 # Redirect root → login page
 @app.get("/")

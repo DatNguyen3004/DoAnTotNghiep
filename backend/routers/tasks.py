@@ -9,9 +9,11 @@ from models.task import Task
 from models.scene import Scene
 from models.annotation import Annotation
 from models.task_submission import TaskSubmission
+from models.task_chat import TaskChat
 from schemas.task import (
     TaskCreate, TaskOut, TaskUserInfo, TaskStatusUpdate,
     TaskSubmit, ReviewSubmit, ReviewReject, AdminOverride,
+    TaskChatCreate, TaskChatOut,
 )
 from routers.auth import get_current_user, require_admin
 from services.task_service import assign_reviewer
@@ -628,4 +630,94 @@ def get_task_ai_similarity_stats(
         "average_iou": round(avg_iou, 4),
         "similarity_percent": round(avg_iou * 100, 2)
     }
+
+
+# ───────────────────────────────────────────────
+# GET /api/tasks/{task_id}/chats
+# ───────────────────────────────────────────────
+@router.get("/{task_id}/chats", response_model=List[TaskChatOut])
+def get_task_chats(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all chat messages for a specific task.
+    Allowed: Admin, Assignee (labeler), or Reviewer.
+    """
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+
+    if current_user.role != "admin" and current_user.id != task.assigned_to and current_user.id != task.reviewer_id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem cuộc trò chuyện của task này")
+
+    chats = (
+        db.query(TaskChat)
+        .filter(TaskChat.task_id == task_id)
+        .order_by(TaskChat.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for c in chats:
+        sender = db.query(User).filter(User.id == c.sender_id).first()
+        result.append(TaskChatOut(
+            id=c.id,
+            task_id=c.task_id,
+            sender_id=c.sender_id,
+            sender_username=sender.username if sender else "Unknown",
+            sender_full_name=sender.full_name if sender else None,
+            sender_role=sender.role if sender else "user",
+            sender_avatar_url=sender.avatar_url if sender else None,
+            message=c.message,
+            created_at=c.created_at,
+        ))
+    return result
+
+
+# ───────────────────────────────────────────────
+# POST /api/tasks/{task_id}/chats
+# ───────────────────────────────────────────────
+@router.post("/{task_id}/chats", response_model=TaskChatOut)
+def post_task_chat(
+    task_id: int,
+    body: TaskChatCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Send a chat message for a specific task.
+    Allowed: Admin, Assignee (labeler), or Reviewer.
+    """
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+
+    if current_user.role != "admin" and current_user.id != task.assigned_to and current_user.id != task.reviewer_id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền gửi tin nhắn trong task này")
+
+    if not body.message.strip():
+        raise HTTPException(status_code=422, detail="Tin nhắn không được để trống")
+
+    chat = TaskChat(
+        task_id=task_id,
+        sender_id=current_user.id,
+        message=body.message.strip(),
+    )
+    db.add(chat)
+    db.commit()
+    db.refresh(chat)
+
+    return TaskChatOut(
+        id=chat.id,
+        task_id=chat.task_id,
+        sender_id=chat.sender_id,
+        sender_username=current_user.username,
+        sender_full_name=current_user.full_name,
+        sender_role=current_user.role,
+        sender_avatar_url=current_user.avatar_url,
+        message=chat.message,
+        created_at=chat.created_at,
+    )
 

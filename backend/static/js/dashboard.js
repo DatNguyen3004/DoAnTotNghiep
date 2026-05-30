@@ -879,6 +879,20 @@ async function showAdminTaskDetail(taskId) {
                 </div>
             </div>
 
+            <!-- Trao đổi gán nhãn -->
+            <div>
+                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Trao đổi gán nhãn</div>
+                <div id="adminTaskChatList" style="display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:8px">
+                    <div style="text-align:center;padding:8px;color:#94A3B8;font-size:13px">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                    </div>
+                </div>
+                <form onsubmit="sendAdminChatMessage(event, ${taskId})" style="display:flex;gap:6px">
+                    <input type="text" id="adminChatInput_${taskId}" placeholder="Admin nhập tin nhắn..." style="flex:1;height:36px;border:1px solid #CBD5E1;border-radius:6px;padding:0 12px;font-size:13px;outline:none" />
+                    <button type="submit" style="width:36px;height:36px;border-radius:6px;background:#2563EB;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+
         </div>
 
         <!-- Footer -->
@@ -921,6 +935,7 @@ async function showAdminTaskDetail(taskId) {
     // Tải thông tin
     loadTaskHistory(taskId);
     loadAiSimilarity(taskId);
+    loadAdminTaskChats(taskId);
 }
 
 async function loadTaskHistory(taskId) {
@@ -978,6 +993,95 @@ async function loadTaskHistory(taskId) {
 
     } catch (e) {
         container.innerHTML = `<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Không thể tải lịch sử</div>`;
+    }
+}
+
+async function loadAdminTaskChats(taskId) {
+    const container = document.getElementById('adminTaskChatList');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/chats`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+        });
+
+        if (!res.ok) throw new Error();
+        const chats = await res.json();
+        const task = allTasks.find(t => t.id === taskId);
+
+        if (!chats.length) {
+            container.innerHTML = `<div style="text-align:center;padding:12px;color:#94A3B8;font-size:13px">
+                Chưa có trao đổi nào giữa labeler và reviewer.
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = chats.map(c => {
+            const date = new Date(c.created_at);
+            const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
+                            date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            
+            let roleName = 'Labeler';
+            let roleStyle = 'background:#E0F2FE;color:#0369A1';
+            if (c.sender_role === 'admin') {
+                roleName = 'Admin';
+                roleStyle = 'background:#FEE2E2;color:#DC2626';
+            } else if (task && c.sender_id === task.reviewer_id) {
+                roleName = 'Reviewer';
+                roleStyle = 'background:#F5F3FF;color:#7C3AED';
+            }
+            
+            const senderName = c.sender_full_name || c.sender_username;
+            
+            return `
+            <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px;border-bottom:1px dashed #E2E8F0;padding-bottom:6px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                    <div style="font-weight:700;font-size:12px;color:#334155;display:flex;align-items:center;gap:6px">
+                        <span>${senderName}</span>
+                        <span style="font-size:9px;font-weight:700;text-transform:uppercase;padding:1px 4px;border-radius:4px;${roleStyle}">${roleName}</span>
+                    </div>
+                    <div style="font-size:10px;color:#94A3B8;margin-left:auto">${timeStr}</div>
+                </div>
+                <div style="font-size:13px;color:#475569;margin-top:2px;word-break:break-word">${c.message}</div>
+            </div>`;
+        }).join('');
+
+        container.scrollTop = container.scrollHeight;
+
+    } catch (e) {
+        container.innerHTML = `<div style="text-align:center;padding:12px;color:#EF4444;font-size:13px">Không thể tải nội dung trao đổi</div>`;
+    }
+}
+
+async function sendAdminChatMessage(event, taskId) {
+    event.preventDefault();
+    const input = document.getElementById(`adminChatInput_${taskId}`);
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    input.disabled = true;
+
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/chats`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${getToken()}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: msg })
+        });
+
+        if (res.ok) {
+            loadAdminTaskChats(taskId);
+        } else {
+            showToast('Không thể gửi tin nhắn', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi kết nối', 'error');
+    } finally {
+        input.disabled = false;
+        input.focus();
     }
 }
 
