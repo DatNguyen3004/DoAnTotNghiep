@@ -90,6 +90,71 @@
         document.head.appendChild(faLink);
     }
 
+    function showChatConfirm(message, onConfirm, options = {}) {
+        if (typeof showConfirm === 'function') {
+            showConfirm(message, onConfirm, options);
+            return;
+        }
+
+        var title = options.title || 'Xác nhận';
+        var confirmText = options.confirmText || 'Xác nhận';
+        var cancelText = options.cancelText || 'Hủy';
+        var type = options.type || 'danger';
+
+        var colors = {
+            danger:  { icon: 'fa-triangle-exclamation', iconBg: '#FEF2F2', iconColor: '#EF4444', btnBg: '#EF4444', btnHover: '#DC2626' },
+            warning: { icon: 'fa-circle-exclamation',   iconBg: '#FFFBEB', iconColor: '#F59E0B', btnBg: '#F59E0B', btnHover: '#D97706' },
+            info:    { icon: 'fa-circle-info',           iconBg: '#EFF6FF', iconColor: '#2563EB', btnBg: '#2563EB', btnHover: '#1D4ED8' },
+        };
+        var c = colors[type] || colors.danger;
+
+        var existing = document.getElementById('_chatConfirmModal');
+        if (existing) existing.remove();
+
+        var modal = document.createElement('div');
+        modal.id = '_chatConfirmModal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)';
+
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:16px;padding:28px 24px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.15);font-family:Inter,sans-serif;animation:_cfmIn 0.2s ease">
+                <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">
+                    <div style="width:52px;height:52px;border-radius:50%;background:${c.iconBg};display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+                        <i class="fa-solid ${c.icon}" style="font-size:22px;color:${c.iconColor}"></i>
+                    </div>
+                    <div style="font-size:16px;font-weight:800;color:#1E293B;margin-bottom:6px">${title}</div>
+                    <div style="font-size:13px;color:#64748B;line-height:1.6">${message}</div>
+                </div>
+                <div style="display:flex;gap:10px">
+                    <button id="_chatConfirmCancel"
+                        style="flex:1;height:42px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:background 0.2s"
+                        onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F1F5F9'">
+                        ${cancelText}
+                    </button>
+                    <button id="_chatConfirmOk"
+                        style="flex:1;height:42px;background:${c.btnBg};color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:background 0.2s"
+                        onmouseover="this.style.background='${c.btnHover}'" onmouseout="this.style.background='${c.btnBg}'">
+                        ${confirmText}
+                    </button>
+                </div>
+            </div>
+            <style>
+                @keyframes _cfmIn { from { opacity:0; transform:scale(0.92) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+            </style>`;
+
+        document.body.appendChild(modal);
+
+        var close = function() { modal.remove(); };
+
+        document.getElementById('_chatConfirmCancel').addEventListener('click', close);
+        document.getElementById('_chatConfirmOk').addEventListener('click', function() {
+            close();
+            onConfirm();
+        });
+        modal.addEventListener('click', function(e) { if (e.target === modal) close(); });
+        var onKey = function(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
+        document.addEventListener('keydown', onKey);
+    }
+
     // Inject CSS
     var chatStyles = `
         .global-chat-widget {
@@ -368,6 +433,12 @@
             line-height: 1.4;
             word-break: break-word;
         }
+        .global-chat-bubble.deleted {
+            background: #F1F5F9 !important;
+            color: #94A3B8 !important;
+            border: 1px dashed #CBD5E1;
+            font-style: italic;
+        }
         .global-chat-msg-wrapper.mine .global-chat-bubble {
             background: #4F46E5;
             color: white;
@@ -389,6 +460,45 @@
         .global-chat-msg-wrapper.others .global-chat-time {
             align-self: flex-start;
         }
+        .global-chat-msg-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .global-chat-msg-row.mine {
+            flex-direction: row-reverse;
+        }
+        .global-chat-delete-btn {
+            background: none;
+            border: none;
+            color: #94A3B8;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .global-chat-msg-row:hover .global-chat-delete-btn {
+            opacity: 1;
+        }
+        .global-chat-delete-btn:hover {
+            color: #EF4444;
+        }
+        .global-chat-img {
+            max-width: 180px;
+            border-radius: 8px;
+            margin-top: 4px;
+            display: block;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .global-chat-img:hover {
+            transform: scale(1.02);
+        }
         .global-chat-input-area {
             padding: 12px;
             border-top: 1px solid #E2E8F0;
@@ -396,6 +506,30 @@
             gap: 8px;
             background: white;
             flex-shrink: 0;
+            align-items: center;
+        }
+        .global-chat-upload-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #F1F5F9;
+            color: #64748B;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .global-chat-upload-btn:hover {
+            background: #E2E8F0;
+            color: #1E293B;
+        }
+        .global-chat-upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .global-chat-input {
             flex: 1;
@@ -427,6 +561,21 @@
             background: #4338CA;
             transform: scale(1.05);
         }
+        .global-chat-delete-conv-btn {
+            background: none;
+            border: none;
+            color: #94A3B8;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        .global-chat-delete-conv-btn:hover {
+            color: #EF4444;
+        }
     `;
 
     var styleEl = document.createElement('style');
@@ -445,14 +594,23 @@
                     <div class="global-chat-header-title" id="globalChatHeaderTitle">
                         <i class="fa-solid fa-comments"></i> Trò chuyện hệ thống
                     </div>
-                    <button class="global-chat-close-btn" id="globalChatCloseBtn">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="global-chat-delete-conv-btn" id="globalChatDeleteConvBtn" style="display: none;" title="Xóa toàn bộ cuộc trò chuyện">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <button class="global-chat-close-btn" id="globalChatCloseBtn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="global-chat-body" id="globalChatBody">
                     <!-- Dynamic view goes here -->
                 </div>
                 <form class="global-chat-input-area" id="globalChatForm" style="display: none;">
+                    <input type="file" id="globalChatFileInput" accept="image/*" style="display: none;">
+                    <button type="button" class="global-chat-upload-btn" id="globalChatUploadBtn" title="Gửi hình ảnh">
+                        <i class="fa-solid fa-image"></i>
+                    </button>
                     <input type="text" class="global-chat-input" id="globalChatInput" placeholder="Nhập tin nhắn..." autocomplete="off">
                     <button type="submit" class="global-chat-send-btn">
                         <i class="fa-solid fa-paper-plane"></i>
@@ -481,8 +639,11 @@
     var chatBody = document.getElementById('globalChatBody');
     var chatForm = document.getElementById('globalChatForm');
     var chatInput = document.getElementById('globalChatInput');
+    var fileInput = document.getElementById('globalChatFileInput');
+    var uploadBtn = document.getElementById('globalChatUploadBtn');
     var headerTitle = document.getElementById('globalChatHeaderTitle');
     var closeBtn = document.getElementById('globalChatCloseBtn');
+    var deleteConvBtn = document.getElementById('globalChatDeleteConvBtn');
     var mainBadge = document.getElementById('globalChatBadge');
 
     // Setup Listeners
@@ -503,6 +664,32 @@
 
     closeBtn.onclick = closeChatWindow;
 
+    // Delete conversation handler
+    deleteConvBtn.onclick = function() {
+        showChatConfirm("Bạn có chắc chắn muốn xóa toàn bộ cuộc trò chuyện này?", async function() {
+            try {
+                var url = '/api/chat/conversations';
+                if (currentRecipientId) {
+                    url += '?recipient_id=' + currentRecipientId;
+                }
+                var res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    var roomId = currentRecipientId === null ? 'general' : String(currentRecipientId);
+                    cachedMessages[roomId] = [];
+                    renderMessagesView([]);
+                } else {
+                    alert("Không thể xóa cuộc trò chuyện.");
+                }
+            } catch (err) {
+                console.error("Error deleting conversation:", err);
+            }
+        }, { title: 'Xóa cuộc trò chuyện', confirmText: 'Xóa', type: 'danger' });
+    };
+
+    // Handle text messages
     chatForm.onsubmit = async function(e) {
         e.preventDefault();
         var msg = chatInput.value.trim();
@@ -543,6 +730,88 @@
         }
     };
 
+    // Handle file upload
+    uploadBtn.onclick = function() {
+        fileInput.click();
+    };
+
+    fileInput.onchange = async function() {
+        var file = fileInput.files[0];
+        if (!file) return;
+        fileInput.value = '';
+
+        chatInput.disabled = true;
+        uploadBtn.disabled = true;
+        var originalBtnHtml = uploadBtn.innerHTML;
+        uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            var res = await fetch('/api/chat/upload-image', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+
+            if (res.ok) {
+                var data = await res.json();
+                var resMsg = await fetch('/api/chat/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recipient_id: currentRecipientId,
+                        image_url: data.url
+                    })
+                });
+
+                if (resMsg.ok) {
+                    var newMsg = await resMsg.json();
+                    var roomId = currentRecipientId === null ? 'general' : String(currentRecipientId);
+                    if (!cachedMessages[roomId]) cachedMessages[roomId] = [];
+                    cachedMessages[roomId].push(newMsg);
+                    localStorage.setItem('chat_last_read_' + roomId + '_' + currentUser.id, String(newMsg.id));
+                    renderMessagesView(cachedMessages[roomId]);
+                }
+            } else {
+                alert("Lỗi tải ảnh lên. Định dạng không hợp lệ.");
+            }
+        } catch (err) {
+            console.error("Error uploading image:", err);
+            alert("Lỗi kết nối khi tải ảnh.");
+        } finally {
+            chatInput.disabled = false;
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHtml;
+            chatInput.focus();
+        }
+    };
+
+    // Delete message logic
+    window.deleteChatMessage = function(msgId) {
+        showChatConfirm("Bạn có chắc chắn muốn thu hồi tin nhắn này?", async function() {
+            try {
+                var res = await fetch('/api/chat/messages/' + msgId, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    var roomId = currentRecipientId === null ? 'general' : String(currentRecipientId);
+                    var msgs = await loadMessages(currentRecipientId);
+                    renderMessagesView(msgs);
+                } else {
+                    alert("Không thể thu hồi tin nhắn.");
+                }
+            } catch (err) {
+                console.error("Error deleting message:", err);
+            }
+        }, { title: 'Thu hồi tin nhắn', confirmText: 'Thu hồi', type: 'warning' });
+    };
+
     function closeChatWindow() {
         chatWindow.style.display = 'none';
         if (pollInterval) {
@@ -569,6 +838,7 @@
         if (currentMode === 'list') {
             headerTitle.innerHTML = '<i class="fa-solid fa-comments"></i> Trò chuyện hệ thống';
             chatForm.style.display = 'none';
+            if (deleteConvBtn) deleteConvBtn.style.display = 'none';
             renderListView();
         } else {
             // Mode is general or private
@@ -585,6 +855,10 @@
             chatForm.style.display = 'flex';
             chatInput.placeholder = currentMode === 'general' ? 'Nhắn tin nhóm...' : 'Nhắn cho ' + displayName + '...';
             chatInput.focus();
+            
+            if (deleteConvBtn) {
+                deleteConvBtn.style.display = (currentMode === 'private' || currentMode === 'general') ? 'block' : 'none';
+            }
             
             var roomId = currentRecipientId === null ? 'general' : String(currentRecipientId);
             renderMessagesLoader();
@@ -726,13 +1000,48 @@
                 : '<span class="global-chat-sender-role role-user">User</span>';
             var senderName = m.sender_full_name || m.sender_username;
             
+            // Build bubble content
+            var bubbleContent = '';
+            var bubbleClass = '';
+            if (m.is_deleted) {
+                bubbleClass = 'deleted';
+                if (currentUser.role === 'admin') {
+                    var adminLabel = '<span style="display:block; font-size:10px; color:#EF4444; margin-bottom:4px; font-weight:600;"><i class="fa-solid fa-eye"></i> Tin nhắn đã bị user xóa:</span>';
+                    bubbleContent += adminLabel;
+                    if (m.message) {
+                        bubbleContent += '<span style="text-decoration: line-through; opacity: 0.7;">' + escapeHtml(m.message) + '</span>';
+                    }
+                    if (m.image_url) {
+                        bubbleContent += '<img class="global-chat-img" src="' + m.image_url + '" style="opacity:0.6; filter:grayscale(50%);" onclick="window.open(\'' + m.image_url + '\', \'_blank\')">';
+                    }
+                } else {
+                    bubbleContent = '<i class="fa-solid fa-circle-minus"></i> <i>Tin nhắn đã bị thu hồi</i>';
+                }
+            } else {
+                if (m.message) {
+                    bubbleContent += '<div>' + escapeHtml(m.message) + '</div>';
+                }
+                if (m.image_url) {
+                    bubbleContent += '<img class="global-chat-img" src="' + m.image_url + '" onclick="window.open(\'' + m.image_url + '\', \'_blank\')">';
+                }
+            }
+            
+            // Render delete button if active and isMine
+            var deleteBtnHtml = '';
+            if (!m.is_deleted && isMine) {
+                deleteBtnHtml = '<button class="global-chat-delete-btn" onclick="deleteChatMessage(' + m.id + ')" title="Thu hồi tin nhắn"><i class="fa-solid fa-trash"></i></button>';
+            }
+            
             return `
                 <div class="global-chat-msg-wrapper ${wrapperClass}">
                     <div class="global-chat-sender-info">
                         <span class="global-chat-sender-name">${senderName}</span>
                         ${roleLabel}
                     </div>
-                    <div class="global-chat-bubble">${escapeHtml(m.message)}</div>
+                    <div class="global-chat-msg-row ${wrapperClass}">
+                        <div class="global-chat-bubble ${bubbleClass}">${bubbleContent}</div>
+                        ${deleteBtnHtml}
+                    </div>
                     <div class="global-chat-time">${timeStr}</div>
                 </div>
             `;

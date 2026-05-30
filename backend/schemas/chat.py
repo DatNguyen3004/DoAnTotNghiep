@@ -4,7 +4,8 @@ from typing import Optional
 
 class ChatMessageCreate(BaseModel):
     recipient_id: Optional[int] = None
-    message: str
+    message: Optional[str] = None
+    image_url: Optional[str] = None
 
 class ChatMessageOut(BaseModel):
     id: int
@@ -15,7 +16,9 @@ class ChatMessageOut(BaseModel):
     sender_avatar_url: Optional[str] = None
     recipient_id: Optional[int] = None
     recipient_username: Optional[str] = None
-    message: str
+    message: Optional[str] = None
+    image_url: Optional[str] = None
+    is_deleted: bool = False
     created_at: datetime
 
     class Config:

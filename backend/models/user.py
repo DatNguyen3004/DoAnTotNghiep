@@ -18,6 +18,7 @@ class User(Base):
     avatar_url    = Column(Unicode(500), nullable=True)
     reset_token   = Column(Unicode(255), nullable=True)
     reset_expires = Column(DateTime, nullable=True)
+    general_chat_cleared_at = Column(DateTime, nullable=True)
     created_at    = Column(DateTime, server_default=func.now())
     is_active     = Column(Boolean, default=True)
 
