@@ -879,19 +879,6 @@ async function showAdminTaskDetail(taskId) {
                 </div>
             </div>
 
-            <!-- Trao đổi gán nhãn -->
-            <div>
-                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Trao đổi gán nhãn</div>
-                <div id="adminTaskChatList" style="display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:8px">
-                    <div style="text-align:center;padding:8px;color:#94A3B8;font-size:13px">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải...
-                    </div>
-                </div>
-                <form onsubmit="sendAdminChatMessage(event, ${taskId})" style="display:flex;gap:6px">
-                    <input type="text" id="adminChatInput_${taskId}" placeholder="Admin nhập tin nhắn..." style="flex:1;height:36px;border:1px solid #CBD5E1;border-radius:6px;padding:0 12px;font-size:13px;outline:none" />
-                    <button type="submit" style="width:36px;height:36px;border-radius:6px;background:#2563EB;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px"><i class="fa-solid fa-paper-plane"></i></button>
-                </form>
-            </div>
 
         </div>
 
@@ -935,7 +922,6 @@ async function showAdminTaskDetail(taskId) {
     // Tải thông tin
     loadTaskHistory(taskId);
     loadAiSimilarity(taskId);
-    loadAdminTaskChats(taskId);
 }
 
 async function loadTaskHistory(taskId) {
