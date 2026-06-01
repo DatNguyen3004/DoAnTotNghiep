@@ -51,6 +51,17 @@ let annotations = {};
 
 // Set lưu id các nhãn vừa được review trong session (chưa lưu) — vẫn hiển thị ở tab Cần chú ý
 const sessionReviewedIds = new Set();
+const hiddenCategories = new Set();
+
+function toggleCategoryHide(catId) {
+    if (hiddenCategories.has(catId)) {
+        hiddenCategories.delete(catId);
+    } else {
+        hiddenCategories.add(catId);
+    }
+    redrawWithHandles();
+    renderLabelList();
+}
 
 // Drawing state
 let isDrawing = false;
@@ -894,7 +905,7 @@ function redrawAnnotations() {
     const attentionMode = window._currentResultTab === 'attention';
 
     currentAnns().forEach(ann => {
-        if (ann.hidden) return;
+        if (ann.hidden || hiddenCategories.has(ann.category)) return;
 
         const needsFlag = ann.needs_review === true;
 
@@ -1202,6 +1213,7 @@ function renderLabelList() {
         if (groupAnns.length === 0) return;
 
         const isCollapsed = collapsedCategories[cls.id] || false;
+        const isCatHidden = hiddenCategories.has(cls.id);
         
         // Render Group Header
         html += `
@@ -1212,7 +1224,13 @@ function renderLabelList() {
                 <span style="font-weight:700;font-size:13px;color:#1E293B">${cls.name}</span>
                 <span style="background:${cls.color}15;color:${cls.color};font-size:11px;font-weight:700;padding:1px 6px;border-radius:10px">${groupAnns.length}</span>
             </div>
-            <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#64748B;transition:transform 0.2s;${isCollapsed ? 'transform:rotate(-90deg)' : ''}"></i>
+            <div style="display:flex;align-items:center;gap:12px" onclick="event.stopPropagation()">
+                <i class="${isCatHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
+                   style="color:#64748B;cursor:pointer;font-size:13px" 
+                   title="${isCatHidden ? 'Hiện nhóm nhãn' : 'Ẩn nhóm nhãn'}"
+                   onclick="toggleCategoryHide('${cls.id}');event.stopPropagation()"></i>
+                <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#64748B;transition:transform 0.2s;${isCollapsed ? 'transform:rotate(-90deg)' : ''}" onclick="toggleCategoryCollapse('${cls.id}');event.stopPropagation()"></i>
+            </div>
         </div>
         <div class="category-group-content" style="${isCollapsed ? 'display:none' : ''}">
         `;
@@ -1231,7 +1249,7 @@ function renderLabelList() {
             const needsFlag = ann.needs_review === true;
             const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
             const sel = ann.id === selectedAnnId;
-            const hidden = ann.hidden || false;
+            const hidden = ann.hidden || isCatHidden;
             return `
             <div class="label-item ${sel ? 'active' : ''}" onclick="selectAnn('${ann.id}')">
                 <div class="label-info">

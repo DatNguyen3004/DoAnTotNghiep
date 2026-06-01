@@ -79,7 +79,7 @@ function getActionLink(task) {
     else if (s === 'under_review')
         mainLink = `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     else if (s === 'reviewed')
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link"><i class="fa-solid fa-circle-check"></i> Phê duyệt</button>`;
+        mainLink = `<a href="Evaluation.html?taskId=${task.id}" class="action-link review-link" style="text-decoration:none"><i class="fa-solid fa-eye"></i> Đánh giá</a>`;
     else if (s === 'approved')
         mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'rejected')
@@ -886,21 +886,17 @@ async function showAdminTaskDetail(taskId) {
         <div style="padding:16px 24px;border-top:1px solid #F1F5F9;display:flex;gap:10px;flex-shrink:0">
             ${s === 'reviewed'
             ? `
-               <button onclick="adminRejectTask(${taskId})" style="flex:1;height:42px;background:#FEF2F2;color:#EF4444;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
-                   <i class="fa-solid fa-circle-xmark"></i> Chưa đạt yêu cầu
-               </button>
-               <button onclick="adminApproveTask(${taskId})" style="flex:1;height:42px;background:#10B981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
-                   <i class="fa-solid fa-circle-check"></i> Đạt yêu cầu
-               </button>
+               <a href="Evaluation.html?taskId=${taskId}" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;text-decoration:none">
+                   <i class="fa-solid fa-eye"></i> Đánh giá chất lượng
+               </a>
+               <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
               `
             : (s === 'approved' || s === 'rejected')
             ? `
-               <button disabled style="flex:1;height:42px;background:${s === 'rejected' ? '#FEF2F2' : '#F1F5F9'};color:${s === 'rejected' ? '#EF4444' : '#94A3B8'};border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;opacity:${s === 'rejected' ? '1' : '0.5'}">
-                   <i class="fa-solid fa-circle-xmark"></i> Chưa đạt yêu cầu
-               </button>
-               <button disabled style="flex:1;height:42px;background:${s === 'approved' ? '#10B981' : '#F1F5F9'};color:${s === 'approved' ? '#fff' : '#94A3B8'};border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;opacity:${s === 'approved' ? '0.6' : '0.5'}">
-                   <i class="fa-solid fa-circle-check"></i> Đạt yêu cầu
-               </button>
+               <a href="Evaluation.html?taskId=${taskId}" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;text-decoration:none">
+                   <i class="fa-solid fa-eye"></i> Xem chất lượng gán nhãn
+               </a>
+               <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
               `
             : `
                <a href="../User/Label_Review.html?taskId=${taskId}" target="_blank"

@@ -721,3 +721,180 @@ def post_task_chat(
         created_at=chat.created_at,
     )
 
+
+# ───────────────────────────────────────────────
+# GET /api/tasks/{task_id}/evaluation-details
+# ───────────────────────────────────────────────
+@router.get("/{task_id}/evaluation-details")
+def get_task_evaluation_details(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed frame-by-frame comparison between AI predictions and user edits.
+    Only accessible by Admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền truy cập trang đánh giá chất lượng")
+        
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+        
+    labeler = db.query(User).filter(User.id == task.assigned_to).first()
+    reviewer = db.query(User).filter(User.id == task.reviewer_id).first()
+    scene = db.query(Scene).filter(Scene.id == task.scene_id).first()
+    
+    frames = db.query(Frame).filter(Frame.scene_id == task.scene_id).order_by(Frame.frame_index.asc()).all()
+    user_annotations = db.query(Annotation).filter(Annotation.task_id == task_id).all()
+    
+    user_ann_groups = {}
+    for ann in user_annotations:
+        key = f"{ann.frame_id}_{ann.camera}"
+        if key not in user_ann_groups:
+            user_ann_groups[key] = []
+        user_ann_groups[key].append({
+            "id": ann.id,
+            "category": ann.category,
+            "bbox_x": ann.bbox_x,
+            "bbox_y": ann.bbox_y,
+            "bbox_w": ann.bbox_w,
+            "bbox_h": ann.bbox_h,
+            "track_id": ann.track_id,
+            "custom_name": ann.custom_name,
+        })
+        
+    cache_dir = os.path.join("static", "cache", "predictions")
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f"task_{task_id}.json")
+    
+    all_ai_preds = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                all_ai_preds = json.load(f)
+        except Exception:
+            all_ai_preds = {}
+            
+    if not all_ai_preds:
+        for f in frames:
+            for cam in CAMERA_COLUMN_MAP.keys():
+                column = CAMERA_COLUMN_MAP[cam]
+                if getattr(f, column, None):
+                    preds = get_ai_predictions_for_frame_cam(db, f.id, cam)
+                    key = f"{f.id}_{cam}"
+                    all_ai_preds[key] = preds
+        try:
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(all_ai_preds, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error saving AI prediction cache: {e}")
+
+    def py_iou(boxA, boxB):
+        ax1, ay1 = boxA["bbox_x"], boxA["bbox_y"]
+        ax2, ay2 = boxA["bbox_x"] + boxA["bbox_w"], boxA["bbox_y"] + boxA["bbox_h"]
+        bx1, by1 = boxB["bbox_x"], boxB["bbox_y"]
+        bx2, by2 = boxB["bbox_x"] + boxB["bbox_w"], boxB["bbox_y"] + boxB["bbox_h"]
+        
+        ix1 = max(ax1, bx1)
+        iy1 = max(ay1, by1)
+        ix2 = min(ax2, bx2)
+        iy2 = min(ay2, by2)
+        
+        if ix2 <= ix1 or iy2 <= iy1:
+            return 0.0
+        inter = (ix2 - ix1) * (iy2 - iy1)
+        union = (boxA["bbox_w"] * boxA["bbox_h"]) + (boxB["bbox_w"] * boxB["bbox_h"]) - inter
+        return inter / union if union > 0.0 else 0.0
+
+    frames_data = []
+    for f in frames:
+        cams_with_images = []
+        cams_comparison = {}
+        
+        for cam in CAMERA_COLUMN_MAP.keys():
+            column = CAMERA_COLUMN_MAP[cam]
+            if getattr(f, column, None):
+                cams_with_images.append(cam)
+                
+                key = f"{f.id}_{cam}"
+                ai_list = all_ai_preds.get(key, [])
+                user_list = user_ann_groups.get(key, [])
+                
+                available_ai = [dict(p) for p in ai_list]
+                matched = []
+                missing = []
+                extra = []
+                matched_user_ids = set()
+                
+                for user_ann in user_list:
+                    best_match = None
+                    best_iou = 0.1
+                    best_idx = -1
+                    
+                    for idx, ai_box in enumerate(available_ai):
+                        if ai_box["category"] == user_ann["category"]:
+                            iou_val = py_iou(user_ann, ai_box)
+                            if iou_val > best_iou:
+                                best_iou = iou_val
+                                best_match = ai_box
+                                best_idx = idx
+                                
+                    if best_match:
+                        matched.append({
+                            "user_box": user_ann,
+                            "ai_box": best_match,
+                            "iou": round(best_iou, 4)
+                        })
+                        available_ai.pop(best_idx)
+                        matched_user_ids.add(user_ann["id"])
+                
+                for ai_box in available_ai:
+                    missing.append(ai_box)
+                    
+                for user_ann in user_list:
+                    if user_ann["id"] not in matched_user_ids:
+                        extra.append(user_ann)
+                        
+                total_objs = len(matched) + len(missing) + len(extra)
+                cam_iou = 0.0
+                if total_objs > 0:
+                    sum_iou = sum(m["iou"] for m in matched)
+                    cam_iou = sum_iou / total_objs
+                
+                cams_comparison[cam] = {
+                    "ai_boxes": ai_list,
+                    "user_boxes": user_list,
+                    "matched": matched,
+                    "missing": missing,
+                    "extra": extra,
+                    "similarity": round(cam_iou * 100, 2)
+                }
+                
+        frames_data.append({
+            "id": f.id,
+            "frame_index": f.frame_index,
+            "cameras": cams_with_images,
+            "comparison": cams_comparison
+        })
+        
+    return {
+        "task_id": task.id,
+        "scene_name": scene.name or scene.scene_token if scene else None,
+        "status": task.status,
+        "feedback": task.feedback,
+        "labeler": {
+            "id": labeler.id if labeler else None,
+            "username": labeler.username if labeler else None,
+            "full_name": labeler.full_name if labeler else None,
+        } if labeler else None,
+        "reviewer": {
+            "id": reviewer.id if reviewer else None,
+            "username": reviewer.username if reviewer else None,
+            "full_name": reviewer.full_name if reviewer else None,
+        } if reviewer else None,
+        "frames": frames_data
+    }
+
+

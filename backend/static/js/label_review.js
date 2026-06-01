@@ -36,11 +36,54 @@ let currentFrameIdx = 0;
 let currentCamera = 'CAM_FRONT';
 let annotations = {};
 let hiddenIds = new Set();
+const hiddenCategories = new Set();
 let selectedAnnId = null;
 let collapsedCategories = {};
 
 // Per-frame review state: { [frameId]: { status: 'correct'|'wrong'|null, feedback: '' } }
 let frameReviews = {};
+
+// ============= TASK INFO & IMAGE FILTER CONTROLS =============
+function openTaskInfo() {
+    const modal = document.getElementById('modalTaskInfo');
+    if (!modal || !task) return;
+    document.getElementById('infoProjectName').textContent = task.project_name || '—';
+    document.getElementById('infoTaskName').textContent = task.scene_name || `Nhiệm vụ #${task.id}`;
+    document.getElementById('infoLabeler').textContent = task.assigned_user
+        ? (task.assigned_user.username + (task.assigned_user.full_name ? ' — ' + task.assigned_user.full_name : ''))
+        : '—';
+    document.getElementById('infoReviewer').textContent = task.reviewer_user
+        ? (task.reviewer_user.username + (task.reviewer_user.full_name ? ' — ' + task.reviewer_user.full_name : ''))
+        : 'Chưa phân công';
+    modal.style.display = 'flex';
+}
+
+function applyImageFilter() {
+    const brightness = document.getElementById('brightnessSlider')?.value || 100;
+    const contrast = document.getElementById('contrastSlider')?.value || 100;
+    document.getElementById('brightnessVal').textContent = brightness + '%';
+    document.getElementById('contrastVal').textContent = contrast + '%';
+    const img = document.getElementById('mainImage');
+    if (img) img.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+}
+
+function resetImageFilter() {
+    const bs = document.getElementById('brightnessSlider');
+    const cs = document.getElementById('contrastSlider');
+    if (bs) bs.value = 100;
+    if (cs) cs.value = 100;
+    applyImageFilter();
+}
+
+function toggleCategoryHide(catId) {
+    if (hiddenCategories.has(catId)) {
+        hiddenCategories.delete(catId);
+    } else {
+        hiddenCategories.add(catId);
+    }
+    redrawAnnotations();
+    renderLabelList();
+}
 
 function saveReviewsToStorage() {
     localStorage.setItem(`review_${taskId}`, JSON.stringify(frameReviews));
@@ -437,7 +480,7 @@ function redrawAnnotations() {
     if (!annCtx) return;
     annCtx.clearRect(0, 0, annCanvas.width, annCanvas.height);
     currentAnns().forEach(ann => {
-        if (hiddenIds.has(ann.id)) return;
+        if (hiddenIds.has(ann.id) || hiddenCategories.has(ann.category)) return;
         const cls = CLASS_MAP[ann.category];
         const color = cls ? cls.color : '#14B8A6';
         const x = ann.bbox_x * imgDisplayW;
@@ -516,6 +559,7 @@ function renderLabelList() {
         if (groupAnns.length === 0) return;
 
         const isCollapsed = collapsedCategories[cls.id] || false;
+        const isCatHidden = hiddenCategories.has(cls.id);
         
         // Render Group Header
         html += `
@@ -526,7 +570,13 @@ function renderLabelList() {
                 <span style="font-weight:700;font-size:13px;color:#1E293B">${cls.name}</span>
                 <span style="background:${cls.color}15;color:${cls.color};font-size:11px;font-weight:700;padding:1px 6px;border-radius:10px">${groupAnns.length}</span>
             </div>
-            <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#64748B;transition:transform 0.2s;${isCollapsed ? 'transform:rotate(-90deg)' : ''}"></i>
+            <div style="display:flex;align-items:center;gap:12px" onclick="event.stopPropagation()">
+                <i class="${isCatHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
+                   style="color:#64748B;cursor:pointer;font-size:13px" 
+                   title="${isCatHidden ? 'Hiện nhóm nhãn' : 'Ẩn nhóm nhãn'}"
+                   onclick="toggleCategoryHide('${cls.id}');event.stopPropagation()"></i>
+                <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#64748B;transition:transform 0.2s;${isCollapsed ? 'transform:rotate(-90deg)' : ''}" onclick="toggleCategoryCollapse('${cls.id}');event.stopPropagation()"></i>
+            </div>
         </div>
         <div class="category-group-content" style="${isCollapsed ? 'display:none' : ''}">
         `;
@@ -536,7 +586,8 @@ function renderLabelList() {
             const color = cls.color;
             const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '??';
             const label = ann.custom_name ? `${tNum} - ${ann.custom_name}` : `${tNum}`;
-            const hidden = hiddenIds.has(ann.id);
+            const isAnnHidden = hiddenIds.has(ann.id);
+            const hidden = isAnnHidden || isCatHidden;
             const sel = ann.id === selectedAnnId;
             const flagMark = ann.needs_review
                 ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px"></i>' : '';
@@ -565,9 +616,9 @@ function renderLabelList() {
                         <span class="label-name" style="opacity:${hidden ? 0.4 : 1}">${label}${aiMark}${flagMark}</span>
                     </div>
                 </div>
-                <i class="${hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}"
-                   style="color:#94A3B8;cursor:pointer;font-size:13px"
-                   title="${hidden ? 'Hiện nhãn' : 'Ẩn nhãn'}"
+                <i class="${isAnnHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}"
+                   style="color:#94A3B8;cursor:pointer;font-size:13px;opacity:${isCatHidden ? 0.4 : 1};pointer-events:${isCatHidden ? 'none' : 'auto'}"
+                   title="${isAnnHidden ? 'Hiện nhãn' : 'Ẩn nhãn'}"
                    onclick="toggleHide('${ann.id}');event.stopPropagation()"></i>
             </div>`;
         }).join('');

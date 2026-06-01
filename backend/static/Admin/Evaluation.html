@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đánh giá chất lượng gán nhãn</title>
+    <link rel="icon" type="image/png" href="/static/image/NuLabel-removebg-preview.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../User/css/Label.css?v=22">
+    <style>
+        :root {
+            --primary-blue: #2563EB;
+            --primary-hover: #1D4ED8;
+            --bg-nav: #FFFFFF;
+            --bg-toolbar: #FFFFFF;
+            --bg-panel: #FFFFFF;
+            --bg-canvas: #E2E8F0;
+            --bg-body: #F8FAFC;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --text-light: #94A3B8;
+            --border-color: #E2E8F0;
+            --accent-teal: #14B8A6;
+            --danger: #EF4444;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Navbar & Header layout */
+        .navbar {
+            height: 72px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-back-home {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .btn-back-home:hover {
+            color: var(--primary-blue);
+        }
+
+        .nav-brand-eval {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-brand-eval h1 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .eval-meta-info {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .eval-meta-info strong {
+            color: var(--text-main);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        /* Metrics in Navbar */
+        .nav-metrics {
+            display: flex;
+            gap: 12px;
+        }
+
+        .metric-pill {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 12px;
+            text-align: center;
+            min-width: 90px;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--primary-blue);
+        }
+
+        .metric-value.warning {
+            color: var(--danger);
+        }
+
+        .metric-value.info {
+            color: var(--info);
+        }
+
+        /* Workspace Layout */
+        .workspace {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* Left Panel - CAMS VIEW */
+        .panel-left {
+            width: 220px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cam-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 20px 20px;
+        }
+
+        .cam-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cam-item {
+            position: relative;
+            width: 100%;
+            height: 90px;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            background: #F1F5F9;
+        }
+
+        .cam-item.active {
+            border-color: var(--primary-blue);
+            border-width: 3px;
+        }
+
+        .cam-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cam-item img.hidden {
+            display: none !important;
+        }
+
+        .cam-nodata {
+            position: absolute;
+            inset: 0;
+            background: #F1F5F9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            pointer-events: none;
+        }
+
+        .cam-nodata i {
+            font-size: 20px;
+            color: #94A3B8;
+        }
+
+        .cam-nodata span {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94A3B8;
+        }
+
+        .cam-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 12px 6px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Center Layout: Images (top) & Dashboard (bottom) */
+        .main-content-layout {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .viewport-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0F172A;
+        }
+
+        .toolbar {
+            height: 48px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-nav-arrow {
+            background: none;
+            border: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-nav-arrow:hover:not(:disabled) {
+            background: #F1F5F9;
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .btn-nav-arrow:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .frame-indicator {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .toolbar-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        /* Dual Viewports */
+        .comparison-viewports {
+            flex-grow: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            background: #0F172A;
+        }
+
+        .viewport-pane {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viewport-pane:first-child {
+            border-right: 1px solid #334155;
+        }
+
+        .viewport-label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .canvas-container {
+            position: relative;
+            transform-origin: center center;
+            cursor: grab;
+            transition: transform 0.05s ease-out;
+        }
+
+        .canvas-container:active {
+            cursor: grabbing;
+        }
+
+        .comparison-image {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Overlay mode active */
+        .overlay-mode-active #aiViewport {
+            display: none;
+        }
+
+        .overlay-mode-active #userViewport .viewport-label {
+            background: rgba(124, 58, 237, 0.9);
+        }
+
+        /* Bottom Dashboard Layout */
+        .bottom-dashboard {
+            height: 300px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1.2fr;
+            gap: 20px;
+            padding: 16px 24px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .bottom-sec-col {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .bottom-sec-header {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .bottom-sec-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        /* Custom scrollbar for columns */
+        .bottom-sec-body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .bottom-sec-body::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 2px;
+        }
+
+        /* Differences list styling */
+        .diff-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .diff-group-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            margin-top: 4px;
+        }
+
+        .diff-card {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .diff-card.matched {
+            border-left: 3px solid var(--success);
+        }
+
+        .diff-card.missing {
+            border-left: 3px solid var(--danger);
+            background: #FFF5F5;
+        }
+
+        .diff-card.extra {
+            border-left: 3px solid var(--info);
+            background: #F0F7FF;
+        }
+
+        .diff-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diff-cat {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .diff-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+
+        .diff-badge.success {
+            background: #DEF7EC;
+            color: #03543F;
+        }
+
+        .diff-badge.danger {
+            background: #FDE8E8;
+            color: #9B1C1C;
+        }
+
+        .diff-badge.info {
+            background: #E1EFFE;
+            color: #1E429F;
+        }
+
+        .diff-details {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* Speech bubbles for chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-msg-row {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .chat-msg-bubble {
+            max-width: 90%;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .chat-msg-row.labeler .chat-msg-bubble {
+            background: #EEF2FF;
+            color: #312E81;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-msg-row.reviewer .chat-msg-bubble {
+            background: #ECFDF5;
+            color: #064E3B;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-msg-meta {
+            font-size: 9px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 4px;
+            padding: 0 2px;
+        }
+
+        .chat-msg-row.labeler .chat-msg-meta {
+            justify-content: flex-start;
+        }
+
+        .chat-msg-row.reviewer .chat-msg-meta {
+            justify-content: flex-end;
+        }
+
+        /* Timeline milestones style */
+        .timeline {
+            position: relative;
+            padding-left: 16px;
+            margin-left: 6px;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -22px;
+            top: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            border: 2px solid #ffffff;
+        }
+
+        .timeline-item.active .timeline-dot {
+            background: var(--primary-blue);
+        }
+
+        .timeline-content {
+            background: #F8FAFC;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .timeline-time {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .timeline-title {
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 2px;
+        }
+
+        .timeline-desc {
+            color: var(--text-muted);
+            white-space: pre-line;
+        }
+
+        /* Action Feedback Form */
+        .feedback-textarea {
+            width: 100%;
+            height: 130px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #F8FAFC;
+        }
+
+        .feedback-textarea:focus {
+            border-color: var(--primary-blue);
+            background: #ffffff;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            flex: 1;
+            height: 38px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-action.reject {
+            background: #FEE2E2;
+            color: var(--danger);
+        }
+
+        .btn-action.reject:hover {
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        .btn-action.approve {
+            background: #DCFCE7;
+            color: var(--success);
+        }
+
+        .btn-action.approve:hover {
+            background: var(--success);
+            color: #ffffff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <a href="dashboard.html" class="btn-back-home"><i class="fa-solid fa-arrow-left"></i> Trang chủ</a>
+            <span style="width:1px; height:20px; background:var(--border-color); margin:0 12px"></span>
+            <div class="nav-brand-eval">
+                <h1 id="evalTaskTitle">Đánh giá chất lượng nhiệm vụ...</h1>
+                <div class="eval-meta-info">
+                    <span><i class="fa-solid fa-folder"></i> Dự án: <strong id="evalProjectName">—</strong></span>
+                    <span style="margin:0 4px; opacity: 0.5">|</span>
+                    <span><i class="fa-solid fa-user"></i> Người gán nhãn: <strong id="evalLabelerName">—</strong></span>
+                    <span style="margin:0 4px; opacity: 0.5">|</span>
+                    <span><i class="fa-solid fa-user-tie"></i> Người kiểm thử: <strong id="evalReviewerName">—</strong></span>
+                </div>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-metrics">
+                <div class="metric-pill">
+                    <div class="metric-label">Độ tương đồng</div>
+                    <div class="metric-value" id="overallSimilarity">—%</div>
+                </div>
+                <div class="metric-pill">
+                    <div class="metric-label">Bỏ sót (AI gốc)</div>
+                    <div class="metric-value warning" id="overallMissing">0</div>
+                </div>
+                <div class="metric-pill">
+                    <div class="metric-label">Thêm dư</div>
+                    <div class="metric-value info" id="overallExtra">0</div>
+                </div>
+            </div>
+            <span style="width:1px; height:24px; background:var(--border-color); margin:0 12px"></span>
+            <div class="user-avatar" id="userAvatar">AD</div>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        <!-- Left Panel: Camera Thumbnails -->
+        <aside class="panel-left">
+            <div class="panel-header">CAMERA</div>
+            <div class="cam-list" id="camList">
+                <!-- Dynamically loaded from JS -->
+            </div>
+        </aside>
+
+        <!-- Right Side Main Content Layout -->
+        <div class="main-content-layout">
+            <!-- Top Image Viewports Section -->
+            <section class="viewport-section">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn-nav-arrow" id="btnPrevFrame" onclick="prevFrame()"><i class="fa-solid fa-angle-left"></i> Khung hình trước</button>
+                        <span class="frame-indicator" id="frameIndicator">Khung hình 1 / 1</span>
+                        <button class="btn-nav-arrow" id="btnNextFrame" onclick="nextFrame()">Khung hình sau <i class="fa-solid fa-angle-right"></i></button>
+                    </div>
+                    <div class="toolbar-right">
+                        <!-- Overlay Toggle -->
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-main)">
+                            <input type="checkbox" id="chkOverlay" onchange="toggleOverlayMode()" /> Xem đè (Overlay AI & User)
+                        </label>
+                        <span style="width:1px; height:18px; background:var(--border-color); margin:0 8px"></span>
+                        <!-- Zoom Controls -->
+                        <div style="display:flex; align-items:center; gap:6px">
+                            <button class="toolbar-btn" onclick="zoomOut()"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <span id="zoomLevel" style="font-size:12px; font-weight:700; min-width:38px; text-align:center; color:var(--text-main)">100%</span>
+                            <button class="toolbar-btn" onclick="zoomIn()"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button class="toolbar-btn" onclick="resetZoom()"><i class="fa-solid fa-rotate-left"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side-by-side viewports -->
+                <div class="comparison-viewports" id="comparisonViewports">
+                    <!-- AI Viewport -->
+                    <div class="viewport-pane" id="aiViewport">
+                        <div class="viewport-label">AI Original (Dự đoán gốc)</div>
+                        <div class="canvas-container" id="aiContainer">
+                            <img id="aiImage" class="comparison-image" src="" alt="AI Frame">
+                            <canvas id="aiCanvas" style="position:absolute; top:0; left:0; pointer-events:none"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- User Viewport -->
+                    <div class="viewport-pane" id="userViewport">
+                        <div class="viewport-label" id="userViewportLabel">User Final (Chỉnh sửa cuối)</div>
+                        <div class="canvas-container" id="userContainer">
+                            <img id="userImage" class="comparison-image" src="" alt="User Frame">
+                            <canvas id="userCanvas" style="position:absolute; top:0; left:0; pointer-events:none"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Dashboard Section -->
+            <section class="bottom-dashboard">
+                <!-- Column 1: Differences / Comparisons -->
+                <div class="bottom-sec-col">
+                    <div class="bottom-sec-header">
+                        <i class="fa-solid fa-code-compare"></i> So sánh nhãn
+                    </div>
+                    <div class="bottom-sec-body" id="diffList">
+                        <!-- Comparisons lists loaded here -->
+                    </div>
+                </div>
+
+                <!-- Column 2: Conversations / Chats -->
+                <div class="bottom-sec-col">
+                    <div class="bottom-sec-header">
+                        <i class="fa-solid fa-comments"></i> Trao đổi gán nhãn
+                    </div>
+                    <div class="bottom-sec-body" id="chatContainer">
+                        <!-- Chat messages loaded here -->
+                    </div>
+                </div>
+
+                <!-- Column 3: Timelines / History -->
+                <div class="bottom-sec-col">
+                    <div class="bottom-sec-header">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử nhiệm vụ
+                    </div>
+                    <div class="bottom-sec-body" id="timelineList">
+                        <!-- Timeline milestones loaded here -->
+                    </div>
+                </div>
+
+                <!-- Column 4: Admin Approve & Feedback actions -->
+                <div class="bottom-sec-col">
+                    <div class="bottom-sec-header">
+                        <i class="fa-solid fa-gavel"></i> Đánh giá của Admin
+                    </div>
+                    <div class="bottom-sec-body" style="display:flex; flex-direction:column; overflow:visible">
+                        <textarea class="feedback-textarea" id="adminFeedback" placeholder="Nhập nhận xét phê duyệt hoặc lý do từ chối..."></textarea>
+                        <div class="action-buttons" id="adminActionCard">
+                            <button class="btn-action reject" onclick="submitEvaluation('rejected')">
+                                <i class="fa-solid fa-circle-xmark"></i> Không đạt yêu cầu
+                            </button>
+                            <button class="btn-action approve" onclick="submitEvaluation('approved')">
+                                <i class="fa-solid fa-circle-check"></i> Đạt yêu cầu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="../js/confirm.js"></script>
+    <script src="../js/avatar-sync.js"></script>
+    <script>
+        const BASE_URL = '/api';
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('taskId');
+
+        if (!taskId) {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Categories map
+        const CLASSES = [
+            { id: 'vehicle.car',        name: 'Xe con',       icon: 'fa-car',              color: '#3B82F6' },
+            { id: 'vehicle.truck',      name: 'Xe tải',       icon: 'fa-truck',            color: '#F59E0B' },
+            { id: 'vehicle.bus',        name: 'Xe buýt',      icon: 'fa-bus',              color: '#8B5CF6' },
+            { id: 'vehicle.motorcycle', name: 'Xe máy',       icon: 'fa-motorcycle',       color: '#EC4899' },
+            { id: 'vehicle.bicycle',    name: 'Xe đạp',       icon: 'fa-bicycle',          color: '#F97316' },
+            { id: 'human.pedestrian',   name: 'Người đi bộ',  icon: 'fa-person-walking',   color: '#10B981' },
+        ];
+        const CLASS_MAP = {};
+        CLASSES.forEach(c => CLASS_MAP[c.id] = c);
+
+        const CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT'];
+        const CAM_LABELS = {
+            CAM_FRONT: 'Cam trước', 
+            CAM_FRONT_LEFT: 'Cam trái trước', 
+            CAM_FRONT_RIGHT: 'Cam phải trước',
+            CAM_BACK: 'Cam sau', 
+            CAM_BACK_LEFT: 'Cam trái sau', 
+            CAM_BACK_RIGHT: 'Cam phải sau',
+        };
+
+        // State variables
+        let evaluationData = null;
+        let selectedFrameIdx = 0;
+        let selectedCamera = 'CAM_FRONT';
+        let zoomScale = 1.0;
+        let panOffset = { x: 0, y: 0 };
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+        let overlayMode = false;
+
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        // Initialize Page
+        async function initPage() {
+            try {
+                // Fetch evaluation details
+                const res = await fetch(`${BASE_URL}/tasks/${taskId}/evaluation-details`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        alert('Bạn không có quyền truy cập trang này.');
+                        window.location.href = '/static/login.html';
+                        return;
+                    }
+                    throw new Error('Không thể tải thông tin đối chiếu');
+                }
+                evaluationData = await res.json();
+
+                // Setup header details
+                document.getElementById('evalTaskTitle').textContent = `Đánh giá chất lượng nhiệm vụ #${evaluationData.task_id}`;
+                document.getElementById('evalProjectName').textContent = evaluationData.scene_name;
+                document.getElementById('evalLabelerName').textContent = evaluationData.labeler ? evaluationData.labeler.full_name || evaluationData.labeler.username : 'N/A';
+                document.getElementById('evalReviewerName').textContent = evaluationData.reviewer ? evaluationData.reviewer.full_name || evaluationData.reviewer.username : 'N/A';
+
+                // Check existing status
+                if (evaluationData.status === 'approved') {
+                    document.getElementById('adminFeedback').style.display = 'none';
+                    document.getElementById('adminActionCard').innerHTML = `
+                        <div style="text-align:center; padding:12px; background:#DCFCE7; color:#15803D; font-weight:700; border-radius:8px; font-size:13px; width:100%">
+                            <i class="fa-solid fa-circle-check"></i> Nhiệm vụ đã được Admin phê duyệt thành công
+                        </div>
+                    `;
+                } else if (evaluationData.status === 'rejected') {
+                    document.getElementById('adminFeedback').style.display = 'none';
+                    document.getElementById('adminActionCard').innerHTML = `
+                        <div style="text-align:center; padding:12px; background:#FEE2E2; color:#B91C1C; font-weight:700; border-radius:8px; font-size:13px; margin-bottom:8px; width:100%">
+                            <i class="fa-solid fa-circle-xmark"></i> Nhiệm vụ đã bị từ chối
+                        </div>
+                        <div style="font-size:11px; color:var(--text-muted); background:#F8FAFC; padding:10px; border-radius:6px; border:1px solid var(--border-color)">
+                            <strong>Lý do từ chối trước đó:</strong><br>
+                            <span style="white-space:pre-wrap">${evaluationData.feedback || 'Không có nhận xét'}</span>
+                        </div>
+                    `;
+                }
+
+                // Calculate metrics
+                calculateTotalMetrics();
+
+                // Load chat and history in parallel
+                loadChats();
+                loadHistory();
+
+                // Go to first frame
+                if (evaluationData.frames.length > 0) {
+                    await selectFrame(0);
+                }
+
+                // Setup Panning Events
+                initPanControls();
+
+            } catch (err) {
+                console.error(err);
+                alert(err.message || 'Có lỗi xảy ra khi tải trang.');
+            }
+        }
+
+        // Metrics calculations
+        function calculateTotalMetrics() {
+            let totalMissing = 0;
+            let totalExtra = 0;
+            let totalMatched = 0;
+            let totalIou = 0.0;
+            let totalComparisons = 0;
+
+            evaluationData.frames.forEach(frame => {
+                Object.values(frame.comparison).forEach(camComp => {
+                    totalMissing += camComp.missing.length;
+                    totalExtra += camComp.extra.length;
+                    totalMatched += camComp.matched.length;
+
+                    camComp.matched.forEach(m => {
+                        totalIou += m.iou;
+                        totalComparisons++;
+                    });
+                    totalComparisons += camComp.missing.length;
+                    totalComparisons += camComp.extra.length;
+                });
+            });
+
+            document.getElementById('overallMissing').textContent = totalMissing;
+            document.getElementById('overallExtra').textContent = totalExtra;
+
+            if (totalComparisons > 0) {
+                const avgIou = totalIou / totalComparisons;
+                document.getElementById('overallSimilarity').textContent = `${Math.round(avgIou * 100)}%`;
+            } else {
+                document.getElementById('overallSimilarity').textContent = '100%';
+            }
+        }
+
+        // Frame Navigation Actions
+        function prevFrame() {
+            if (selectedFrameIdx > 0) {
+                selectFrame(selectedFrameIdx - 1);
+            }
+        }
+
+        function nextFrame() {
+            if (selectedFrameIdx < evaluationData.frames.length - 1) {
+                selectFrame(selectedFrameIdx + 1);
+            }
+        }
+
+        // Select active frame
+        async function selectFrame(idx) {
+            selectedFrameIdx = idx;
+            const frame = evaluationData.frames[idx];
+
+            // Update toolbar indicator
+            document.getElementById('frameIndicator').textContent = `Khung hình ${idx + 1} / ${evaluationData.frames.length}`;
+            document.getElementById('btnPrevFrame').disabled = (idx === 0);
+            document.getElementById('btnNextFrame').disabled = (idx === evaluationData.frames.length - 1);
+
+            // Keep selectedCamera if available, else pick first camera
+            if (frame.cameras.length > 0) {
+                if (!frame.cameras.includes(selectedCamera)) {
+                    selectedCamera = frame.cameras[0];
+                }
+                // Render camera list panel on the left
+                renderCamList();
+                // Refresh image and annotations
+                await loadComparisonImages();
+            } else {
+                alert('Không có dữ liệu camera cho khung hình này');
+            }
+        }
+
+        // Render vertical camera thumbnails list on the left side
+        function renderCamList() {
+            const list = document.getElementById('camList');
+            const frame = evaluationData.frames[selectedFrameIdx];
+            
+            list.innerHTML = CAMERAS.map(cam => {
+                const hasData = frame.cameras.includes(cam);
+                const active = cam === selectedCamera;
+                const comp = frame.comparison[cam];
+                const simText = comp ? `(${Math.round(comp.similarity)}%)` : '';
+                
+                return `
+                <div class="cam-row">
+                    <div class="cam-item ${active ? 'active' : ''}" ${hasData ? `onclick="selectCamera('${cam}')"` : ''}>
+                        <img id="thumb_${cam}" src="" class="hidden">
+                        <div id="nodata_${cam}" class="cam-nodata" style="display:${hasData ? 'none' : 'flex'}">
+                            <i class="fa-solid fa-camera-slash"></i>
+                            <span>Không có</span>
+                        </div>
+                        <div class="cam-label">${CAM_LABELS[cam] || cam} ${simText}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            // Load thumbnails for active cams
+            CAMERAS.forEach(cam => {
+                if (frame.cameras.includes(cam)) {
+                    loadThumb(frame, cam);
+                }
+            });
+        }
+
+        async function loadThumb(frame, cam) {
+            const img = document.getElementById(`thumb_${cam}`);
+            if (!img) return;
+            try {
+                const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (!res.ok) {
+                    img.classList.add('hidden');
+                    return;
+                }
+                const blob = await res.blob();
+                img.src = URL.createObjectURL(blob);
+                img.classList.remove('hidden');
+            } catch (e) {
+                img.classList.add('hidden');
+            }
+        }
+
+        // Select camera
+        async function selectCamera(cam) {
+            selectedCamera = cam;
+            renderCamList();
+            await loadComparisonImages();
+        }
+
+        // Load images for current frame and camera
+        async function loadComparisonImages() {
+            const frame = evaluationData.frames[selectedFrameIdx];
+            const aiImg = document.getElementById('aiImage');
+            const userImg = document.getElementById('userImage');
+
+            // Set loading placeholder
+            aiImg.src = '';
+            userImg.src = '';
+
+            try {
+                const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${selectedCamera}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Không tải được ảnh');
+                
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                // Set src on both images
+                aiImg.src = blobUrl;
+                userImg.src = blobUrl;
+
+                // Sync draw annotations once image is loaded
+                const onImageLoad = () => {
+                    if (aiImg.complete && userImg.complete) {
+                        resizeAndDrawAnnotations();
+                    }
+                };
+                aiImg.onload = onImageLoad;
+                userImg.onload = onImageLoad;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Canvas Redrawing logic
+        function resizeAndDrawAnnotations() {
+            const aiImg = document.getElementById('aiImage');
+            const userImg = document.getElementById('userImage');
+            const aiCanvas = document.getElementById('aiCanvas');
+            const userCanvas = document.getElementById('userCanvas');
+
+            const width = userImg.offsetWidth;
+            const height = userImg.offsetHeight;
+
+            // Set size of canvases matching display size of images
+            aiCanvas.width = width;
+            aiCanvas.height = height;
+            userCanvas.width = width;
+            userCanvas.height = height;
+
+            const aiCtx = aiCanvas.getContext('2d');
+            const userCtx = userCanvas.getContext('2d');
+
+            aiCtx.clearRect(0, 0, width, height);
+            userCtx.clearRect(0, 0, width, height);
+
+            const frame = evaluationData.frames[selectedFrameIdx];
+            const comp = frame.comparison[selectedCamera] || { ai_boxes: [], user_boxes: [], matched: [], missing: [], extra: [] };
+
+            // 1. Draw AI Original Canvases
+            comp.ai_boxes.forEach(box => {
+                const x = box.bbox_x * width;
+                const y = box.bbox_y * height;
+                const w = box.bbox_w * width;
+                const h = box.bbox_h * height;
+
+                // Draw bounding box
+                aiCtx.strokeStyle = '#9333EA'; // Purple for AI
+                aiCtx.lineWidth = 1.5;
+                aiCtx.strokeRect(x, y, w, h);
+                aiCtx.fillStyle = 'rgba(147, 51, 234, 0.1)';
+                aiCtx.fillRect(x, y, w, h);
+
+                // Label
+                const cls = CLASS_MAP[box.category];
+                const text = cls ? cls.name : box.category;
+                aiCtx.font = 'bold 10px Inter, sans-serif';
+                const tw = aiCtx.measureText(text).width + 6;
+                aiCtx.fillStyle = '#9333EA';
+                aiCtx.fillRect(x, y > 14 ? y - 14 : y + h, tw, 14);
+                aiCtx.fillStyle = '#ffffff';
+                aiCtx.fillText(text, x + 3, (y > 14 ? y - 14 : y + h) + 10);
+            });
+
+            // 2. Draw User/Final Canvases with edit statuses
+            // A. Draw Matched Boxes
+            comp.matched.forEach(m => {
+                const u = m.user_box;
+                const x = u.bbox_x * width;
+                const y = u.bbox_y * height;
+                const w = u.bbox_w * width;
+                const h = u.bbox_h * height;
+
+                const isGood = m.iou >= 0.85;
+                const color = isGood ? '#10B981' : '#F59E0B';
+                const labelColor = isGood ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+
+                userCtx.strokeStyle = color;
+                userCtx.lineWidth = 2.0;
+                userCtx.strokeRect(x, y, w, h);
+                userCtx.fillStyle = labelColor;
+                userCtx.fillRect(x, y, w, h);
+
+                // Label tag
+                const cls = CLASS_MAP[u.category];
+                const text = `${cls ? cls.name : u.category} (IoU: ${Math.round(m.iou*100)}%)`;
+                userCtx.font = 'bold 10px Inter, sans-serif';
+                const tw = userCtx.measureText(text).width + 6;
+                userCtx.fillStyle = color;
+                userCtx.fillRect(x, y > 14 ? y - 14 : y + h, tw, 14);
+                userCtx.fillStyle = '#ffffff';
+                userCtx.fillText(text, x + 3, (y > 14 ? y - 14 : y + h) + 10);
+            });
+
+            // B. Draw Extra Boxes (User added)
+            comp.extra.forEach(ex => {
+                const x = ex.bbox_x * width;
+                const y = ex.bbox_y * height;
+                const w = ex.bbox_w * width;
+                const h = ex.bbox_h * height;
+
+                userCtx.strokeStyle = '#3B82F6';
+                userCtx.lineWidth = 2.0;
+                userCtx.strokeRect(x, y, w, h);
+                userCtx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+                userCtx.fillRect(x, y, w, h);
+
+                const cls = CLASS_MAP[ex.category];
+                const text = `${cls ? cls.name : ex.category} (Thêm mới)`;
+                userCtx.font = 'bold 10px Inter, sans-serif';
+                const tw = userCtx.measureText(text).width + 6;
+                userCtx.fillStyle = '#3B82F6';
+                userCtx.fillRect(x, y > 14 ? y - 14 : y + h, tw, 14);
+                userCtx.fillStyle = '#ffffff';
+                userCtx.fillText(text, x + 3, (y > 14 ? y - 14 : y + h) + 10);
+            });
+
+            // C. Draw Missing Boxes (AI predicted, user deleted) as red dashed lines
+            comp.missing.forEach(ms => {
+                const x = ms.bbox_x * width;
+                const y = ms.bbox_y * height;
+                const w = ms.bbox_w * width;
+                const h = ms.bbox_h * height;
+
+                userCtx.strokeStyle = '#EF4444';
+                userCtx.lineWidth = 1.5;
+                userCtx.setLineDash([4, 4]);
+                userCtx.strokeRect(x, y, w, h);
+                userCtx.setLineDash([]);
+                userCtx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+                userCtx.fillRect(x, y, w, h);
+
+                const cls = CLASS_MAP[ms.category];
+                const text = `${cls ? cls.name : ms.category} (Bỏ sót)`;
+                userCtx.font = 'bold 10px Inter, sans-serif';
+                const tw = userCtx.measureText(text).width + 6;
+                userCtx.fillStyle = '#EF4444';
+                userCtx.fillRect(x, y > 14 ? y - 14 : y + h, tw, 14);
+                userCtx.fillStyle = '#ffffff';
+                userCtx.fillText(text, x + 3, (y > 14 ? y - 14 : y + h) + 10);
+            });
+
+            // 3. Overlay mode drawing
+            if (overlayMode) {
+                comp.ai_boxes.forEach(box => {
+                    const x = box.bbox_x * width;
+                    const y = box.bbox_y * height;
+                    const w = box.bbox_w * width;
+                    const h = box.bbox_h * height;
+
+                    userCtx.strokeStyle = 'rgba(147, 51, 234, 0.7)';
+                    userCtx.lineWidth = 1.5;
+                    userCtx.setLineDash([2, 2]);
+                    userCtx.strokeRect(x, y, w, h);
+                    userCtx.setLineDash([]);
+                });
+            }
+
+            // Render details
+            renderDiffList(comp);
+        }
+
+        // Render bottom list of differences
+        function renderDiffList(comp) {
+            const list = document.getElementById('diffList');
+            let html = '';
+
+            // Section 1: Matches
+            if (comp.matched.length > 0) {
+                html += `<div class="diff-group-title">Khớp Nhãn (${comp.matched.length})</div>`;
+                comp.matched.forEach(m => {
+                    const cls = CLASS_MAP[m.user_box.category] || { name: m.user_box.category };
+                    const isGood = m.iou >= 0.85;
+                    html += `
+                        <div class="diff-card matched" style="border-left-color: ${isGood ? 'var(--success)' : 'var(--warning)'}">
+                            <div class="diff-card-header">
+                                <span class="diff-cat">${cls.name}</span>
+                                <span class="diff-badge ${isGood ? 'success' : 'warning'}" style="background:${isGood ? '#DEF7EC' : '#FEF3C7'}; color:${isGood ? '#03543F' : '#D97706'}">
+                                    IoU: ${Math.round(m.iou * 100)}%
+                                </span>
+                            </div>
+                            <div class="diff-details">
+                                Tọa độ: X:${Math.round(m.user_box.bbox_x*100)}%, Y:${Math.round(m.user_box.bbox_y*100)}%<br>
+                                Lệch AI: X:${Math.round((m.user_box.bbox_x - m.ai_box.bbox_x)*100)}%, Y:${Math.round((m.user_box.bbox_y - m.ai_box.bbox_y)*100)}%
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Section 2: Missing
+            if (comp.missing.length > 0) {
+                html += `<div class="diff-group-title" style="color:var(--danger)">Bỏ sót / Đã xóa (${comp.missing.length})</div>`;
+                comp.missing.forEach(ms => {
+                    const cls = CLASS_MAP[ms.category] || { name: ms.category };
+                    html += `
+                        <div class="diff-card missing">
+                            <div class="diff-card-header">
+                                <span class="diff-cat">${cls.name}</span>
+                                <span class="diff-badge danger">AI Gốc</span>
+                            </div>
+                            <div class="diff-details">
+                                Vị trí X:${Math.round(ms.bbox_x*100)}%, Y:${Math.round(ms.bbox_y*100)}% bị bỏ sót.
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Section 3: Extra
+            if (comp.extra.length > 0) {
+                html += `<div class="diff-group-title" style="color:var(--info)">Vẽ mới / Thủ công (${comp.extra.length})</div>`;
+                comp.extra.forEach(ex => {
+                    const cls = CLASS_MAP[ex.category] || { name: ex.category };
+                    html += `
+                        <div class="diff-card extra">
+                            <div class="diff-card-header">
+                                <span class="diff-cat">${cls.name}</span>
+                                <span class="diff-badge info">Thêm mới</span>
+                            </div>
+                            <div class="diff-details">
+                                Gán thủ công tại X:${Math.round(ex.bbox_x*100)}%, Y:${Math.round(ex.bbox_y*100)}%.
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            if (!comp.matched.length && !comp.missing.length && !comp.extra.length) {
+                html = '<div class="empty-state">Không có sự khác biệt nhãn ở góc camera này.</div>';
+            }
+
+            list.innerHTML = html;
+        }
+
+        // Panning & Dragging setup
+        function initPanControls() {
+            const viewports = document.getElementById('comparisonViewports');
+
+            viewports.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                e.preventDefault();
+                isPanning = true;
+                panStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+                viewports.style.cursor = 'grabbing';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                panOffset.x = e.clientX - panStart.x;
+                panOffset.y = e.clientY - panStart.y;
+                applyZoom();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isPanning = false;
+                viewports.style.cursor = 'grab';
+            });
+        }
+
+        function zoomIn() {
+            zoomScale = Math.min(zoomScale + 0.2, 4);
+            applyZoom();
+        }
+
+        // Zoom Out
+        function zoomOut() {
+            zoomScale = Math.max(zoomScale - 0.2, 0.5);
+            applyZoom();
+        }
+
+        // Reset zoom & pan
+        function resetZoom() {
+            zoomScale = 1.0;
+            panOffset = { x: 0, y: 0 };
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const aiContainer = document.getElementById('aiContainer');
+            const userContainer = document.getElementById('userContainer');
+            const zoomText = document.getElementById('zoomLevel');
+
+            if (zoomText) zoomText.textContent = `${Math.round(zoomScale * 100)}%`;
+
+            if (aiContainer) aiContainer.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`;
+            if (userContainer) userContainer.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`;
+        }
+
+        function toggleOverlayMode() {
+            overlayMode = document.getElementById('chkOverlay').checked;
+            const viewports = document.getElementById('comparisonViewports');
+
+            if (overlayMode) {
+                viewports.classList.add('overlay-mode-active');
+            } else {
+                viewports.classList.remove('overlay-mode-active');
+            }
+            resizeAndDrawAnnotations();
+        }
+
+        // Load Chats
+        async function loadChats() {
+            const container = document.getElementById('chatContainer');
+            try {
+                const res = await fetch(`${BASE_URL}/tasks/${taskId}/chats`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error();
+                const chats = await res.json();
+
+                if (chats.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Chưa có trao đổi nào.</div>';
+                    return;
+                }
+
+                container.innerHTML = chats.map(c => {
+                    const isLabeler = c.role === 'labeler';
+                    const roleClass = isLabeler ? 'labeler' : 'reviewer';
+                    const name = c.user ? c.user.full_name || c.user.username : 'N/A';
+                    const roleTag = isLabeler ? 'Người gán' : 'Người kiểm';
+                    const timeStr = new Date(c.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(c.created_at).toLocaleDateString('vi-VN');
+
+                    return `
+                        <div class="chat-msg-row ${roleClass}">
+                            <div class="chat-msg-bubble">
+                                ${c.message}
+                            </div>
+                            <div class="chat-msg-meta">
+                                <strong>${name} (${roleTag})</strong> • <span>${timeStr}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state" style="color:var(--danger)">Không thể tải cuộc trò chuyện.</div>';
+            }
+        }
+
+        // Load Task Submission History
+        async function loadHistory() {
+            const container = document.getElementById('timelineList');
+            try {
+                const res = await fetch(`${BASE_URL}/tasks/${taskId}/history`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error();
+                const history = await res.json();
+
+                if (history.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Chưa có lịch sử nộp bài.</div>';
+                    return;
+                }
+
+                const ACTION_LABELS = {
+                    'submitted': 'Người gán nhãn nộp bài',
+                    'reviewer_approved': 'Người kiểm thử duyệt bài',
+                    'reviewer_rejected': 'Người kiểm thử trả về (Sửa lỗi)',
+                    'admin_approved': 'Admin phê duyệt cuối cùng',
+                    'admin_rejected': 'Admin trả về (Không đạt)',
+                };
+
+                container.innerHTML = history.map((h, idx) => {
+                    const timeStr = new Date(h.created_at).toLocaleString('vi-VN');
+                    const actorName = h.actor_username || 'Hệ thống';
+                    const actionName = ACTION_LABELS[h.action] || h.action;
+                    const isActive = idx === 0 ? 'active' : '';
+
+                    return `
+                        <div class="timeline-item ${isActive}">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time">${timeStr}</div>
+                                <div class="timeline-title">${actionName} (${actorName})</div>
+                                ${h.feedback ? `<div class="timeline-desc"><strong>Nhận xét:</strong> ${h.feedback}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state" style="color:var(--danger)">Không thể tải lịch sử nộp bài.</div>';
+            }
+        }
+
+        // Submit Evaluation Status (approved / rejected)
+        async function submitEvaluation(status) {
+            const feedback = document.getElementById('adminFeedback').value.trim();
+
+            if (status === 'rejected' && !feedback) {
+                alert('Vui lòng nhập nhận xét/lý do từ chối để người gán nhãn biết cách sửa lỗi.');
+                return;
+            }
+
+            const confirmMsg = status === 'approved' 
+                ? 'Bạn có chắc chắn muốn PHÊ DUYỆT nhiệm vụ này?' 
+                : 'Bạn có chắc chắn muốn TỪ CHỐI nhiệm vụ này và trả về yêu cầu chỉnh sửa?';
+
+            showConfirm(confirmMsg, async () => {
+                try {
+                    const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${getToken()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            status: status,
+                            feedback: feedback || null
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(errData.detail || 'Lỗi kết nối server');
+                    }
+
+                    alert(status === 'approved' ? 'Phê duyệt thành công!' : 'Đã từ chối và gửi phản hồi thành công!');
+                    window.location.href = 'dashboard.html';
+
+                } catch (err) {
+                    alert(err.message || 'Lỗi xảy ra khi cập nhật trạng thái nhiệm vụ.');
+                }
+            }, {
+                title: 'Xác nhận hành động',
+                confirmText: status === 'approved' ? 'Đồng ý duyệt' : 'Từ chối',
+                type: status === 'approved' ? 'success' : 'warning'
+            });
+        }
+
+        // Initialize on load
+        window.onload = initPage;
+
+        // Sync drawing on window resize
+        window.onresize = resizeAndDrawAnnotations;
+    </script>
+</body>
+</html>
