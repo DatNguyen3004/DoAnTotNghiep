@@ -73,7 +73,7 @@ async function startEvaluation(btn, taskId) {
     if (btn.disabled) return;
     btn.disabled = true;
     const originalContent = btn.innerHTML;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...`;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
 
     try {
         const token = localStorage.getItem('access_token');
@@ -96,13 +96,13 @@ function getActionLink(task) {
     const s = task.status;
     let mainLink = '';
     if (s === 'pending' || s === 'in_progress')
-        mainLink = `<span style="color:#94A3B8;font-size:13px;font-style:italic"></span>`;
+        mainLink = `<button disabled class="action-link review-link" style="border:none;padding:6px 10px;cursor:not-allowed;opacity:0.45;" title="Đang thực hiện gán nhãn"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'submitted')
-        mainLink = `<span style="color:#64748B;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Chờ kiểm tra</span>`;
+        mainLink = `<button disabled class="action-link review-link" style="border:none;padding:6px 10px;cursor:not-allowed;opacity:0.45;" title="Chờ reviewer kiểm tra"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'under_review')
-        mainLink = `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
+        mainLink = `<button disabled class="action-link review-link" style="border:none;padding:6px 10px;cursor:not-allowed;opacity:0.45;" title="Reviewer đang kiểm tra"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'reviewed')
-        mainLink = `<button onclick="startEvaluation(this, ${task.id})" class="action-link review-link" style="border:none;cursor:pointer"><i class="fa-solid fa-eye"></i> Đánh giá</button>`;
+        mainLink = `<button onclick="startEvaluation(this, ${task.id})" class="action-link review-link" style="border:none;cursor:pointer;padding:6px 10px" title="Đánh giá chất lượng"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'approved')
         mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'rejected')
@@ -221,7 +221,7 @@ function renderTasks(tasks) {
 function updateStats(tasks) {
     const totalFrames = tasks.reduce((s, t) => s + (t.frame_count || 0), 0);
     const completedTasks = tasks.filter(t => t.status === 'approved').length;
-    const needAttention = tasks.filter(t => t.status === 'rejected' || t.status === 'under_review').length;
+    const needAttention = tasks.filter(t => t.status === 'rejected' || t.status === 'under_review' || t.status === 'reviewed').length;
 
     // Hiệu suất: tính trên các task đã hoàn thành (approved hoặc reviewed)
     const doneTasks = tasks.filter(t => (t.status === 'approved' || t.status === 'reviewed'));
