@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 import uuid
 import shutil
@@ -106,6 +106,7 @@ def update_user(
 @router.get("/{user_id}/stats")
 def get_user_stats(
     user_id: int,
+    project_id: Optional[int] = Query(None),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -118,13 +119,23 @@ def get_user_stats(
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
 
     # ── Thống kê gán nhãn (labeler) ──
-    tasks = db.query(Task).filter(Task.assigned_to == user_id).all()
+    query = db.query(Task).filter(Task.assigned_to == user_id)
+    if project_id is not None:
+        query = query.filter(Task.project_id == project_id)
+    tasks = query.all()
+
     total = len(tasks)
-    approved = sum(1 for t in tasks if t.status == 'approved')
-    rejected = sum(1 for t in tasks if t.status == 'rejected')
-    submitted = sum(1 for t in tasks if t.status in ('submitted', 'under_review', 'approved', 'rejected'))
+    # Admin-evaluated counts
+    admin_approved_count = sum(1 for t in tasks if t.status in ('approved', 'rejected'))  # Đã duyệt (Admin ra quyết định)
+    admin_rejected_count = sum(1 for t in tasks if t.status == 'rejected')   # Chưa đạt
+    # Reviewer approved but not yet admin-evaluated → Đã nộp
+    reviewer_approved_count = sum(1 for t in tasks if t.status in ('reviewed', 'under_review', 'submitted'))
     in_progress = sum(1 for t in tasks if t.status == 'in_progress')
     pending = sum(1 for t in tasks if t.status == 'pending')
+    # Keep legacy fields for compatibility
+    approved = sum(1 for t in tasks if t.status == 'approved')   # Chỉ Đạt yêu cầu
+    rejected = admin_rejected_count
+    submitted = sum(1 for t in tasks if t.status in ('submitted', 'under_review', 'approved', 'rejected', 'reviewed'))
 
     total_rejects = sum((t.reject_count or 0) for t in tasks)
     total_submissions = submitted + total_rejects
@@ -132,51 +143,111 @@ def get_user_stats(
     completed_times = [t.time_spent for t in tasks if t.time_spent and t.status in ('approved', 'submitted', 'under_review')]
     avg_time = int(sum(completed_times) / len(completed_times)) if completed_times else 0
 
-    import re
-    from models.task_submission import TaskSubmission
+    def calculate_task_user_precision(db_session, t_id, s_id):
+        import os
+        import json
+        from models.frame import Frame
+        from models.annotation import Annotation
+        from routers.tasks import CAMERA_COLUMN_MAP, get_ai_predictions_for_frame_cam
 
-    total_score = 0
-    scored_tasks_count = 0
+        cache_path = os.path.join("static", "cache", "predictions", f"task_{t_id}.json")
+        all_ai_preds = {}
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    all_ai_preds = json.load(f)
+            except Exception:
+                pass
 
-    for t in tasks:
-        if t.status in ('submitted', 'under_review', 'approved', 'rejected'):
-            # Lấy tất cả lịch sử reject theo thứ tự thời gian tăng dần
-            submissions = db.query(TaskSubmission).filter(
-                TaskSubmission.task_id == t.id,
-                TaskSubmission.action == 'rejected'
-            ).order_by(TaskSubmission.created_at.asc()).all()
+        frames = db_session.query(Frame).filter(Frame.scene_id == s_id).all()
+        user_annotations = db_session.query(Annotation).filter(Annotation.task_id == t_id).all()
 
-            deductions = 0
-            for idx, sub in enumerate(submissions):
-                fb = sub.feedback or ""
-                # Đếm số khung hình lỗi trong lần reject này
-                matches = re.findall(r'(?:Frame|Khung\s+hình)\s+(\d+)', fb, re.IGNORECASE)
-                num_error_frames = len(set(int(m) for m in matches))
+        user_ann_groups = {}
+        for ann in user_annotations:
+            key = f"{ann.frame_id}_{ann.camera}"
+            if key not in user_ann_groups:
+                user_ann_groups[key] = []
+            user_ann_groups[key].append({
+                "category": ann.category,
+                "bbox_x": ann.bbox_x,
+                "bbox_y": ann.bbox_y,
+                "bbox_w": ann.bbox_w,
+                "bbox_h": ann.bbox_h,
+            })
 
-                if idx == 0:
-                    # Lần đầu sửa lỗi: chỉ trừ 2 điểm / khung hình lỗi (không trừ 5 điểm phạt gốc)
-                    deductions += num_error_frames * 2
-                else:
-                    # Từ lần 2 trở đi: trừ thêm 5 điểm phạt gốc + 2 điểm / khung hình lỗi chưa sửa
-                    deductions += 5 + (num_error_frames * 2)
+        total_user_objs = 0
+        total_matched_objs = 0
+        total_missing_objs = 0
 
-            # Phạt do Admin từ chối (trừ cực nặng 50 điểm)
-            admin_rejects = db.query(TaskSubmission).filter(
-                TaskSubmission.task_id == t.id,
-                TaskSubmission.action == 'admin_rejected'
-            ).count()
-            deductions += admin_rejects * 50
+        def py_iou(boxA, boxB):
+            ax1, ay1 = boxA["bbox_x"], boxA["bbox_y"]
+            ax2, ay2 = boxA["bbox_x"] + boxA["bbox_w"], boxA["bbox_y"] + boxA["bbox_h"]
+            bx1, by1 = boxB["bbox_x"], boxB["bbox_y"]
+            bx2, by2 = boxB["bbox_x"] + boxB["bbox_w"], boxB["bbox_y"] + boxB["bbox_h"]
+            
+            ix1 = max(ax1, bx1)
+            iy1 = max(ay1, by1)
+            ix2 = min(ax2, bx2)
+            iy2 = min(ay2, by2)
+            
+            if ix2 <= ix1 or iy2 <= iy1:
+                return 0.0
+            inter = (ix2 - ix1) * (iy2 - iy1)
+            union = (boxA["bbox_w"] * boxA["bbox_h"]) + (boxB["bbox_w"] * boxB["bbox_h"]) - inter
+            return inter / union if union > 0.0 else 0.0
 
-            task_score = 100 - deductions
-            task_score = max(0, task_score)
+        for f in frames:
+            for cam in CAMERA_COLUMN_MAP.keys():
+                column = CAMERA_COLUMN_MAP[cam]
+                if getattr(f, column, None):
+                    key = f"{f.id}_{cam}"
+                    ai_list = all_ai_preds.get(key)
+                    if ai_list is None:
+                        ai_list = get_ai_predictions_for_frame_cam(db_session, f.id, cam)
+                    
+                    user_list = user_ann_groups.get(key, [])
+                    total_user_objs += len(user_list)
+                    
+                    available_ai = [dict(p) for p in ai_list]
+                    matched_count = 0
+                    
+                    for user_ann in user_list:
+                        best_match = None
+                        best_iou = 0.1
+                        best_idx = -1
+                        
+                        for idx, ai_box in enumerate(available_ai):
+                            if ai_box["category"] == user_ann["category"]:
+                                iou_val = py_iou(user_ann, ai_box)
+                                if iou_val > best_iou:
+                                    best_iou = iou_val
+                                    best_match = ai_box
+                                    best_idx = idx
+                                    
+                        if best_match:
+                            matched_count += 1
+                            available_ai.pop(best_idx)
+                            
+                    total_matched_objs += matched_count
+                    total_missing_objs += len(available_ai)
 
-            total_score += task_score
-            scored_tasks_count += 1
+        if (total_user_objs + total_missing_objs) > 0:
+            return round((total_matched_objs / (total_user_objs + total_missing_objs)) * 100)
+        return 100
 
-    quality_rate = round(total_score / scored_tasks_count) if scored_tasks_count > 0 else 0
+    evaluated_tasks = [t for t in tasks if t.status in ('approved', 'rejected')]
+    precisions = []
+    for t in evaluated_tasks:
+        precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))
+
+    quality_rate = round(sum(precisions) / len(precisions)) if precisions else 0
 
     # ── Thống kê kiểm thử (reviewer) ──
-    reviewed_tasks = db.query(Task).filter(Task.reviewer_id == user_id).all()
+    rev_query = db.query(Task).filter(Task.reviewer_id == user_id)
+    if project_id is not None:
+        rev_query = rev_query.filter(Task.project_id == project_id)
+    reviewed_tasks = rev_query.all()
+
     total_reviewed = len(reviewed_tasks)
     # Số lần reviewer approve nhưng admin reject lại (kiểm thử sai)
     reviewer_wrong = sum((t.reviewer_wrong_count or 0) for t in reviewed_tasks)
@@ -197,6 +268,10 @@ def get_user_stats(
         "total_submissions": total_submissions,
         "quality_rate": quality_rate,
         "avg_time_seconds": avg_time,
+        # Các trạng thái mới
+        "admin_approved": admin_approved_count,
+        "admin_rejected": admin_rejected_count,
+        "reviewer_approved": reviewer_approved_count,
         # Chất lượng kiểm thử
         "total_reviewed": total_reviewed,
         "reviewer_wrong": reviewer_wrong,

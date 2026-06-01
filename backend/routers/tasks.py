@@ -809,6 +809,7 @@ def get_task_evaluation_details(
             "bbox_h": ann.bbox_h,
             "track_id": ann.track_id,
             "custom_name": ann.custom_name,
+            "is_ai_generated": ann.is_ai_generated,
         })
         
     cache_dir = os.path.join("static", "cache", "predictions")
@@ -888,10 +889,11 @@ def get_task_evaluation_details(
                                 best_idx = idx
                                 
                     if best_match:
+                        effective_iou = 1.0 if best_iou >= 0.85 else best_iou
                         matched.append({
                             "user_box": user_ann,
                             "ai_box": best_match,
-                            "iou": round(best_iou, 4)
+                            "iou": round(effective_iou, 4)
                         })
                         available_ai.pop(best_idx)
                         matched_user_ids.add(user_ann["id"])

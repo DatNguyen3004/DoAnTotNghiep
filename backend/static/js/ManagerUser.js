@@ -177,7 +177,7 @@ function renderUsers(users) {
 
 async function loadUserStatsInline(userId) {
     try {
-        const res = await fetch(`${BASE_URL}/users/${userId}/stats`, {
+        const res = await fetch(`${BASE_URL}/users/${userId}/stats?project_id=${projectId}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) return;
@@ -232,21 +232,28 @@ async function openStatsModal(userId, username, fullName) {
     document.getElementById('statsModal').classList.add('active');
 
     try {
-        const res = await fetch(`${BASE_URL}/users/${userId}/stats`, {
+        const res = await fetch(`${BASE_URL}/users/${userId}/stats?project_id=${projectId}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
         const s = await res.json();
 
-        // ── Tính màu & nhãn gán nhãn ──
+        // ── Tính màu & nhãn theo % độ tin cậy ──
         const rate = s.quality_rate;
-        const rateColor = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
-        const rateLabel = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
-        const avgMin = s.avg_time_seconds > 0
-            ? `${Math.floor(s.avg_time_seconds / 60)}p ${s.avg_time_seconds % 60}s` : '—';
+        const rateColor = rate >= 85 ? '#10B981' : rate >= 70 ? '#3B82F6' : '#EF4444';
+        const rateLabel = rate >= 85 ? 'Xuất sắc' : rate >= 70 ? 'Khá tốt' : 'Cần cải thiện';
+
+        // Thời gian trung bình: làm tròn tới phút
+        const avgMinutes = s.avg_time_seconds > 0
+            ? `${Math.round(s.avg_time_seconds / 60)} phút` : '—';
+
+        // Nhận xét thuê/không thuê
+        const hireText  = rate >= 85 ? 'Nên thuê lại' : rate >= 70 ? 'Có thể cân nhắc' : 'Không nên thuê lại';
+        const hireIcon  = rate >= 85 ? 'fa-thumbs-up' : rate >= 70 ? 'fa-circle-exclamation' : 'fa-thumbs-down';
+        const hireBg    = rate >= 85 ? '#F0FDF4' : rate >= 70 ? '#EFF6FF' : '#FEF2F2';
+        const hireBorder= rate >= 85 ? '#BBF7D0' : rate >= 70 ? '#BFDBFE' : '#FECACA';
 
         document.getElementById('statsBody').innerHTML = `
-        <!-- Panel: Gán nhãn -->
         <div id="stPanelLabel">
             <!-- 2 số tổng quan -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
@@ -260,33 +267,32 @@ async function openStatsModal(userId, username, fullName) {
                 </div>
             </div>
             <!-- Thanh kéo chất lượng -->
-            <div style="margin-bottom:12px">
+            <div style="margin-bottom:14px">
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:4px">
-                    <span>Tỷ lệ chất lượng gán nhãn</span><span style="font-weight:700;color:${rateColor}">${rate}%</span>
+                    <span>Độ tin cậy trung bình (nhiệm vụ đã duyệt)</span>
+                    <span style="font-weight:700;color:${rateColor}">${rate}%</span>
                 </div>
                 <input type="range" min="0" max="100" value="${rate}" disabled
                     style="width:100%;accent-color:${rateColor};height:6px;cursor:default">
             </div>
             <!-- Chi tiết dạng lưới 2 cột -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
-                ${miniStat('fa-circle-check','#10B981','Đã duyệt', s.approved)}
-                ${miniStat('fa-circle-xmark','#EF4444','Bị từ chối', s.rejected)}
-                ${miniStat('fa-rotate-right','#F97316','Lần bị từ chối', s.total_rejects)}
-                ${miniStat('fa-paper-plane','#2563EB','Lần nộp', s.total_submissions)}
+                ${miniStat('fa-circle-check','#10B981','Đã duyệt (Admin)', s.admin_approved)}
+                ${miniStat('fa-paper-plane','#2563EB','Đã nộp (Reviewer OK)', s.reviewer_approved)}
+                ${miniStat('fa-check-double','#059669','Đạt yêu cầu', s.approved)}
+                ${miniStat('fa-circle-xmark','#EF4444','Chưa đạt yêu cầu', s.admin_rejected)}
                 ${miniStat('fa-pen','#7C3AED','Đang làm', s.in_progress)}
                 ${miniStat('fa-hourglass','#94A3B8','Chưa bắt đầu', s.pending)}
             </div>
-            <div style="padding:8px 12px;background:#F8FAFC;border-radius:8px;font-size:12px;color:#64748B;display:flex;justify-content:space-between">
+            <div style="padding:8px 12px;background:#F8FAFC;border-radius:8px;font-size:12px;color:#64748B;display:flex;justify-content:space-between;margin-bottom:10px">
                 <span><i class="fa-solid fa-stopwatch" style="color:#0EA5E9;margin-right:4px"></i>Thời gian TB/nhiệm vụ</span>
-                <span style="font-weight:700;color:#1E293B">${avgMin}</span>
+                <span style="font-weight:700;color:#1E293B">${avgMinutes}</span>
             </div>
             <!-- Nhận xét -->
-            <div style="margin-top:10px;padding:10px 14px;border-radius:8px;background:${rate >= 80 ? '#F0FDF4' : rate >= 50 ? '#FFFBEB' : '#FEF2F2'};border:1px solid ${rate >= 80 ? '#BBF7D0' : rate >= 50 ? '#FDE68A' : '#FECACA'};font-size:12px;color:#64748B">
-                <i class="fa-solid ${rate >= 80 ? 'fa-thumbs-up' : rate >= 50 ? 'fa-circle-exclamation' : 'fa-thumbs-down'}" style="color:${rateColor};margin-right:4px"></i>
-                <strong style="color:${rateColor}">${rate >= 80 ? 'Nên thuê lại' : rate >= 50 ? 'Cân nhắc kỹ' : 'Không nên thuê lại'}</strong>
-                — ${rate >= 80
-                    ? `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`
-                    : `bị từ chối ${s.total_rejects} lần / ${s.total_submissions} lần nộp.`}
+            <div style="padding:10px 14px;border-radius:8px;background:${hireBg};border:1px solid ${hireBorder};font-size:12px;color:#64748B">
+                <i class="fa-solid ${hireIcon}" style="color:${rateColor};margin-right:4px"></i>
+                <strong style="color:${rateColor}">${hireText}</strong>
+                — độ tin cậy gán nhãn trung bình: <strong style="color:${rateColor}">${rate}%</strong>
             </div>
         </div>`;
     } catch (e) {

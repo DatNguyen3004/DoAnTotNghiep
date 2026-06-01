@@ -137,10 +137,9 @@ async function init() {
         saveFeedbackToState();
         // Sync vào framelist_review nếu đến từ FrameList
         const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-        const frameParam = new URLSearchParams(window.location.search).get('frame');
-        if (returnTo === 'FrameList' && frameParam !== null) {
+        if (returnTo === 'FrameList') {
             try {
-                const frameNum = parseInt(frameParam) + 1;
+                const frameNum = currentFrameIdx + 1;
                 const reviewKey = `framelist_review_${taskId}`;
                 const rs = JSON.parse(localStorage.getItem(reviewKey) || '{}');
                 const fb = document.getElementById('frameFeedback').value.trim();
@@ -273,8 +272,12 @@ async function loadFrames(sceneId) {
             currentCamera = CAMERAS[0];
         }
 
+        const urlFrame = parseInt(new URLSearchParams(window.location.search).get('frame') || '-1');
         const savedFrame = parseInt(localStorage.getItem(`review_frame_${taskId}`) || '0');
-        const startFrame = Math.min(Math.max(0, savedFrame), frames.length - 1);
+        const startFrame = urlFrame >= 0
+            ? Math.min(urlFrame, frames.length - 1)
+            : Math.min(Math.max(0, savedFrame), frames.length - 1);
+        console.log("DEBUG [loadFrames]: urlFrame =", urlFrame, "savedFrame =", savedFrame, "startFrame =", startFrame);
         await goToFrame(startFrame);
     } catch (e) {
         showToast('Không thể tải khung hình', 'error');
@@ -383,7 +386,13 @@ function setupNav() {
 }
 
 async function goToFrame(idx) {
+    console.log("DEBUG [goToFrame]: idx =", idx);
     if (idx < 0 || idx >= frames.length) return;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('frame', idx);
+        window.history.replaceState(null, '', url.toString());
+    } catch (e) {}
     // Lưu feedback của frame hiện tại trước khi chuyển
     saveFeedbackToState();
     currentFrameIdx = idx;
@@ -695,9 +704,8 @@ function markFrame(status) {
 
     // Nếu đến từ FrameList → đánh dấu frame này đã xử lý + lưu trạng thái đúng/sai
     const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-    const frameParam = new URLSearchParams(window.location.search).get('frame');
-    if (returnTo === 'FrameList' && frameParam !== null) {
-        const frameNum = parseInt(frameParam) + 1;
+    if (returnTo === 'FrameList') {
+        const frameNum = currentFrameIdx + 1;
         localStorage.setItem(`framelist_saved_${taskId}_${frameNum}`, 'true');
         // Lưu trạng thái đúng/sai để FrameList hiển thị badge
         try {

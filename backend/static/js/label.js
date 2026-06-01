@@ -258,6 +258,11 @@ async function loadAllAnnotations() {
 // ============= FRAME NAVIGATION =============
 async function goToFrame(idx) {
     if (idx < 0 || idx >= frames.length) return;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('frame', idx);
+        window.history.replaceState(null, '', url.toString());
+    } catch (e) {}
     const prevIdx = currentFrameIdx;
     
     // Tự động lưu frame cũ nếu có thay đổi chưa lưu
@@ -280,70 +285,7 @@ async function goToFrame(idx) {
     sessionReviewedIds.clear(); // Reset khi chuyển frame
     updatePageNumber();
 
-    // Copy annotations từ frame liền trước nếu frame mới chưa có
-    if (idx > 0 && idx !== prevIdx) {
-        const newFrame = frames[idx];
-        const prevFrame = frames[idx - 1];
-        if (prevFrame && newFrame && prevFrame.id !== newFrame.id) {
-            // Tính optical flow để dịch chuyển bbox
-            let flowData = null;
-            try {
-                // Lấy annotations của camera hiện tại từ frame trước (chỉ AI)
-                const prevCamAnns = getFrameAnns(prevFrame.id, currentCamera).filter(a => a.is_ai_generated);
-                const bboxes = prevCamAnns.map(a => ({
-                    bbox_x: a.bbox_x, bbox_y: a.bbox_y,
-                    bbox_w: a.bbox_w, bbox_h: a.bbox_h
-                }));
 
-                const flowRes = await fetch(`${BASE_URL}/ai/flow`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        frame_id_prev: prevFrame.id,
-                        frame_id_next: newFrame.id,
-                        camera: currentCamera,
-                        bboxes: bboxes.length > 0 ? bboxes : null
-                    })
-                });
-                if (flowRes.ok) flowData = await flowRes.json();
-            } catch (e) { /* silent */ }
-
-            CAMERAS.forEach(cam => {
-                if (getFrameAnns(newFrame.id, cam).length === 0) {
-                    const prevAnns = getFrameAnns(prevFrame.id, cam);
-                    if (prevAnns.length > 0) {
-                        const shifted = prevAnns
-                            .filter(a => a.is_ai_generated) // Chỉ copy nhãn AI, bỏ nhãn thủ công
-                            .map((a, i) => {
-                                // Dùng per-bbox flow nếu có (chỉ cho camera hiện tại)
-                                let dx = 0, dy = 0;
-                                if (cam === currentCamera && flowData?.per_bbox?.[i]) {
-                                    dx = flowData.per_bbox[i].dx;
-                                    dy = flowData.per_bbox[i].dy;
-                                } else if (flowData?.dx !== undefined) {
-                                    dx = flowData.dx;
-                                    dy = flowData.dy;
-                                }
-                                return {
-                                    ...a,
-                                    id: genId(),
-                                    bbox_x: a.bbox_x + dx,
-                                    bbox_y: a.bbox_y + dy,
-                                };
-                            }).filter(a =>
-                                a.bbox_x >= -0.05 && a.bbox_x + a.bbox_w <= 1.05 &&
-                                a.bbox_y >= -0.05 && a.bbox_y + a.bbox_h <= 1.05
-                            ).map(a => ({
-                                ...a,
-                                bbox_x: Math.max(0, Math.min(1 - a.bbox_w, a.bbox_x)),
-                                bbox_y: Math.max(0, Math.min(1 - a.bbox_h, a.bbox_y)),
-                            }));
-                        setFrameAnns(newFrame.id, cam, shifted);
-                    }
-                }
-            });
-        }
-    }
 
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
@@ -1002,6 +944,7 @@ function deleteSelected() {
             const filtered = futureAnns.filter(a => !(a.category === category && a.track_id === trackId));
             if (filtered.length !== futureAnns.length) {
                 setFrameAnns(futureFrame.id, currentCamera, filtered);
+                markUnsaved(futureFrame.id);
             }
         }
     }
@@ -1509,6 +1452,7 @@ function deleteAnn(id) {
             const filtered = futureAnns.filter(a => !(a.category === category && a.track_id === trackId));
             if (filtered.length !== futureAnns.length) {
                 setFrameAnns(futureFrame.id, currentCamera, filtered);
+                markUnsaved(futureFrame.id);
             }
         }
     }
@@ -1526,8 +1470,13 @@ function updateCamBadge() {
 // ============= SAVE =============
 let unsaved = false;
 let autoSaveTimeout = null;
+const modifiedFrameIds = new Set();
 
-function markUnsaved() {
+function markUnsaved(frameId) {
+    const fid = frameId !== undefined ? frameId : (frames[currentFrameIdx]?.id);
+    if (fid) {
+        modifiedFrameIds.add(fid);
+    }
     unsaved = true;
 
     // Auto-save sau 1.5 giây không có thao tác mới
@@ -1558,41 +1507,57 @@ function markUnsaved() {
 }
 
 async function saveCurrentFrame(showMsg) {
-    const frame = frames[currentFrameIdx];
-    if (!frame) return;
-    const allAnns = [];
-    CAMERAS.forEach(cam => {
-        getFrameAnns(frame.id, cam).forEach(ann => {
-            allAnns.push({
-                camera: cam,
-                category: ann.category,
-                bbox_x: ann.bbox_x, bbox_y: ann.bbox_y,
-                bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
-                confidence: ann.confidence,
-                is_ai_generated: ann.is_ai_generated || false,
-                ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
-                ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
-                ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
-                ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
-                needs_review: ann.needs_review || false,
-                track_id: ann.track_id || null,
-                custom_name: ann.custom_name || null,
+    const fids = Array.from(modifiedFrameIds);
+    modifiedFrameIds.clear();
+
+    if (fids.length === 0) {
+        const frame = frames[currentFrameIdx];
+        if (frame) fids.push(frame.id);
+    }
+
+    let hasError = false;
+    for (const fid of fids) {
+        const frame = frames.find(f => f.id === parseInt(fid));
+        if (!frame) continue;
+        const allAnns = [];
+        CAMERAS.forEach(cam => {
+            getFrameAnns(frame.id, cam).forEach(ann => {
+                allAnns.push({
+                    camera: cam,
+                    category: ann.category,
+                    bbox_x: ann.bbox_x, bbox_y: ann.bbox_y,
+                    bbox_w: ann.bbox_w, bbox_h: ann.bbox_h,
+                    confidence: ann.confidence,
+                    is_ai_generated: ann.is_ai_generated || false,
+                    ai_bbox_x: ann.ai_bbox_x !== undefined ? ann.ai_bbox_x : null,
+                    ai_bbox_y: ann.ai_bbox_y !== undefined ? ann.ai_bbox_y : null,
+                    ai_bbox_w: ann.ai_bbox_w !== undefined ? ann.ai_bbox_w : null,
+                    ai_bbox_h: ann.ai_bbox_h !== undefined ? ann.ai_bbox_h : null,
+                    needs_review: ann.needs_review || false,
+                    track_id: ann.track_id || null,
+                    custom_name: ann.custom_name || null,
+                });
             });
         });
-    });
-    try {
-        await fetch(`${BASE_URL}/tasks/${taskId}/annotations`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ frame_id: frame.id, annotations: allAnns })
-        });
-        if (showMsg) showToast('Đã lưu', 'success');
-    } catch (e) {
-        if (showMsg) showToast('Lỗi lưu', 'error');
+        try {
+            await fetch(`${BASE_URL}/tasks/${taskId}/annotations`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frame_id: frame.id, annotations: allAnns })
+            });
+        } catch (e) {
+            hasError = true;
+            modifiedFrameIds.add(fid); // Trả lại để lưu lại lần sau
+        }
+    }
+    if (showMsg) {
+        if (hasError) showToast('Lỗi lưu', 'error');
+        else showToast('Đã lưu', 'success');
     }
 }
 
 async function saveAnnotations(showMsg = true) {
+    modifiedFrameIds.clear();
     const frameIds = Object.keys(annotations);
     for (const fid of frameIds) {
         const frame = frames.find(f => f.id === parseInt(fid));
@@ -1630,9 +1595,8 @@ async function saveAnnotations(showMsg = true) {
     localStorage.setItem(`lastFrame_${taskId}`, currentFrameIdx);
     // Nếu đến từ FrameList → đánh dấu frame này đã lưu
     const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-    const frameParam = new URLSearchParams(window.location.search).get('frame');
-    if (returnTo === 'FrameList' && frameParam !== null) {
-        const frameNum = parseInt(frameParam) + 1;
+    if (returnTo === 'FrameList') {
+        const frameNum = currentFrameIdx + 1;
         localStorage.setItem(`framelist_saved_${taskId}_${frameNum}`, 'true');
     }
     if (showMsg) showToast('Đã lưu tất cả nhãn', 'success');

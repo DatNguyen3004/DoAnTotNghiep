@@ -60,8 +60,8 @@ const STATUS_MAP = {
     submitted: { label: 'Đợi kiểm tra', class: 'st-submitted' },
     under_review: { label: 'Đang kiểm tra', class: 'st-under_review' },
     reviewed: { label: 'Đã kiểm tra', class: 'st-approved' },
-    approved: { label: 'Đã duyệt', class: 'st-approved' },
-    rejected: { label: 'Có lỗi', class: 'st-rejected' }
+    approved: { label: 'Đạt', class: 'st-approved' },
+    rejected: { label: 'Chưa đạt', class: 'st-rejected' }
 };
 
 function getStatusBadge(status) {
@@ -103,10 +103,8 @@ function getActionLink(task) {
         mainLink = `<button disabled class="action-link review-link" style="border:none;padding:6px 10px;cursor:not-allowed;opacity:0.45;" title="Reviewer đang kiểm tra"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'reviewed')
         mainLink = `<button onclick="startEvaluation(this, ${task.id})" class="action-link review-link" style="border:none;cursor:pointer;padding:6px 10px" title="Đánh giá chất lượng"><i class="fa-solid fa-eye"></i></button>`;
-    else if (s === 'approved')
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
-    else if (s === 'rejected')
-        mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link rejected-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
+    else if (s === 'approved' || s === 'rejected')
+        mainLink = `<button onclick="startEvaluation(this, ${task.id})" class="action-link success-link" style="border:none;cursor:pointer;padding:6px 10px" title="Xem chất lượng gán nhãn"><i class="fa-solid fa-eye"></i></button>`;
 
     const deleteBtn = `<button onclick="deleteTask(${task.id})" title="Xóa nhiệm vụ"
         style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:15px;padding:4px 6px;margin-left:6px;transition:color 0.2s;vertical-align:middle"
@@ -192,7 +190,7 @@ function renderTasks(tasks) {
             <tr>
                 <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
                 <td>
-                    <div class="scene-name">
+                    <div class="scene-name" style="cursor:pointer" onclick="showAdminTaskDetail(${task.id})" title="Xem chi tiết nhiệm vụ">
                         <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
                         <div>
                             <div>${sceneName}</div>

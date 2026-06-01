@@ -292,19 +292,25 @@ function updateProgress() {
 }
 
 function checkReturnedFrame() {
-    const v = sessionStorage.getItem('visiting_frame_' + taskId);
-    if (!v) return false;
-    const key = 'framelist_saved_' + taskId + '_' + v;
-    if (localStorage.getItem(key) === 'true') {
-        doneFrames[parseInt(v)] = true;
-        localStorage.setItem(storageKey, JSON.stringify(doneFrames));
-        localStorage.removeItem(key);
-        sessionStorage.removeItem('visiting_frame_' + taskId);
-        // Reload reviewStates từ localStorage (label_review.js đã cập nhật)
-        try { reviewStates = JSON.parse(localStorage.getItem(reviewKey) || '{}'); } catch(e) {}
-        return true;
+    let changed = false;
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const prefix = `framelist_saved_${taskId}_`;
+        if (key && key.startsWith(prefix)) {
+            const frameNum = parseInt(key.substring(prefix.length));
+            if (!isNaN(frameNum) && localStorage.getItem(key) === 'true') {
+                doneFrames[frameNum] = true;
+                localStorage.removeItem(key);
+                changed = true;
+            }
+        }
     }
-    return false;
+    if (changed) {
+        localStorage.setItem(storageKey, JSON.stringify(doneFrames));
+        try { reviewStates = JSON.parse(localStorage.getItem(reviewKey) || '{}'); } catch(e) {}
+    }
+    sessionStorage.removeItem('visiting_frame_' + taskId);
+    return changed;
 }
 
 window.addEventListener('focus', function() { if (checkReturnedFrame() && task) { renderCards(); updateProgress(); } });

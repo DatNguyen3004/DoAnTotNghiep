@@ -88,10 +88,10 @@
                     style="cursor:pointer;font-size:18px;color:#64748B" title="Phím tắt"></i>
                 <i class="fa-solid fa-gear" onclick="document.getElementById('modalSettings').style.display='flex'"
                     title="Cài đặt ảnh" style="cursor:pointer"></i>
-                <i class="fa-regular fa-comments" onclick="openEvaluationChat()"
-                    title="Trao đổi nhiệm vụ" style="cursor:pointer;font-size:18px;color:#64748B"></i>
-                <i class="fa-solid fa-clock-rotate-left" onclick="openEvaluationHistory()"
-                    title="Lịch sử nộp bài" style="cursor:pointer;font-size:18px;color:#64748B"></i>
+                <i class="fa-regular fa-comments" onclick="openEvaluationChat()" title="Trao đổi nhiệm vụ"
+                    style="cursor:pointer;font-size:18px;color:#64748B"></i>
+                <i class="fa-solid fa-clock-rotate-left" onclick="openEvaluationHistory()" title="Lịch sử nộp bài"
+                    style="cursor:pointer;font-size:18px;color:#64748B"></i>
             </div>
         </div>
     </div>
@@ -117,13 +117,18 @@
         <!-- Right Panel -->
         <aside class="panel-right">
             <!-- Tools Section -->
-            <div class="tools-section" id="section-container-tools" style="padding: 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0;">
-                <div class="section-header" style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleSectionCollapse('tools')">
+            <div class="tools-section" id="section-container-tools"
+                style="padding: 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0;">
+                <div class="section-header"
+                    style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;"
+                    onclick="toggleSectionCollapse('tools')">
                     <div class="section-title">Công cụ</div>
-                    <i id="collapse-icon-tools" class="fa-solid fa-chevron-up" style="font-size: 11px; color: #64748B;"></i>
+                    <i id="collapse-icon-tools" class="fa-solid fa-chevron-up"
+                        style="font-size: 11px; color: #64748B;"></i>
                 </div>
                 <div id="section-body-tools" class="toolbar-grid">
-                    <button class="tool-btn active" id="tool-pointer" title="Con trỏ" onclick="setActiveTool('pointer')">
+                    <button class="tool-btn active" id="tool-pointer" title="Con trỏ"
+                        onclick="setActiveTool('pointer')">
                         <i class="fa-solid fa-arrow-pointer"></i>
                     </button>
                     <button class="tool-btn" id="tool-pan" title="Kéo ảnh" onclick="setActiveTool('pan')">
@@ -133,15 +138,21 @@
             </div>
 
             <!-- Matched Labels Section -->
-            <div class="matched-labels-section" id="section-container-matched" style="padding:16px;border-bottom:1px solid #E2E8F0;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
-                <div class="section-header" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('matched')">
+            <div class="matched-labels-section" id="section-container-matched"
+                style="padding:16px;border-bottom:1px solid #E2E8F0;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
+                <div class="section-header"
+                    style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;flex-shrink:0;"
+                    onclick="toggleSectionCollapse('matched')">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <div class="section-title">Nhãn trùng khớp</div>
-                        <span id="matchedLabelCount" style="font-size:11px;font-weight:700;color:#fff;background:#4F46E5;border-radius:10px;padding:1px 8px;">0</span>
+                        <span id="matchedLabelCount"
+                            style="font-size:11px;font-weight:700;color:#fff;background:#4F46E5;border-radius:10px;padding:1px 8px;">0</span>
                     </div>
-                    <i id="collapse-icon-matched" class="fa-solid fa-chevron-up" style="font-size:11px;color:#64748B;"></i>
+                    <i id="collapse-icon-matched" class="fa-solid fa-chevron-up"
+                        style="font-size:11px;color:#64748B;"></i>
                 </div>
-                <div id="section-body-matched" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:visible;">
+                <div id="section-body-matched"
+                    style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:visible;">
                     <div id="matchedLabelList" style="display:flex;flex-direction:column;gap:6px;width:100%;">
                         <div style="color:#94A3B8;font-size:12px;text-align:center;padding:16px 0;">
                             <i class="fa-solid fa-spinner fa-spin"></i>
@@ -151,13 +162,20 @@
             </div>
 
             <!-- Similarity Section -->
-            <div class="similarity-section" id="section-container-similarity" style="padding:16px;border-top:1px solid #E2E8F0;background:#fff;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
-                <div class="section-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('similarity')">
-                    <div class="section-title" style="font-size:13px;font-weight:700;color:#1E293B;">Tỉ lệ tương đồng trong khung hình</div>
-                    <i id="collapse-icon-similarity" class="fa-solid fa-chevron-up" style="font-size:11px;color:#64748B;"></i>
+            <div class="similarity-section" id="section-container-similarity"
+                style="padding:16px;border-top:1px solid #E2E8F0;background:#fff;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
+                <div class="section-header"
+                    style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;flex-shrink:0;"
+                    onclick="toggleSectionCollapse('similarity')">
+                    <div class="section-title" style="font-size:13px;font-weight:700;color:#1E293B;">Tỷ lệ tương đồng
+                        trong khung hình</div>
+                    <i id="collapse-icon-similarity" class="fa-solid fa-chevron-up"
+                        style="font-size:11px;color:#64748B;"></i>
                 </div>
-                <div id="section-body-similarity" style="flex:1;display:flex;flex-direction:column;min-height:0;width:100%;">
-                    <div id="similarityChartContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:1;min-height:0;">
+                <div id="section-body-similarity"
+                    style="flex:1;display:flex;flex-direction:column;min-height:0;width:100%;">
+                    <div id="similarityChartContainer"
+                        style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:1;min-height:0;">
                         <!-- Dynamically loaded from JS -->
                     </div>
                 </div>
@@ -356,14 +374,15 @@
                         title="Xóa cuộc trò chuyện (chỉ ở phía Admin)"
                         style="cursor:pointer;color:#94A3B8;font-size:16px;transition:color 0.2s"
                         onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#94A3B8'"></i>
-                    <i class="fa-solid fa-xmark" onclick="document.getElementById('modalEvaluationChat').style.display='none'"
+                    <i class="fa-solid fa-xmark"
+                        onclick="document.getElementById('modalEvaluationChat').style.display='none'"
                         style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
                 </div>
             </div>
-            
+
             <!-- Chat List Area -->
-            <div id="evaluationChatList" 
-                 style="flex:1;overflow-y:auto;min-height:300px;max-height:500px;padding-right:4px;border:1px solid #F1F5F9;border-radius:8px;padding:12px;background:#FAFAFA">
+            <div id="evaluationChatList"
+                style="flex:1;overflow-y:auto;min-height:300px;max-height:500px;padding-right:4px;border:1px solid #F1F5F9;border-radius:8px;padding:12px;background:#FAFAFA">
                 <!-- Loaded dynamically -->
             </div>
         </div>
@@ -379,21 +398,80 @@
                 <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-clock-rotate-left" style="color:#0EA5E9"></i> Lịch sử nộp bài
                 </div>
-                <i class="fa-solid fa-xmark" onclick="document.getElementById('modalEvaluationHistory').style.display='none'"
+                <i class="fa-solid fa-xmark"
+                    onclick="document.getElementById('modalEvaluationHistory').style.display='none'"
                     style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
             </div>
-            
+
             <!-- History List Area -->
-            <div id="evaluationHistoryList" 
-                 style="flex:1;overflow-y:auto;min-height:200px;max-height:450px;padding-right:4px;">
+            <div id="evaluationHistoryList"
+                style="flex:1;overflow-y:auto;min-height:200px;max-height:450px;padding-right:4px;">
                 <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Thống kê chi tiết chất lượng gán nhãn -->
+    <div id="modalEvaluationStats"
+        style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);"
+        onclick="if(event.target===this)this.style.display='none'">
+        <style>
+            @keyframes statsModalScaleUp {
+                from { transform: scale(0.96); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            .stats-card {
+                background: #fff;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+                padding: 16px 20px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .stats-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            }
+            .stats-circle-container {
+                position: relative;
+                width: 80px;
+                height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
+        <div style="background:#fff;border-radius:16px;width:90%;height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 40px rgba(0,0,0,0.22);font-family:Inter,sans-serif;animation:statsModalScaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);overflow:hidden;">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #E2E8F0;background:#fff;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:40px;height:40px;border-radius:10px;background:#EEF2FF;color:#4F46E5;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-chart-line" style="font-size:20px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:#0F172A;">Báo cáo & Thống kê Chất lượng Nhiệm vụ</div>
+                        <div style="font-size:11px;color:#64748B;margin-top:2px;">So sánh tổng quan dữ liệu gán nhãn của AI và Người dùng</div>
+                    </div>
+                </div>
+                <i class="fa-solid fa-xmark"
+                    onclick="document.getElementById('modalEvaluationStats').style.display='none'"
+                    style="cursor:pointer;color:#94A3B8;font-size:20px;padding:8px;"
+                    onmouseover="this.style.color='#0F172A'" onmouseout="this.style.color='#94A3B8'"></i>
+            </div>
+            
+            <!-- Body Area -->
+            <div id="statsModalBody" style="flex:1;overflow-y:auto;padding:24px;background:#F8FAFC;">
+                <!-- Dynamically loaded from JS -->
             </div>
         </div>
     </div>
 
     <script src="../js/confirm.js"></script>
     <script src="../js/avatar-sync.js"></script>
-    <script src="../js/Evaluation.js"></script>
+    <script src="../js/Evaluation.js?v=4"></script>
 </body>
 
 </html>
