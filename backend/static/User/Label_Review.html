@@ -192,6 +192,7 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
+            position: relative;
         }
 
         .review-label-item:hover {
@@ -200,6 +201,17 @@
 
         .review-label-item.active {
             background: #F8FAFC;
+        }
+
+        .review-label-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            background: #10B981;
+            border-radius: 0 4px 4px 0;
         }
     </style>
 </head>
@@ -268,7 +280,7 @@
         </aside>
 
         <!-- Center Canvas (read-only) -->
-        <main class="center-canvas" style="cursor:grab">
+        <main class="center-canvas">
             <div class="canvas-container">
                 <img src="" alt="Khung hình" id="mainImage" style="display:none">
             </div>
@@ -284,6 +296,21 @@
                     <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
                 </div>
                 <span id="frameStatusBadge" class="frame-status pending">Chưa đánh giá</span>
+            </div>
+
+            <!-- Tools Section -->
+            <div class="tools-section" style="padding: 16px; border-bottom: 1px solid #E2E8F0;">
+                <div class="section-header" style="margin-bottom: 8px;">
+                    <div class="section-title">Công cụ</div>
+                </div>
+                <div class="toolbar-grid">
+                    <button class="tool-btn active" id="tool-pointer" title="Con trỏ" onclick="setActiveTool('pointer')">
+                        <i class="fa-solid fa-arrow-pointer"></i>
+                    </button>
+                    <button class="tool-btn" id="tool-pan" title="Kéo ảnh" onclick="setActiveTool('pan')">
+                        <i class="fa-regular fa-hand"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Label list (read-only) -->

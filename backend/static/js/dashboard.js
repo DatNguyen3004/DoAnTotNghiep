@@ -69,6 +69,29 @@ function getStatusBadge(status) {
     return `<div class="status-badge ${info.class}"><div class="status-dot"></div>${info.label}</div>`;
 }
 
+async function startEvaluation(btn, taskId) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...`;
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(`${BASE_URL}/tasks/${taskId}/evaluation-details`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            throw new Error('Lỗi tải dữ liệu');
+        }
+        window.location.href = `Evaluation.html?taskId=${taskId}`;
+    } catch (err) {
+        console.error(err);
+        alert('Có lỗi xảy ra khi tải trang đối chiếu. Vui lòng thử lại.');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
+
 function getActionLink(task) {
     const s = task.status;
     let mainLink = '';
@@ -79,7 +102,7 @@ function getActionLink(task) {
     else if (s === 'under_review')
         mainLink = `<span style="color:#7C3AED;font-size:12px;font-style:italic"><i class="fa-solid fa-magnifying-glass"></i> Đang kiểm tra</span>`;
     else if (s === 'reviewed')
-        mainLink = `<a href="Evaluation.html?taskId=${task.id}" class="action-link review-link" style="text-decoration:none"><i class="fa-solid fa-eye"></i> Đánh giá</a>`;
+        mainLink = `<button onclick="startEvaluation(this, ${task.id})" class="action-link review-link" style="border:none;cursor:pointer"><i class="fa-solid fa-eye"></i> Đánh giá</button>`;
     else if (s === 'approved')
         mainLink = `<button onclick="showAdminTaskDetail(${task.id})" class="action-link success-link" style="padding:6px 10px" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>`;
     else if (s === 'rejected')
@@ -886,16 +909,16 @@ async function showAdminTaskDetail(taskId) {
         <div style="padding:16px 24px;border-top:1px solid #F1F5F9;display:flex;gap:10px;flex-shrink:0">
             ${s === 'reviewed'
             ? `
-               <a href="Evaluation.html?taskId=${taskId}" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;text-decoration:none">
+               <button onclick="startEvaluation(this, ${taskId})" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
                    <i class="fa-solid fa-eye"></i> Đánh giá chất lượng
-               </a>
+               </button>
                <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
               `
             : (s === 'approved' || s === 'rejected')
             ? `
-               <a href="Evaluation.html?taskId=${taskId}" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif;text-decoration:none">
+               <button onclick="startEvaluation(this, ${taskId})" style="flex:1;height:42px;background:#EEF2FF;color:#4F46E5;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Inter,sans-serif">
                    <i class="fa-solid fa-eye"></i> Xem chất lượng gán nhãn
-               </a>
+               </button>
                <button onclick="document.getElementById('adminTaskDetailModal').remove()" style="height:42px;padding:0 16px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Đóng</button>
               `
             : `

@@ -923,29 +923,25 @@ function redrawAnnotations() {
         const h = ann.bbox_h * imgDisplayH;
         const sel = ann.id === selectedAnnId;
 
+        const hasSelection = selectedAnnId !== null;
+        if (hasSelection && !sel) {
+            annCtx.globalAlpha = 0.25;
+        } else {
+            annCtx.globalAlpha = 1.0;
+        }
+
         annCtx.strokeStyle = color;
-        annCtx.lineWidth = sel ? 2.5 : 1.5;
+        annCtx.lineWidth = sel ? 3.5 : 1.5;
         annCtx.strokeRect(x, y, w, h);
-        annCtx.fillStyle = color + (sel ? '30' : '18');
-        annCtx.fillRect(x, y, w, h);
-
-        // Label tag
-        const baseLbl = cls ? cls.name : ann.category;
-        const tNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '?';
-        const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
         
-        let similarityText = '';
-
-        const canvasLabel = resolvedName 
-            ? `${tNum} - ${resolvedName}${similarityText}` 
-            : `${tNum}${similarityText}`;
-        annCtx.font = 'bold 11px Inter, sans-serif';
-        const tw = annCtx.measureText(canvasLabel).width + 8;
-        const tagY = y > 18 ? y - 18 : y + h;
         annCtx.fillStyle = color;
-        annCtx.fillRect(x, tagY, tw, 16);
-        annCtx.fillStyle = '#fff';
-        annCtx.fillText(canvasLabel, x + 4, tagY + 11);
+        // Draw fill using globalAlpha multiplication
+        const prevAlpha = annCtx.globalAlpha;
+        annCtx.globalAlpha = sel ? 0.25 : (hasSelection ? 0.03 : 0.12);
+        annCtx.fillRect(x, y, w, h);
+        annCtx.globalAlpha = prevAlpha;
+
+
 
         // Cờ đỏ
         if (needsFlag) {
@@ -959,6 +955,7 @@ function redrawAnnotations() {
             annCtx.closePath();
             annCtx.fill();
         }
+        annCtx.globalAlpha = 1.0;
     });
 }
 

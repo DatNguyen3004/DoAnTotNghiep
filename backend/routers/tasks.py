@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import func as sa_func
+from sqlalchemy import func as sa_func, or_, and_
 from typing import List, Optional
 
 from database import get_db
+from models.chat_message import ChatMessage
 from models.user import User
 from models.task import Task
 from models.scene import Scene
@@ -268,6 +269,7 @@ def update_task_status(
 @router.post("/{task_id}/submit")
 def submit_task(
     task_id: int,
+    background_tasks: BackgroundTasks,
     body: TaskSubmit = TaskSubmit(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -320,6 +322,9 @@ def submit_task(
     db.commit()
     db.refresh(task)
 
+    # Pre-cache AI predictions in background
+    background_tasks.add_task(precache_ai_predictions, task_id)
+
     result = _enrich_task(task, db)
     if reviewer_id:
         result["message"] = "Bài đã nộp và đang chờ kiểm duyệt."
@@ -334,6 +339,7 @@ def submit_task(
 @router.post("/{task_id}/review/approve")
 def approve_task(
     task_id: int,
+    background_tasks: BackgroundTasks,
     body: ReviewSubmit = ReviewSubmit(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -362,6 +368,10 @@ def approve_task(
 
     db.commit()
     db.refresh(task)
+
+    # Pre-cache AI predictions in background
+    background_tasks.add_task(precache_ai_predictions, task_id)
+
     return _enrich_task(task, db)
 
 
@@ -722,6 +732,42 @@ def post_task_chat(
     )
 
 
+def precache_ai_predictions(task_id: int):
+    """Pre-cache AI predictions in a background thread so the admin page loads instantly."""
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            return
+        
+        cache_dir = os.path.join("static", "cache", "predictions")
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_path = os.path.join(cache_dir, f"task_{task_id}.json")
+        
+        if os.path.exists(cache_path):
+            return
+            
+        frames = db.query(Frame).filter(Frame.scene_id == task.scene_id).order_by(Frame.frame_index.asc()).all()
+        
+        all_ai_preds = {}
+        for f in frames:
+            for cam in CAMERA_COLUMN_MAP.keys():
+                column = CAMERA_COLUMN_MAP[cam]
+                if getattr(f, column, None):
+                    preds = get_ai_predictions_for_frame_cam(db, f.id, cam)
+                    key = f"{f.id}_{cam}"
+                    all_ai_preds[key] = preds
+                    
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(all_ai_preds, f, ensure_ascii=False, indent=2)
+            
+    except Exception as e:
+        print(f"Error pre-caching AI predictions for task {task_id}: {e}")
+    finally:
+        db.close()
+
+
 # ───────────────────────────────────────────────
 # GET /api/tasks/{task_id}/evaluation-details
 # ───────────────────────────────────────────────
@@ -896,5 +942,86 @@ def get_task_evaluation_details(
         } if reviewer else None,
         "frames": frames_data
     }
+
+
+# ───────────────────────────────────────────────
+# GET /api/tasks/{task_id}/peer-chats
+# ───────────────────────────────────────────────
+@router.get("/{task_id}/peer-chats")
+def get_task_peer_chats(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get direct chat messages exchanged between the task's labeler and reviewer.
+    Only accessible by Admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền xem cuộc trò chuyện này")
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+
+    if not task.assigned_to or not task.reviewer_id:
+        return []
+
+    # Get private messages between labeler and reviewer
+    query = (
+        db.query(ChatMessage)
+        .filter(
+            or_(
+                and_(ChatMessage.sender_id == task.assigned_to, ChatMessage.recipient_id == task.reviewer_id),
+                and_(ChatMessage.sender_id == task.reviewer_id, ChatMessage.recipient_id == task.assigned_to)
+            )
+        )
+    )
+
+    if task.admin_chat_cleared_at is not None:
+        query = query.filter(ChatMessage.created_at > task.admin_chat_cleared_at)
+
+    chats = query.order_by(ChatMessage.created_at.asc()).all()
+
+    result = []
+    for c in chats:
+        sender = db.query(User).filter(User.id == c.sender_id).first()
+        result.append({
+            "id": c.id,
+            "sender_id": c.sender_id,
+            "sender_username": sender.username if sender else "Unknown",
+            "sender_full_name": sender.full_name if sender else None,
+            "sender_role": sender.role if sender else "user",
+            "message": c.message,
+            "image_url": c.image_url,
+            "created_at": c.created_at,
+        })
+    return result
+
+
+# ───────────────────────────────────────────────
+# DELETE /api/tasks/{task_id}/peer-chats
+# ───────────────────────────────────────────────
+@router.delete("/{task_id}/peer-chats")
+def clear_task_peer_chats(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Clear (hide) direct chat messages for the Admin on this task.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền xóa cuộc trò chuyện này")
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy task")
+
+    from datetime import datetime
+    task.admin_chat_cleared_at = datetime.now()
+    db.commit()
+    return {"detail": "Đã xóa cuộc trò chuyện ở phía admin thành công"}
+
 
 

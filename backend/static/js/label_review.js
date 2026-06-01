@@ -100,8 +100,27 @@ function loadReviewsFromStorage() {
 let annCanvas = null, annCtx = null;
 let imgDisplayW = 1, imgDisplayH = 1;
 
-// Zoom
+// Zoom & Tools
 let zoomScale = 1;
+let currentTool = 'pointer'; // 'pointer' or 'pan'
+
+function setActiveTool(tool) {
+    currentTool = tool;
+    document.querySelectorAll('.tools-section .tool-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`tool-${tool}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    const canvas = document.querySelector('.center-canvas');
+    if (canvas) {
+        if (tool === 'pointer') {
+            canvas.style.cursor = 'default';
+        } else if (tool === 'pan') {
+            canvas.style.cursor = 'grab';
+        }
+    }
+}
 
 // Timer
 let timerSeconds = 0, timerInterval = null;
@@ -489,28 +508,23 @@ function redrawAnnotations() {
         const h = ann.bbox_h * imgDisplayH;
         const sel = ann.id === selectedAnnId;
 
+        const hasSelection = selectedAnnId !== null;
+        if (hasSelection && !sel) {
+            annCtx.globalAlpha = 0.25;
+        } else {
+            annCtx.globalAlpha = 1.0;
+        }
+
         annCtx.strokeStyle = color;
-        annCtx.lineWidth = sel ? 2.5 : 1.5;
+        annCtx.lineWidth = sel ? 3.5 : 1.5;
         annCtx.strokeRect(x, y, w, h);
-        annCtx.fillStyle = color + (sel ? '30' : '18');
-        annCtx.fillRect(x, y, w, h);
-
-        // Label tag
-        const baseLbl = cls ? cls.name : ann.category;
-        const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '?';
         
-        let similarityText = '';
-
-        const label = ann.custom_name 
-            ? `${tNum} - ${ann.custom_name}${similarityText}` 
-            : `${tNum}${similarityText}`;
-        annCtx.font = 'bold 11px Inter, sans-serif';
-        const tw = annCtx.measureText(label).width + 8;
-        const tagY = y > 18 ? y - 18 : y + h;
         annCtx.fillStyle = color;
-        annCtx.fillRect(x, tagY, tw, 16);
-        annCtx.fillStyle = '#fff';
-        annCtx.fillText(label, x + 4, tagY + 11);
+        // Draw fill using globalAlpha multiplication
+        const prevAlpha = annCtx.globalAlpha;
+        annCtx.globalAlpha = sel ? 0.25 : (hasSelection ? 0.03 : 0.12);
+        annCtx.fillRect(x, y, w, h);
+        annCtx.globalAlpha = prevAlpha;
 
         // Cờ đỏ nếu needs_review
         if (ann.needs_review) {
@@ -524,6 +538,7 @@ function redrawAnnotations() {
             annCtx.closePath();
             annCtx.fill();
         }
+        annCtx.globalAlpha = 1.0;
     });
 }
 
@@ -829,6 +844,46 @@ function togglePanReview() {
     // Không làm gì — pan luôn hoạt động bằng nhấn giữ chuột
 }
 
+function selectAt(clientX, clientY) {
+    const img = document.getElementById('mainImage');
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    // Convert screen coordinates to canvas space coordinates
+    const px = ((clientX - rect.left) / rect.width) * imgDisplayW;
+    const py = ((clientY - rect.top) / rect.height) * imgDisplayH;
+
+    const anns = currentAnns();
+    for (let i = anns.length - 1; i >= 0; i--) {
+        const a = anns[i];
+        if (hiddenIds.has(a.id) || hiddenCategories.has(a.category)) continue;
+
+        const x = a.bbox_x * imgDisplayW;
+        const y = a.bbox_y * imgDisplayH;
+        const w = a.bbox_w * imgDisplayW;
+        const h = a.bbox_h * imgDisplayH;
+
+        if (px >= x && px <= x + w && py >= y && py <= y + h) {
+            selectedAnnId = a.id;
+            redrawAnnotations();
+            renderLabelList();
+            
+            // Scroll selected item into view in sidebar
+            setTimeout(() => {
+                const activeEl = document.querySelector('.review-label-item.active');
+                if (activeEl) {
+                    activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }, 50);
+            return;
+        }
+    }
+    selectedAnnId = null;
+    redrawAnnotations();
+    renderLabelList();
+}
+
 function initPanReview() {
     const canvas = document.querySelector('.center-canvas');
     if (!canvas) return;
@@ -836,10 +891,14 @@ function initPanReview() {
     canvas.addEventListener('mousemove', _panMove, { passive: false });
     canvas.addEventListener('mouseup', _panEnd);
     canvas.addEventListener('mouseleave', _panEnd);
-    canvas.style.cursor = 'grab';
+    canvas.style.cursor = currentTool === 'pan' ? 'grab' : 'default';
 }
 
 function _panStart(e) {
+    if (currentTool !== 'pan') {
+        selectAt(e.clientX, e.clientY);
+        return;
+    }
     e.preventDefault();
     isPanning = true;
     panStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
@@ -848,7 +907,7 @@ function _panStart(e) {
 }
 
 function _panMove(e) {
-    if (!isPanning) return;
+    if (currentTool !== 'pan' || !isPanning) return;
     e.preventDefault();
     panOffset.x = e.clientX - panStart.x;
     panOffset.y = e.clientY - panStart.y;
@@ -857,6 +916,7 @@ function _panMove(e) {
 }
 
 function _panEnd(e) {
+    if (currentTool !== 'pan') return;
     isPanning = false;
     e.currentTarget.style.cursor = 'grab';
     e.currentTarget.style.userSelect = '';

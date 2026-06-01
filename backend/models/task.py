@@ -18,6 +18,7 @@ class Task(Base):
     reviewer_time_spent = Column(Integer, default=0)       # seconds — reviewer total
     reject_count        = Column(Integer, default=0)       # số lần bị reject bởi reviewer
     reviewer_wrong_count = Column(Integer, default=0)      # số lần reviewer approve nhưng admin reject lại
+    admin_chat_cleared_at = Column(DateTime, nullable=True)
     created_at  = Column(DateTime, server_default=func.now())
     updated_at  = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
