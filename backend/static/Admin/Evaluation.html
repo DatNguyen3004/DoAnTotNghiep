@@ -117,11 +117,12 @@
         <!-- Right Panel -->
         <aside class="panel-right">
             <!-- Tools Section -->
-            <div class="tools-section" style="padding: 16px; border-bottom: 1px solid #E2E8F0;">
-                <div class="section-header" style="margin-bottom: 8px;">
+            <div class="tools-section" id="section-container-tools" style="padding: 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0;">
+                <div class="section-header" style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleSectionCollapse('tools')">
                     <div class="section-title">Công cụ</div>
+                    <i id="collapse-icon-tools" class="fa-solid fa-chevron-up" style="font-size: 11px; color: #64748B;"></i>
                 </div>
-                <div class="toolbar-grid">
+                <div id="section-body-tools" class="toolbar-grid">
                     <button class="tool-btn active" id="tool-pointer" title="Con trỏ" onclick="setActiveTool('pointer')">
                         <i class="fa-solid fa-arrow-pointer"></i>
                     </button>
@@ -131,8 +132,36 @@
                 </div>
             </div>
 
-            <!-- Empty space left for next requirements, as requested -->
-            <div style="flex: 1;"></div>
+            <!-- Matched Labels Section -->
+            <div class="matched-labels-section" id="section-container-matched" style="padding:16px;border-bottom:1px solid #E2E8F0;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
+                <div class="section-header" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('matched')">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="section-title">Nhãn trùng khớp</div>
+                        <span id="matchedLabelCount" style="font-size:11px;font-weight:700;color:#fff;background:#4F46E5;border-radius:10px;padding:1px 8px;">0</span>
+                    </div>
+                    <i id="collapse-icon-matched" class="fa-solid fa-chevron-up" style="font-size:11px;color:#64748B;"></i>
+                </div>
+                <div id="section-body-matched" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:visible;">
+                    <div id="matchedLabelList" style="display:flex;flex-direction:column;gap:6px;width:100%;">
+                        <div style="color:#94A3B8;font-size:12px;text-align:center;padding:16px 0;">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Similarity Section -->
+            <div class="similarity-section" id="section-container-similarity" style="padding:16px;border-top:1px solid #E2E8F0;background:#fff;flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;">
+                <div class="section-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('similarity')">
+                    <div class="section-title" style="font-size:13px;font-weight:700;color:#1E293B;">Tỉ lệ tương đồng trong khung hình</div>
+                    <i id="collapse-icon-similarity" class="fa-solid fa-chevron-up" style="font-size:11px;color:#64748B;"></i>
+                </div>
+                <div id="section-body-similarity" style="flex:1;display:flex;flex-direction:column;min-height:0;width:100%;">
+                    <div id="similarityChartContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:1;min-height:0;">
+                        <!-- Dynamically loaded from JS -->
+                    </div>
+                </div>
+            </div>
 
             <div class="panel-footer">
                 <a id="backLink" href="dashboard.html" class="link-home">

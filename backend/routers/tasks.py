@@ -904,7 +904,7 @@ def get_task_evaluation_details(
                         extra.append(user_ann)
                         
                 total_objs = len(matched) + len(missing) + len(extra)
-                cam_iou = 0.0
+                cam_iou = 1.0
                 if total_objs > 0:
                     sum_iou = sum(m["iou"] for m in matched)
                     cam_iou = sum_iou / total_objs

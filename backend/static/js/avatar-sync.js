@@ -77,6 +77,12 @@
 
 // ==================== GLOBAL CHAT WIDGET ====================
 (function() {
+    // Disable on label, label_review and evaluation pages
+    var path = window.location.pathname.toLowerCase();
+    if (path.includes('label.html') || path.includes('label_review.html') || path.includes('evaluation.html')) {
+        return;
+    }
+
     // Only run if user is logged in
     var token = localStorage.getItem('access_token');
     var currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');

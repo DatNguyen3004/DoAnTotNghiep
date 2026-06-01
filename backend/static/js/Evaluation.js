@@ -118,6 +118,39 @@ async function initPage() {
         }
         evaluationData = await res.json();
 
+        // Assign a unique client-side ID to each AI box
+        let aiBoxIdCounter = 1000000;
+        if (evaluationData && evaluationData.frames) {
+            evaluationData.frames.forEach(frame => {
+                if (frame.comparison) {
+                    Object.keys(frame.comparison).forEach(cam => {
+                        const comp = frame.comparison[cam];
+                        if (comp) {
+                            if (comp.ai_boxes) {
+                                comp.ai_boxes.forEach(box => {
+                                    box.id = `ai_${aiBoxIdCounter++}`;
+                                });
+                            }
+                            if (comp.matched) {
+                                comp.matched.forEach(m => {
+                                    if (m.ai_box) {
+                                        const matchingAiBox = comp.ai_boxes ? comp.ai_boxes.find(b =>
+                                            b.bbox_x === m.ai_box.bbox_x && b.bbox_y === m.ai_box.bbox_y
+                                        ) : null;
+                                        if (matchingAiBox) {
+                                            m.ai_box.id = matchingAiBox.id;
+                                        } else {
+                                            m.ai_box.id = `ai_${aiBoxIdCounter++}`;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
 
         // Setup user avatar placeholder
         const avatar = document.getElementById('userAvatar');
@@ -265,6 +298,9 @@ async function loadComparisonImages() {
     mainImg.src = '';
     mainImg.style.display = 'none';
 
+    // Render matched labels for current frame/camera
+    renderMatchedLabels();
+
     try {
         const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${selectedCamera}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
@@ -300,26 +336,384 @@ function setupCanvas(container, img) {
     annCtx = annCanvas.getContext('2d');
 }
 
+// Render matched labels panel on the right side
+function renderMatchedLabels() {
+    const list = document.getElementById('matchedLabelList');
+    const countBadge = document.getElementById('matchedLabelCount');
+    if (!list || !evaluationData) return;
+
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+
+    const comp = frame.comparison[selectedCamera];
+    const matched = comp ? comp.matched : [];
+
+    countBadge.textContent = matched.length;
+
+    if (matched.length === 0) {
+        list.innerHTML = `<div style="color:#94A3B8;font-size:12px;text-align:center;padding:20px 0;">
+            <i class="fa-solid fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:6px;"></i>
+            Không có nhãn trùng khớp
+        </div>`;
+        return;
+    }
+
+    list.innerHTML = matched.map((m, idx) => {
+        const u = m.user_box;
+        const ai = m.ai_box;
+        const iou = m.iou;
+        const cls = CLASS_MAP[u.category] || { name: u.category, color: '#94A3B8', icon: 'fa-tag' };
+
+        // IoU-based similarity color
+        const pct = Math.round(iou * 100);
+        let barColor, iouTextColor;
+        if (pct >= 75) { barColor = '#10B981'; iouTextColor = '#065F46'; }
+        else if (pct >= 50) { barColor = '#F59E0B'; iouTextColor = '#92400E'; }
+        else { barColor = '#EF4444'; iouTextColor = '#7F1D1D'; }
+
+        const label = u.custom_name
+            ? `${cls.name} — ${u.custom_name}`
+            : cls.name;
+
+        return `
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;cursor:pointer;transition:border-color 0.15s;"
+             onmouseover="this.style.borderColor='${cls.color}'" onmouseout="this.style.borderColor='#E2E8F0'"
+             onclick="selectedAnnId=${u.id};redrawAnnotations();">
+            <!-- Header row: icon + label name + IoU badge -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+                <i class="fa-solid ${cls.icon}" style="color:${cls.color};font-size:12px;flex-shrink:0;"></i>
+                <span style="font-size:12px;font-weight:700;color:#1E293B;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span>
+                <span style="font-size:11px;font-weight:800;color:${iouTextColor};background:${barColor}22;border:1px solid ${barColor}55;border-radius:6px;padding:1px 6px;flex-shrink:0;">${pct}%</span>
+            </div>
+            <!-- Progress bar -->
+            <div style="height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;transition:width 0.4s;"></div>
+            </div>
+            <!-- Sub-info -->
+            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <span style="font-size:10px;color:#94A3B8;">AI gốc</span>
+                <span style="font-size:10px;color:#94A3B8;">Tỉ lệ IoU</span>
+                <span style="font-size:10px;color:#94A3B8;">Người dùng</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
 // Canvas Redrawing logic
 let selectedAnnId = null;
 let currentTool = 'pointer';
 
+// Per-item AI/User visibility overrides for matched pairs. Key = user_box.id
+// { hideAI: bool, hideUser: bool }
+let hiddenMatchedItems = new Map();
+let collapsedCategories = new Set();
+
+function resetMatchedState() {
+    hiddenMatchedItems.clear();
+    // keep collapsed state across camera/frame switches
+}
+
+function toggleMatchedAI(userId, event) {
+    event.stopPropagation();
+    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
+    if (!cur.hideAI && cur.hideUser) {
+        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: false });
+    } else {
+        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: true });
+    }
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+function toggleMatchedUser(userId, event) {
+    event.stopPropagation();
+    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
+    if (cur.hideAI && !cur.hideUser) {
+        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: false });
+    } else {
+        hiddenMatchedItems.set(userId, { hideAI: true, hideUser: false });
+    }
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+function toggleMatchedVisibility(userId, event) {
+    event.stopPropagation();
+    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
+    const currentlyHidden = cur.hideAI && cur.hideUser;
+    hiddenMatchedItems.set(userId, { hideAI: !currentlyHidden, hideUser: !currentlyHidden });
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+function toggleCategory(cat, event) {
+    event.stopPropagation();
+    if (collapsedCategories.has(cat)) collapsedCategories.delete(cat);
+    else collapsedCategories.add(cat);
+    renderMatchedLabels();
+}
+
+function toggleCategoryVisibility(cat, event) {
+    event.stopPropagation();
+    if (!evaluationData) return;
+    const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
+    if (!comp) return;
+    const items = comp.matched.filter(m => m.user_box.category === cat);
+    const allHidden = items.every(m => {
+        const o = hiddenMatchedItems.get(m.user_box.id) || {};
+        return o.hideAI && o.hideUser;
+    });
+    items.forEach(m => {
+        hiddenMatchedItems.set(m.user_box.id, { hideAI: !allHidden, hideUser: !allHidden });
+    });
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+function toggleCategoryAI(cat, event) {
+    event.stopPropagation();
+    if (!evaluationData) return;
+    const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
+    if (!comp) return;
+    const items = comp.matched.filter(m => m.user_box.category === cat);
+    if (items.length === 0) return;
+
+    const allShowOnlyAI = items.every(m => {
+        const o = hiddenMatchedItems.get(m.user_box.id) || { hideAI: false, hideUser: false };
+        return !o.hideAI && o.hideUser;
+    });
+
+    items.forEach(m => {
+        if (allShowOnlyAI) {
+            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: false });
+        } else {
+            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: true });
+        }
+    });
+
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+function toggleCategoryUser(cat, event) {
+    event.stopPropagation();
+    if (!evaluationData) return;
+    const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
+    if (!comp) return;
+    const items = comp.matched.filter(m => m.user_box.category === cat);
+    if (items.length === 0) return;
+
+    const allShowOnlyUser = items.every(m => {
+        const o = hiddenMatchedItems.get(m.user_box.id) || { hideAI: false, hideUser: false };
+        return o.hideAI && !o.hideUser;
+    });
+
+    items.forEach(m => {
+        if (allShowOnlyUser) {
+            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: false });
+        } else {
+            hiddenMatchedItems.set(m.user_box.id, { hideAI: true, hideUser: false });
+        }
+    });
+
+    renderMatchedLabels();
+    redrawAnnotations();
+}
+
+// Render matched labels panel on the right side
+function renderMatchedLabels() {
+    renderFrameSimilarityCharts();
+
+    const list = document.getElementById('matchedLabelList');
+    const countBadge = document.getElementById('matchedLabelCount');
+    if (!list || !evaluationData) return;
+
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+    const comp = frame.comparison[selectedCamera];
+    const matched = comp ? comp.matched : [];
+
+    countBadge.textContent = matched.length;
+
+    if (matched.length === 0) {
+        list.innerHTML = `<div style="color:#94A3B8;font-size:12px;text-align:center;padding:20px 0;"><i class="fa-solid fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:6px;"></i>Không có nhãn trùng khớp</div>`;
+        return;
+    }
+
+    // Group by category
+    const groups = {};
+    matched.forEach(m => {
+        const cat = m.user_box.category;
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(m);
+    });
+
+    list.innerHTML = Object.entries(groups).map(([cat, items]) => {
+        const cls = CLASS_MAP[cat] || { name: cat, color: '#94A3B8', icon: 'fa-tag' };
+        const isCollapsed = collapsedCategories.has(cat);
+        const allAIHidden = items.every(m => {
+            const o = hiddenMatchedItems.get(m.user_box.id) || {};
+            return o.hideAI;
+        });
+        const allUserHidden = items.every(m => {
+            const o = hiddenMatchedItems.get(m.user_box.id) || {};
+            return o.hideUser;
+        });
+        const allHidden = items.every(m => {
+            const o = hiddenMatchedItems.get(m.user_box.id) || {};
+            return o.hideAI && o.hideUser;
+        });
+
+        const itemsHtml = items.map((m, i) => {
+            const u = m.user_box;
+            const pct = Math.round(m.iou * 100);
+            const trackId = u.track_id != null ? String(u.track_id).padStart(2, '0') : String(i + 1).padStart(2, '0');
+            const isSel = selectedAnnId === u.id;
+            const ov = hiddenMatchedItems.get(u.id) || { hideAI: false, hideUser: false };
+            const isRowHidden = ov.hideAI && ov.hideUser;
+
+            let barColor = pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+
+            return `<div onclick="selectedAnnId=${u.id};redrawAnnotations();renderMatchedLabels();"
+                style="display:flex;align-items:center;gap:5px;padding:5px 6px;cursor:pointer;
+                       border-left:3px solid ${isSel ? '#4F46E5' : 'transparent'};
+                       background:${isSel ? '#EEF2FF' : 'transparent'};
+                       border-radius:0 6px 6px 0;transition:all 0.15s;margin-bottom:2px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:${cls.color};flex-shrink:0;"></div>
+                <span style="font-size:12px;font-weight:800;color:#1E293B;min-width:22px;">${trackId}</span>
+                <div style="flex:1;display:flex;align-items:center;gap:4px;">
+                    <div style="flex:1;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;"></div>
+                    </div>
+                    <span style="font-size:10px;font-weight:700;color:${barColor};min-width:28px;text-align:right;">${pct}%</span>
+                </div>
+                <button onclick="toggleMatchedAI(${u.id},event)" title="${ov.hideAI ? 'Hiện nhãn AI' : 'Ẩn nhãn AI'}"
+                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${ov.hideAI ? '#E2E8F0' : '#E0E7FF'};
+                           background:${ov.hideAI ? '#F1F5F9' : '#EEF2FF'};color:${ov.hideAI ? '#CBD5E1' : '#4F46E5'};
+                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
+                    <i class="fa-solid fa-robot"></i>
+                </button>
+                <button onclick="toggleMatchedUser(${u.id},event)" title="${ov.hideUser ? 'Hiện nhãn người dùng' : 'Ẩn nhãn người dùng'}"
+                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${ov.hideUser ? '#E2E8F0' : '#D1FAE5'};
+                           background:${ov.hideUser ? '#F1F5F9' : '#ECFDF5'};color:${ov.hideUser ? '#CBD5E1' : '#059669'};
+                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
+                    <i class="fa-solid fa-user"></i>
+                </button>
+                <button onclick="toggleMatchedVisibility(${u.id},event)" title="${isRowHidden ? 'Hiện tất cả nhãn' : 'Ẩn tất cả nhãn'}"
+                    style="width:20px;height:20px;border:none;background:none;color:${isRowHidden ? '#CBD5E1' : '#94A3B8'};cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-left:2px;">
+                    <i class="fa-${isRowHidden ? 'regular' : 'solid'} fa-eye${isRowHidden ? '-slash' : ''}"></i>
+                </button>
+            </div>`;
+        }).join('');
+
+        return `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:6px;">
+            <div onclick="toggleCategory('${cat}',event)"
+                 style="display:flex;align-items:center;gap:6px;padding:7px 10px;cursor:pointer;background:#F8FAFC;border-bottom:${isCollapsed ? 'none' : '1px solid #E2E8F0'};">
+                <i class="fa-solid ${cls.icon}" style="color:${cls.color};font-size:12px;flex-shrink:0;"></i>
+                <span style="font-size:12px;font-weight:700;color:#1E293B;flex:1;">${cls.name}</span>
+                <span style="font-size:10px;font-weight:800;color:#fff;background:#4F46E5;border-radius:9px;padding:1px 6px;">${items.length}</span>
+                <button onclick="toggleCategoryAI('${cat}',event)" title="${allAIHidden ? 'Hiện tất cả nhãn AI' : 'Ẩn tất cả nhãn AI'}"
+                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${allAIHidden ? '#E2E8F0' : '#E0E7FF'};
+                           background:${allAIHidden ? '#F1F5F9' : '#EEF2FF'};color:${allAIHidden ? '#CBD5E1' : '#4F46E5'};
+                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-left:6px;margin-right:2px;">
+                    <i class="fa-solid fa-robot"></i>
+                </button>
+                <button onclick="toggleCategoryUser('${cat}',event)" title="${allUserHidden ? 'Hiện tất cả nhãn người dùng' : 'Ẩn tất cả nhãn người dùng'}"
+                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${allUserHidden ? '#E2E8F0' : '#D1FAE5'};
+                           background:${allUserHidden ? '#F1F5F9' : '#ECFDF5'};color:${allUserHidden ? '#CBD5E1' : '#059669'};
+                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-right:2px;">
+                    <i class="fa-solid fa-user"></i>
+                </button>
+                <button onclick="toggleCategoryVisibility('${cat}',event)" title="${allHidden ? 'Hiện tất cả nhãn' : 'Ẩn tất cả nhãn'}"
+                    style="width:20px;height:20px;border:none;background:none;color:${allHidden ? '#CBD5E1' : '#94A3B8'};cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-right:4px;">
+                    <i class="fa-${allHidden ? 'regular' : 'solid'} fa-eye${allHidden ? '-slash' : ''}"></i>
+                </button>
+                <i class="fa-solid fa-chevron-${isCollapsed ? 'down' : 'up'}" style="font-size:10px;color:#94A3B8;flex-shrink:0;"></i>
+            </div>
+            ${isCollapsed ? '' : `<div style="padding:4px 6px;">${itemsHtml}</div>`}
+        </div>`;
+    }).join('');
+}
+
+function renderFrameSimilarityCharts() {
+    const container = document.getElementById('similarityChartContainer');
+    if (!container || !evaluationData) return;
+
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+
+    let totalSimilarity = 0;
+    let cameraCount = 0;
+
+    frame.cameras.forEach(camKey => {
+        const comp = frame.comparison[camKey];
+        if (comp && typeof comp.similarity === 'number') {
+            totalSimilarity += comp.similarity;
+            cameraCount++;
+        }
+    });
+
+    const averageSimilarity = cameraCount > 0 ? (totalSimilarity / cameraCount) : null;
+
+    const radius = 46;
+    const circumference = 2 * Math.PI * radius;
+    const displayPercent = averageSimilarity !== null ? averageSimilarity : 0;
+    const strokeDashoffset = circumference - (displayPercent / 100) * circumference;
+
+    let color = '#EF4444'; // Red
+    let bgCircleColor = '#FEE2E2';
+    let statusText = 'Độ khớp thấp';
+    let statusColor = '#EF4444';
+    let statusBg = '#FEE2E2';
+
+    if (averageSimilarity === null) {
+        color = '#CBD5E1';
+        bgCircleColor = '#F1F5F9';
+        statusText = 'Chưa đối chiếu';
+        statusColor = '#64748B';
+        statusBg = '#F1F5F9';
+    } else if (displayPercent >= 75) {
+        color = '#10B981'; // Green
+        bgCircleColor = '#D1FAE5';
+        statusText = 'Độ khớp cao';
+        statusColor = '#059669';
+        statusBg = '#ECFDF5';
+    } else if (displayPercent >= 50) {
+        color = '#F59E0B'; // Orange
+        bgCircleColor = '#FEF3C7';
+        statusText = 'Độ tương đồng trung bình';
+        statusColor = '#D97706';
+        statusBg = '#FFFBEB';
+    }
+
+    container.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;width:100%;flex:1;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="position:relative;width:110px;height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                <svg width="110" height="110" viewBox="0 0 110 110" style="transform: rotate(-90deg);">
+                    <circle cx="55" cy="55" r="${radius}" fill="transparent" stroke="${bgCircleColor}" stroke-width="8" />
+                    <circle cx="55" cy="55" r="${radius}" fill="transparent" stroke="${color}" stroke-width="8"
+                            stroke-dasharray="${circumference}" stroke-dashoffset="${strokeDashoffset}" stroke-linecap="round" />
+                </svg>
+                <div style="position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span style="font-size:24px;font-weight:800;color:${color};font-family:'Outfit', 'Inter', sans-serif;">
+                        ${averageSimilarity !== null ? `${Math.round(averageSimilarity)}%` : '—'}
+                    </span>
+                </div>
+            </div>
+            <div style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:12px;background:${statusBg};color:${statusColor};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                ${statusText}
+            </div>
+        </div>
+    `;
+}
+
 function setActiveTool(tool) {
     currentTool = tool;
-    document.querySelectorAll('.tools-section .tool-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    document.querySelectorAll('.tools-section .tool-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`tool-${tool}`);
     if (activeBtn) activeBtn.classList.add('active');
-
     const canvas = document.querySelector('.center-canvas');
-    if (canvas) {
-        if (tool === 'pointer') {
-            canvas.style.cursor = 'default';
-        } else if (tool === 'pan') {
-            canvas.style.cursor = 'grab';
-        }
-    }
+    if (canvas) canvas.style.cursor = tool === 'pan' ? 'grab' : 'default';
 }
 
 function selectAt(clientX, clientY) {
@@ -327,65 +721,50 @@ function selectAt(clientX, clientY) {
     if (!img) return;
     const rect = img.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-
-    // Convert screen coordinates to canvas space coordinates
     const px = ((clientX - rect.left) / rect.width) * imgDisplayW;
     const py = ((clientY - rect.top) / rect.height) * imgDisplayH;
-
     const frame = evaluationData.frames[selectedFrameIdx];
     if (!frame) return;
-    const comp = frame.comparison[selectedCamera] || { ai_boxes: [], user_boxes: [], matched: [], missing: [], extra: [] };
+    const comp = frame.comparison[selectedCamera] || { ai_boxes: [], matched: [], extra: [] };
 
-    // Check User/Final boxes first if they are shown
     if (showUserLabels) {
-        // Check extra boxes
         for (let i = comp.extra.length - 1; i >= 0; i--) {
             const ex = comp.extra[i];
-            const x = ex.bbox_x * imgDisplayW;
-            const y = ex.bbox_y * imgDisplayH;
-            const w = ex.bbox_w * imgDisplayW;
-            const h = ex.bbox_h * imgDisplayH;
-            if (px >= x && px <= x + w && py >= y && py <= y + h) {
-                selectedAnnId = ex.id;
-                redrawAnnotations();
-                return;
+            if (px >= ex.bbox_x * imgDisplayW && px <= (ex.bbox_x + ex.bbox_w) * imgDisplayW &&
+                py >= ex.bbox_y * imgDisplayH && py <= (ex.bbox_y + ex.bbox_h) * imgDisplayH) {
+                selectedAnnId = ex.id; redrawAnnotations(); renderMatchedLabels(); return;
             }
         }
-        // Check matched boxes
         for (let i = comp.matched.length - 1; i >= 0; i--) {
-            const m = comp.matched[i];
-            const u = m.user_box;
-            const x = u.bbox_x * imgDisplayW;
-            const y = u.bbox_y * imgDisplayH;
-            const w = u.bbox_w * imgDisplayW;
-            const h = u.bbox_h * imgDisplayH;
-            if (px >= x && px <= x + w && py >= y && py <= y + h) {
-                selectedAnnId = u.id;
-                redrawAnnotations();
-                return;
+            const u = comp.matched[i].user_box;
+            if (px >= u.bbox_x * imgDisplayW && px <= (u.bbox_x + u.bbox_w) * imgDisplayW &&
+                py >= u.bbox_y * imgDisplayH && py <= (u.bbox_y + u.bbox_h) * imgDisplayH) {
+                selectedAnnId = u.id; redrawAnnotations(); renderMatchedLabels(); return;
             }
         }
     }
-
-    // Check AI boxes if they are shown
     if (showAILabels) {
         for (let i = comp.ai_boxes.length - 1; i >= 0; i--) {
             const box = comp.ai_boxes[i];
-            const x = box.bbox_x * imgDisplayW;
-            const y = box.bbox_y * imgDisplayH;
-            const w = box.bbox_w * imgDisplayW;
-            const h = box.bbox_h * imgDisplayH;
-            if (px >= x && px <= x + w && py >= y && py <= y + h) {
-                selectedAnnId = box.id;
+            if (px >= box.bbox_x * imgDisplayW && px <= (box.bbox_x + box.bbox_w) * imgDisplayW &&
+                py >= box.bbox_y * imgDisplayH && py <= (box.bbox_y + box.bbox_h) * imgDisplayH) {
+                // Find if this AI box is part of a matched pair
+                const match = comp.matched.find(m =>
+                    m.ai_box.id === box.id ||
+                    (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y)
+                );
+                if (match) {
+                    selectedAnnId = match.user_box.id;
+                } else {
+                    selectedAnnId = box.id;
+                }
                 redrawAnnotations();
+                renderMatchedLabels();
                 return;
             }
         }
     }
-
-    // Deselect if clicked outside all boxes
-    selectedAnnId = null;
-    redrawAnnotations();
+    selectedAnnId = null; redrawAnnotations(); renderMatchedLabels();
 }
 
 function redrawAnnotations() {
@@ -394,51 +773,54 @@ function redrawAnnotations() {
 
     const frame = evaluationData.frames[selectedFrameIdx];
     if (!frame) return;
-    const comp = frame.comparison[selectedCamera] || { ai_boxes: [], user_boxes: [], matched: [], missing: [], extra: [] };
+    const comp = frame.comparison[selectedCamera] || { ai_boxes: [], matched: [], extra: [] };
 
     const width = imgDisplayW;
     const height = imgDisplayH;
-
     const hasSelection = selectedAnnId !== null;
 
-    // 1. Draw AI Original Boxes (dashed lines, styled in respective category colors)
+    // Build per-item hidden sets
+    const hiddenAIKeys = new Set();
+    const hiddenUserIds = new Set();
+    comp.matched.forEach(m => {
+        const ov = hiddenMatchedItems.get(m.user_box.id);
+        if (ov?.hideAI) hiddenAIKeys.add(`${m.ai_box.bbox_x}_${m.ai_box.bbox_y}`);
+        if (ov?.hideUser) hiddenUserIds.add(m.user_box.id);
+    });
+
+    // 1. Draw AI boxes (dashed)
     if (showAILabels) {
         comp.ai_boxes.forEach(box => {
-            const x = box.bbox_x * width;
-            const y = box.bbox_y * height;
-            const w = box.bbox_w * width;
-            const h = box.bbox_h * height;
-
+            if (hiddenAIKeys.has(`${box.bbox_x}_${box.bbox_y}`)) return;
+            const x = box.bbox_x * width, y = box.bbox_y * height;
+            const w = box.bbox_w * width, h = box.bbox_h * height;
             const cls = CLASS_MAP[box.category];
-            const color = cls ? cls.color : 'rgba(147, 51, 234, 0.85)';
-
-            const sel = box.id === selectedAnnId;
+            const color = cls ? cls.color : '#9333EA';
+            const isMatchedToSelectedUser = comp.matched.some(m =>
+                m.user_box.id === selectedAnnId &&
+                (m.ai_box.id === box.id || (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y))
+            );
+            const sel = box.id === selectedAnnId || isMatchedToSelectedUser;
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
-
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
-            annCtx.setLineDash([2, 2]); // AI is always dashed in Overlay
+            annCtx.setLineDash([2, 2]);
             annCtx.strokeRect(x, y, w, h);
             annCtx.setLineDash([]);
         });
     }
 
-    // 2. Draw User/Final Boxes with Edit Statuses (styled in respective category colors)
+    // 2. Draw user boxes
     if (showUserLabels) {
-        // A. Draw Matched Boxes
         comp.matched.forEach(m => {
             const u = m.user_box;
-            const x = u.bbox_x * width;
-            const y = u.bbox_y * height;
-            const w = u.bbox_w * width;
-            const h = u.bbox_h * height;
-
+            if (hiddenUserIds.has(u.id)) return;
+            const x = u.bbox_x * width, y = u.bbox_y * height;
+            const w = u.bbox_w * width, h = u.bbox_h * height;
             const cls = CLASS_MAP[u.category];
             const color = cls ? cls.color : '#10B981';
-
             const sel = u.id === selectedAnnId;
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
-
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
             annCtx.strokeRect(x, y, w, h);
@@ -446,20 +828,13 @@ function redrawAnnotations() {
             annCtx.globalAlpha = hasSelection ? (sel ? 0.25 : 0.05) : 0.12;
             annCtx.fillRect(x, y, w, h);
         });
-
-        // B. Draw Extra Boxes (User added)
         comp.extra.forEach(ex => {
-            const x = ex.bbox_x * width;
-            const y = ex.bbox_y * height;
-            const w = ex.bbox_w * width;
-            const h = ex.bbox_h * height;
-
+            const x = ex.bbox_x * width, y = ex.bbox_y * height;
+            const w = ex.bbox_w * width, h = ex.bbox_h * height;
             const cls = CLASS_MAP[ex.category];
             const color = cls ? cls.color : '#3B82F6';
-
             const sel = ex.id === selectedAnnId;
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
-
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
             annCtx.strokeRect(x, y, w, h);
@@ -711,10 +1086,10 @@ async function loadEvaluationChats() {
             const d = String(date.getDate()).padStart(2, '0');
             const m = String(date.getMonth() + 1).padStart(2, '0');
             const timeStr = `${hh}:${mm} ${d}-${m}`;
-            
+
             const isLabeler = evaluationData && evaluationData.labeler && c.sender_id === evaluationData.labeler.id;
             const senderName = c.sender_full_name || c.sender_username;
-            
+
             if (isLabeler) {
                 return `
                 <div style="display:flex;flex-direction:column;align-items:flex-end;margin-bottom:12px;font-family:Inter,sans-serif">
@@ -808,7 +1183,7 @@ async function loadEvaluationHistory() {
         container.innerHTML = history.map((h, idx) => {
             const cfg = ACTION_CONFIG[h.action] || { icon: 'fa-circle', color: '#64748B', bg: '#F8FAFC', label: h.action };
             const actor = h.actor_full_name ? `${h.actor_full_name} (@${h.actor_username})` : (h.actor_username ? `@${h.actor_username}` : '—');
-            
+
             let timeStr = '—';
             if (h.created_at) {
                 const date = new Date(h.created_at);
@@ -844,6 +1219,42 @@ async function loadEvaluationHistory() {
 
     } catch (e) {
         container.innerHTML = `<div style="text-align:center;padding:12px;color:#EF4444;font-size:13px">Không thể tải lịch sử nộp bài</div>`;
+    }
+}
+
+function toggleSectionCollapse(id) {
+    const body = document.getElementById('section-body-' + id);
+    const icon = document.getElementById('collapse-icon-' + id);
+    if (!body || !icon) return;
+
+    const isCollapsed = body.style.display === 'none';
+
+    if (isCollapsed) {
+        body.style.display = '';
+        icon.className = 'fa-solid fa-chevron-up';
+
+        const container = document.getElementById('section-container-' + id);
+        if (container) {
+            if (id === 'tools') {
+                container.style.flexShrink = '0';
+            } else {
+                container.style.flex = '1';
+                container.style.overflowY = 'auto';
+            }
+        }
+    } else {
+        body.style.display = 'none';
+        icon.className = 'fa-solid fa-chevron-down';
+
+        const container = document.getElementById('section-container-' + id);
+        if (container) {
+            if (id === 'tools') {
+                container.style.flexShrink = '0';
+            } else {
+                container.style.flex = 'none';
+                container.style.overflowY = 'visible';
+            }
+        }
     }
 }
 

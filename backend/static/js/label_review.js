@@ -941,6 +941,42 @@ _style.textContent = `
 `;
 document.head.appendChild(_style);
 
+function toggleSectionCollapse(id) {
+    const body = document.getElementById('section-body-' + id);
+    const icon = document.getElementById('collapse-icon-' + id);
+    if (!body || !icon) return;
+    
+    const isCollapsed = body.style.display === 'none';
+    
+    if (isCollapsed) {
+        body.style.display = '';
+        icon.className = 'fa-solid fa-chevron-up';
+        
+        const container = document.getElementById('section-container-' + id);
+        if (container) {
+            if (id === 'tools') {
+                container.style.flexShrink = '0';
+            } else {
+                container.style.flex = '1';
+                container.style.overflowY = 'auto';
+            }
+        }
+    } else {
+        body.style.display = 'none';
+        icon.className = 'fa-solid fa-chevron-down';
+        
+        const container = document.getElementById('section-container-' + id);
+        if (container) {
+            if (id === 'tools') {
+                container.style.flexShrink = '0';
+            } else {
+                container.style.flex = 'none';
+                container.style.overflowY = 'visible';
+            }
+        }
+    }
+}
+
 // ============= START =============
 document.addEventListener('DOMContentLoaded', () => initPanReview());
 init();

@@ -299,11 +299,12 @@
             </div>
 
             <!-- Tools Section -->
-            <div class="tools-section" style="padding: 16px; border-bottom: 1px solid #E2E8F0;">
-                <div class="section-header" style="margin-bottom: 8px;">
+            <div class="tools-section" id="section-container-tools" style="padding: 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0;">
+                <div class="section-header" style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleSectionCollapse('tools')">
                     <div class="section-title">Công cụ</div>
+                    <i id="collapse-icon-tools" class="fa-solid fa-chevron-up" style="font-size: 11px; color: #64748B;"></i>
                 </div>
-                <div class="toolbar-grid">
+                <div id="section-body-tools" class="toolbar-grid">
                     <button class="tool-btn active" id="tool-pointer" title="Con trỏ" onclick="setActiveTool('pointer')">
                         <i class="fa-solid fa-arrow-pointer"></i>
                     </button>
@@ -314,11 +315,14 @@
             </div>
 
             <!-- Label list (read-only) -->
-            <div class="results-section" style="flex:1;min-height:0">
-                <div class="section-header">
+            <div class="results-section" id="section-container-results" style="flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;">
+                <div class="section-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('results')">
                     <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
+                    <i id="collapse-icon-results" class="fa-solid fa-chevron-up" style="font-size: 11px; color: #64748B;"></i>
                 </div>
-                <div class="label-list" id="labelList"></div>
+                <div id="section-body-results" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:visible;width:100%;">
+                    <div class="label-list" id="labelList" style="width:100%;height:100%;overflow-y:auto;margin-top:0;"></div>
+                </div>
             </div>
 
             <!-- Feedback -->
