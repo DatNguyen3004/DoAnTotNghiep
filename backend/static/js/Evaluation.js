@@ -934,7 +934,7 @@ function openTaskInfo() {
     const modal = document.getElementById('modalTaskInfo');
     if (!modal || !evaluationData) return;
     document.getElementById('infoProjectName').textContent = evaluationData.scene_name || '—';
-    document.getElementById('infoTaskName').textContent = `Nhiệm vụ #${evaluationData.task_id}`;
+    document.getElementById('infoTaskName').textContent = evaluationData.scene_description || 'Không có mô tả';
     document.getElementById('infoLabeler').textContent = evaluationData.labeler
         ? (evaluationData.labeler.username + (evaluationData.labeler.full_name ? ' — ' + evaluationData.labeler.full_name : ''))
         : '—';
@@ -1763,7 +1763,7 @@ function selectEvalStatus(status) {
 
 async function submitEvaluation() {
     if (!selectedEvalStatusValue) {
-        alert('Vui lòng chọn trạng thái đánh giá (Đạt yêu cầu hoặc Chưa đạt yêu cầu).');
+        showToast('Vui lòng chọn trạng thái đánh giá (Đạt yêu cầu hoặc Chưa đạt yêu cầu).', 'error');
         return;
     }
     const feedback = document.getElementById('evalFeedback').value.trim();
@@ -1784,20 +1784,65 @@ async function submitEvaluation() {
             })
         });
         if (res.ok) {
-            alert('Đã gửi đánh giá chất lượng thành công!');
-            window.location.reload();
+            showToast('Đã gửi đánh giá chất lượng thành công!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
         } else {
             const err = await res.json();
-            alert(err.detail || 'Lỗi gửi đánh giá');
+            showToast(err.detail || 'Lỗi gửi đánh giá', 'error');
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi đánh giá`;
         }
     } catch (e) {
         console.error(e);
-        alert('Lỗi kết nối server');
+        showToast('Lỗi kết nối server', 'error');
         btn.disabled = false;
         btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi đánh giá`;
     }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        z-index: 20000;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        background: ${type === 'success' ? '#16A34A' : '#DC2626'};
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: Inter, sans-serif;
+        animation: toastSlideIn 0.3s ease, toastFadeOut 0.3s ease 2.7s;
+    `;
+    
+    if (!document.getElementById('toast-keyframes-style')) {
+        const style = document.createElement('style');
+        style.id = 'toast-keyframes-style';
+        style.innerHTML = `
+            @keyframes toastSlideIn {
+                from { transform: translateX(120%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes toastFadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // Initialize on load

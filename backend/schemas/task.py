@@ -41,6 +41,10 @@ class TaskOut(BaseModel):
     assigned_user: Optional[TaskUserInfo] = None
     reviewer_user: Optional[TaskUserInfo] = None
     admin_moderated: bool = False
+    precision: Optional[int] = None
+    matched_objs: Optional[int] = None
+    missing_objs: Optional[int] = None
+    user_objs: Optional[int] = None
 
     class Config:
         from_attributes = True

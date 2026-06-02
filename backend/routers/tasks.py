@@ -84,6 +84,107 @@ VALID_STATUSES = {"pending", "in_progress", "submitted", "under_review", "review
 
 from models.project import Project
 
+def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dict:
+    """Tính toán chi tiết độ tin cậy và số lượng đối tượng khớp/sót so với AI dự đoán."""
+    import os
+    import json
+    
+    # Lấy dự đoán từ cache nếu có
+    cache_path = os.path.join("static", "cache", "predictions", f"task_{t_id}.json")
+    all_ai_preds = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                all_ai_preds = json.load(f)
+        except Exception:
+            pass
+
+    frames = db_session.query(Frame).filter(Frame.scene_id == s_id).all()
+    user_annotations = db_session.query(Annotation).filter(Annotation.task_id == t_id).all()
+
+    user_ann_groups = {}
+    for ann in user_annotations:
+        key = f"{ann.frame_id}_{ann.camera}"
+        if key not in user_ann_groups:
+            user_ann_groups[key] = []
+        user_ann_groups[key].append({
+            "category": ann.category,
+            "bbox_x": ann.bbox_x,
+            "bbox_y": ann.bbox_y,
+            "bbox_w": ann.bbox_w,
+            "bbox_h": ann.bbox_h,
+        })
+
+    total_user_objs = 0
+    total_matched_objs = 0
+    total_missing_objs = 0
+
+    def py_iou(boxA, boxB):
+        ax1, ay1 = boxA["bbox_x"], boxA["bbox_y"]
+        ax2, ay2 = boxA["bbox_x"] + boxA["bbox_w"], boxA["bbox_y"] + boxA["bbox_h"]
+        bx1, by1 = boxB["bbox_x"], boxB["bbox_y"]
+        bx2, by2 = boxB["bbox_x"] + boxB["bbox_w"], boxB["bbox_y"] + boxB["bbox_h"]
+        
+        ix1 = max(ax1, bx1)
+        iy1 = max(ay1, by1)
+        ix2 = min(ax2, bx2)
+        iy2 = min(ay2, by2)
+        
+        if ix2 <= ix1 or iy2 <= iy1:
+            return 0.0
+        inter = (ix2 - ix1) * (iy2 - iy1)
+        union = (boxA["bbox_w"] * boxA["bbox_h"]) + (boxB["bbox_w"] * boxB["bbox_h"]) - inter
+        return inter / union if union > 0.0 else 0.0
+
+    for f in frames:
+        for cam in CAMERA_COLUMN_MAP.keys():
+            column = CAMERA_COLUMN_MAP[cam]
+            if getattr(f, column, None):
+                key = f"{f.id}_{cam}"
+                ai_list = all_ai_preds.get(key)
+                if ai_list is None:
+                    ai_list = get_ai_predictions_for_frame_cam(db_session, f.id, cam)
+                
+                user_list = user_ann_groups.get(key, [])
+                total_user_objs += len(user_list)
+                
+                available_ai = [dict(p) for p in ai_list]
+                matched_count = 0
+                
+                for user_ann in user_list:
+                    best_match = None
+                    best_iou = 0.1
+                    best_idx = -1
+                    
+                    for idx, ai_box in enumerate(available_ai):
+                        if ai_box["category"] == user_ann["category"]:
+                            iou_val = py_iou(user_ann, ai_box)
+                            if iou_val > best_iou:
+                                best_iou = iou_val
+                                best_match = ai_box
+                                best_idx = idx
+                                
+                    if best_match:
+                        matched_count += 1
+                        available_ai.pop(best_idx)
+                        
+                total_matched_objs += matched_count
+                total_missing_objs += len(available_ai)
+
+    precision = 0
+    if (total_user_objs + total_missing_objs) > 0:
+        precision = round((total_matched_objs / (total_user_objs + total_missing_objs)) * 100)
+
+    return {
+        "precision": precision,
+        "matched_objs": total_matched_objs,
+        "missing_objs": total_missing_objs,
+        "user_objs": total_user_objs,
+    }
+
+def calculate_task_user_precision(db_session: Session, t_id: int, s_id: int) -> int:
+    return get_task_precision_details(db_session, t_id, s_id)["precision"]
+
 def _enrich_task(task: Task, db: Session) -> dict:
     """Enrich task with scene info, user info, and annotation count."""
     scene = db.query(Scene).filter(Scene.id == task.scene_id).first()
@@ -107,6 +208,21 @@ def _enrich_task(task: Task, db: Session) -> dict:
     )
     admin_moderated = latest_sub is not None and latest_sub.action in ("admin_approved", "admin_rejected")
 
+    precision = None
+    matched_objs = None
+    missing_objs = None
+    user_objs = None
+
+    if task.status in ('approved', 'rejected'):
+        try:
+            details = get_task_precision_details(db, task.id, task.scene_id)
+            precision = details["precision"]
+            matched_objs = details["matched_objs"]
+            missing_objs = details["missing_objs"]
+            user_objs = details["user_objs"]
+        except Exception as e:
+            print(f"Error calculating precision for task {task.id}: {e}")
+
     return TaskOut(
         id=task.id,
         project_id=task.project_id,
@@ -127,6 +243,10 @@ def _enrich_task(task: Task, db: Session) -> dict:
         assigned_user=TaskUserInfo.model_validate(assignee) if assignee else None,
         reviewer_user=TaskUserInfo.model_validate(reviewer) if reviewer else None,
         admin_moderated=admin_moderated,
+        precision=precision,
+        matched_objs=matched_objs,
+        missing_objs=missing_objs,
+        user_objs=user_objs,
     ).model_dump()
 
 
@@ -930,6 +1050,7 @@ def get_task_evaluation_details(
     return {
         "task_id": task.id,
         "scene_name": scene.name or scene.scene_token if scene else None,
+        "scene_description": scene.description if scene else None,
         "status": task.status,
         "feedback": task.feedback,
         "labeler": {

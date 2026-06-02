@@ -62,7 +62,14 @@ const STATUS_MAP = {
     rejected: { label: 'Chưa đạt', cls: 'st-rejected' }
 };
 
-function getStatusBadge(status) {
+function getStatusBadge(status, adminModerated = false) {
+    if (status === 'rejected') {
+        if (adminModerated) {
+            return `<div class="status-badge st-rejected"><div class="status-dot"></div>Chưa đạt</div>`;
+        } else {
+            return `<div class="status-badge st-rejected" style="background:#FFF7ED;color:#C2410C;border-color:#FED7AA"><div class="status-dot" style="background:#EA580C"></div>Có lỗi</div>`;
+        }
+    }
     const info = STATUS_MAP[status] || { label: status, cls: 'st-pending' };
     return `<div class="status-badge ${info.cls}"><div class="status-dot"></div>${info.label}</div>`;
 }
@@ -81,7 +88,7 @@ let myTasks = [];
 
 async function loadMyTasks() {
     const tbody = document.getElementById('myTasksBody');
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#94A3B8">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
     </td></tr>`;
     try {
@@ -93,14 +100,14 @@ async function loadMyTasks() {
         renderMyTasks(myTasks);
         updateStats(myTasks);
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
 }
 
 function renderMyTasks(tasks) {
     const tbody = document.getElementById('myTasksBody');
     if (!tasks.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
             <i class="fa-regular fa-folder-open"></i>
             <h3>Chưa có nhiệm vụ nào</h3>
             <p>Admin chưa phân công nhiệm vụ cho bạn trong dự án này.</p>
@@ -120,7 +127,7 @@ function renderMyTasks(tasks) {
                 <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
                 <div><div>${name}</div>${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
             </div></td>
-            <td>${getStatusBadge(task.status)}</td>
+            <td>${getStatusBadge(task.status, task.admin_moderated)}</td>
             <td><div class="progress-cell">
                 <div class="progress-bar"><div class="progress-fill ${progressColor}" style="width:${progress}%"></div></div>
                 <span class="progress-text">${task.frame_count > 0 ? progress + '%' : '—'}</span>
@@ -134,15 +141,24 @@ function renderMyTasks(tasks) {
 
 function getMyTaskAction(task) {
     const s = task.status;
-    if (s === 'approved' || s === 'rejected') {
+    if (s === 'approved') {
         const feedbackEscaped = (task.feedback || '').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-        const statusText = s === 'approved' ? 'Đạt yêu cầu' : 'Chưa đạt yêu cầu';
-        return `<button onclick="showEvaluationDetailPopup('${statusText}', '${feedbackEscaped}')" class="action-link" style="border:none;background:#EEF2FF;color:#4F46E5;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:4px;" title="Xem nhận xét từ Admin">
+        return `<button onclick="showEvaluationDetailPopup('Đạt yêu cầu', '${feedbackEscaped}', ${task.precision !== null ? task.precision : 'null'}, ${task.matched_objs !== null ? task.matched_objs : 'null'}, ${task.missing_objs !== null ? task.missing_objs : 'null'}, ${task.user_objs !== null ? task.user_objs : 'null'})" class="action-link" style="border:none;background:#ECFDF5;color:#059669;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#059669';this.style.color='#FFFFFF';" onmouseout="this.style.background='#ECFDF5';this.style.color='#059669';" title="Xem nhận xét từ Admin">
                 <i class="fa-solid fa-eye"></i> Xem đánh giá
             </button>`;
     }
+    if (s === 'rejected') {
+        if (task.admin_moderated) {
+            const feedbackEscaped = (task.feedback || '').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+            return `<button onclick="showEvaluationDetailPopup('Chưa đạt yêu cầu', '${feedbackEscaped}', ${task.precision !== null ? task.precision : 'null'}, ${task.matched_objs !== null ? task.matched_objs : 'null'}, ${task.missing_objs !== null ? task.missing_objs : 'null'}, ${task.user_objs !== null ? task.user_objs : 'null'})" class="action-link" style="border:none;background:#ECFDF5;color:#059669;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#059669';this.style.color='#FFFFFF';" onmouseout="this.style.background='#ECFDF5';this.style.color='#059669';" title="Xem nhận xét từ Admin">
+                <i class="fa-solid fa-eye"></i> Xem đánh giá
+            </button>`;
+        } else {
+            return `<a href="FrameList.html?taskId=${task.id}&mode=fix" class="action-link" style="background:#FEF2F2;color:#EF4444;padding:8px 18px;border-radius:6px;font-size:11px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#EF4444';this.style.color='#FFFFFF';" onmouseout="this.style.background='#FEF2F2';this.style.color='#EF4444';"><i class="fa-solid fa-pen-to-square"></i> Sửa lỗi</a>`;
+        }
+    }
     if (s === 'pending' || s === 'in_progress')
-        return `<a href="Label.html?taskId=${task.id}" class="action-link"><i class="fa-solid fa-pen-to-square"></i> Gán nhãn</a>`;
+        return `<a href="Label.html?taskId=${task.id}" class="action-link" style="background:#EFF6FF;color:#2563EB;padding:8px 18px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#2563EB';this.style.color='#FFFFFF';" onmouseout="this.style.background='#EFF6FF';this.style.color='#2563EB';"><i class="fa-solid fa-pen-to-square"></i> Gán nhãn</a>`;
     if (s === 'submitted')
         return `<span style="color:#94A3B8;font-size:12px;font-style:italic"><i class="fa-solid fa-clock"></i> Đợi kiểm tra</span>`;
     if (s === 'under_review')
@@ -157,7 +173,7 @@ let reviewTasks = [];
 
 async function loadReviewTasks() {
     const tbody = document.getElementById('reviewTasksBody');
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#94A3B8">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Đang tải...
     </td></tr>`;
     try {
@@ -167,20 +183,19 @@ async function loadReviewTasks() {
         if (!res.ok) throw new Error();
         reviewTasks = await res.json();
         renderReviewTasks(reviewTasks);
-        // Cập nhật lại stats sau khi có reviewTasks
         updateStats(myTasks);
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
 }
 
 function renderReviewTasks(tasks) {
     const tbody = document.getElementById('reviewTasksBody');
     if (!tasks.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <h3>Không có bài cần kiểm tra</h3>
-            <p>Hiện tại không có bài nộp nào đang chờ bạn kiểm duyệt.</p>
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <h3>Chưa có nhiệm vụ kiểm tra</h3>
+            <p>Bạn chưa được phân công làm reviewer cho nhiệm vụ nào trong dự án này.</p>
         </div></td></tr>`;
         document.getElementById('showingReview').textContent = 'Không có dữ liệu';
         document.getElementById('tabBadgeReview').textContent = 0;
@@ -189,21 +204,27 @@ function renderReviewTasks(tasks) {
     tbody.innerHTML = tasks.map((task, idx) => {
         const name = task.scene_name || `Nhiệm vụ #${task.id}`;
         const desc = task.scene_description || '';
-        const canReview = task.status === 'under_review';
+        const progress = task.frame_count > 0 ? Math.round((task.annotated_frames / task.frame_count) * 100) : 0;
+        const progressColor = progress >= 100 ? 'green' : (progress >= 50 ? 'teal' : 'blue');
         
+        const canReview = task.status === 'submitted' || task.status === 'under_review';
         let actionHtml = '';
         if (task.admin_moderated) {
-            actionHtml = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
+            if (task.status === 'approved') {
+                actionHtml = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
+            } else {
+                actionHtml = `<span style="color:#EF4444;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-xmark"></i> Chưa đạt</span>`;
+            }
         } else if (canReview) {
             actionHtml = task.feedback
-                ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link review-link" onclick="sessionStorage.setItem('projectId',${task.project_id || 'null'})"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
-                : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link review-link"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`;
+                ? `<a href="FrameList.html?taskId=${task.id}&mode=review" class="action-link" style="color:#D97706;background:#FEF3C7;font-size:11px;padding:8px 18px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#D97706';this.style.color='#FFFFFF';" onmouseout="this.style.background='#FEF3C7';this.style.color='#D97706';"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`
+                : `<a href="Label_Review.html?taskId=${task.id}&mode=review" class="action-link" style="color:#D97706;background:#FEF3C7;font-size:11px;padding:8px 18px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#D97706';this.style.color='#FFFFFF';" onmouseout="this.style.background='#FEF3C7';this.style.color='#D97706';"><i class="fa-solid fa-magnifying-glass"></i> Kiểm tra</a>`;
         } else if (task.status === 'reviewed') {
             actionHtml = `<span style="color:#2563EB;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`;
         } else if (task.status === 'approved') {
             actionHtml = `<span style="color:#10B981;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>`;
         } else if (task.status === 'rejected') {
-            actionHtml = `<span style="color:#EF4444;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-xmark"></i> Chưa đạt</span>`;
+            actionHtml = `<span style="color:#2563EB;font-size:12px;font-weight:600"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra</span>`;
         } else {
             actionHtml = `<span style="color:#94A3B8">—</span>`;
         }
@@ -211,15 +232,19 @@ function renderReviewTasks(tasks) {
         return `<tr>
             <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
             <td><div class="scene-name">
-                <div class="scene-icon" style="background:#FFF7ED;color:#EA580C"><i class="fa-solid fa-film"></i></div>
+                <div class="scene-icon" style="background:#FAF5FF;color:#9333EA"><i class="fa-solid fa-film"></i></div>
                 <div><div>${name}</div>${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
             </div></td>
             <td>${getUserCell(task.assigned_user)}</td>
-            <td>${getStatusBadge(task.status)}</td>
+            <td>${getStatusBadge(task.status, task.admin_moderated)}</td>
+            <td><div class="progress-cell">
+                <div class="progress-bar"><div class="progress-fill ${progressColor}" style="width:${progress}%"></div></div>
+                <span class="progress-text">${task.frame_count > 0 ? progress + '%' : '—'}</span>
+            </div></td>
             <td>${actionHtml}</td>
         </tr>`;
     }).join('');
-    document.getElementById('showingReview').textContent = `${tasks.length} bài cần kiểm thử`;
+    document.getElementById('showingReview').textContent = `Hiển thị ${tasks.length} bài cần kiểm tra`;
     document.getElementById('tabBadgeReview').textContent = tasks.length;
 }
 
@@ -229,7 +254,6 @@ function updateStats(tasks) {
     const done = tasks.filter(t => t.status === 'approved').length;
     const rejected = tasks.filter(t => t.status === 'rejected').length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    // Số task reviewer đang chờ mình kiểm thử (under_review)
     const pendingReview = reviewTasks.filter(t => t.status === 'under_review').length;
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statTotalText').textContent = `${total} nhiệm vụ`;
@@ -255,7 +279,7 @@ loadSidebarProject();
 loadMyTasks();
 loadReviewTasks();
 
-function showEvaluationDetailPopup(statusText, feedbackText) {
+function showEvaluationDetailPopup(statusText, feedbackText, precision, matchedObjs, missingObjs, userObjs) {
     const existing = document.getElementById('evalDetailPopupModal');
     if (existing) existing.remove();
 
@@ -268,6 +292,32 @@ function showEvaluationDetailPopup(statusText, feedbackText) {
     const badgeColor = isApprove ? '#059669' : '#DC2626';
     const badgeBorder = isApprove ? '#A7F3D0' : '#FCA5A5';
     const icon = isApprove ? 'fa-circle-check' : 'fa-circle-xmark';
+
+    let precisionHTML = '';
+    if (precision !== null) {
+        const precisionColor = precision >= 85 ? '#10B981' : precision >= 70 ? '#3B82F6' : '#EF4444';
+        precisionHTML = `
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:700; color:#475569;">Độ tin cậy đạt được:</span>
+                <span style="font-size:16px; font-weight:800; color:${precisionColor};">${precision}%</span>
+            </div>
+            <div style="width:100%; height:6px; background:#E2E8F0; border-radius:3px; overflow:hidden;">
+                <div style="width:${precision}%; height:100%; background:${precisionColor}; border-radius:3px;"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                <div style="font-size:11px; color:#64748B;">
+                    <i class="fa-solid fa-circle-check" style="color:#10B981; margin-right:4px;"></i>Khớp AI: <strong>${matchedObjs} nhãn</strong>
+                </div>
+                <div style="font-size:11px; color:#64748B;">
+                    <i class="fa-solid fa-circle-xmark" style="color:#EF4444; margin-right:4px;"></i>Sót / Sai lệch: <strong>${missingObjs} nhãn</strong>
+                </div>
+                <div style="font-size:11px; color:#64748B; grid-column: span 2;">
+                    <i class="fa-solid fa-pen" style="color:#6366F1; margin-right:4px;"></i>Tổng số nhãn bạn đã vẽ: <strong>${userObjs} nhãn</strong>
+                </div>
+            </div>
+        </div>`;
+    }
 
     modal.innerHTML = `
     <div style="background:#fff;border-radius:16px;width:100%;max-width:440px;box-shadow:0 20px 40px rgba(0,0,0,0.18);font-family:Inter,sans-serif;display:flex;flex-direction:column;animation:popupScaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);box-sizing:border-box;">
@@ -294,6 +344,9 @@ function showEvaluationDetailPopup(statusText, feedbackText) {
                     <i class="fa-solid ${icon}"></i> ${statusText}
                 </span>
             </div>
+
+            ${precisionHTML}
+
             <div style="box-sizing:border-box;">
                 <div style="font-size:13px;font-weight:600;color:#475569;margin-bottom:6px;">Nội dung nhận xét:</div>
                 <div style="padding:12px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;color:#334155;white-space:pre-wrap;min-height:60px;line-height:1.5;box-sizing:border-box;">${feedbackText || 'Không có nhận xét thêm từ Admin.'}</div>

@@ -47,8 +47,8 @@ let frameReviews = {};
 function openTaskInfo() {
     const modal = document.getElementById('modalTaskInfo');
     if (!modal || !task) return;
-    document.getElementById('infoProjectName').textContent = task.project_name || '—';
-    document.getElementById('infoTaskName').textContent = task.scene_name || `Nhiệm vụ #${task.id}`;
+    document.getElementById('infoProjectName').textContent = task.scene_name || `Nhiệm vụ #${task.id}`;
+    document.getElementById('infoTaskName').textContent = task.scene_description || 'Không có mô tả';
     document.getElementById('infoLabeler').textContent = task.assigned_user
         ? (task.assigned_user.username + (task.assigned_user.full_name ? ' — ' + task.assigned_user.full_name : ''))
         : '—';

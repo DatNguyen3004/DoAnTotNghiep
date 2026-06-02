@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,217 +12,411 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/setting.css">
     <style>
-        .profile-card { display:flex; gap:32px; background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:32px; max-width:900px; width:100%; }
-        .avatar-section { width:200px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
-        .avatar-preview-container { width:120px; height:120px; border-radius:50%; overflow:hidden; background:#EEF2FF; display:flex; align-items:center; justify-content:center; }
-        .avatar-preview { width:100%; height:100%; object-fit:cover; }
-        .btn-change-photo { padding:8px 16px; background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:Inter,sans-serif; transition:all 0.2s; }
-        .btn-change-photo:hover { background:#E2E8F0; }
-        .avatar-hint { font-size:11px; color:#94A3B8; text-align:center; line-height:1.4; }
-        .form-section { flex:1; }
-        .form-grid { display:flex; flex-direction:column; gap:16px; }
-        .form-group { display:flex; flex-direction:column; gap:6px; }
-        .form-group.half { display:inline-flex; }
-        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-        .form-group label { font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
-        .form-group input, .form-group select, .form-group textarea { padding:10px 14px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; font-family:Inter,sans-serif; color:#1E293B; outline:none; transition:border 0.2s; background:#fff; width:100%; box-sizing:border-box; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#2563EB; }
-        .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled { background:#F8FAFC; color:#94A3B8; cursor:not-allowed; }
-        .form-footer { display:flex; gap:12px; justify-content:flex-end; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid #E2E8F0; }
-        .btn-back { height:40px; padding:0 20px; background:#F1F5F9; color:#475569; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; text-decoration:none; display:inline-flex; align-items:center; gap:8px; line-height:1; box-sizing:border-box; }
-        .btn-back:hover { background:#E2E8F0; }
-        .btn-save { height:40px; padding:0 24px; background:#2563EB; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:Inter,sans-serif; display:inline-flex; align-items:center; gap:8px; line-height:1; box-sizing:border-box; }
+        .profile-card {
+            display: flex;
+            gap: 32px;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #E2E8F0;
+            padding: 32px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .avatar-section {
+            width: 200px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-preview-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #EEF2FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .btn-change-photo {
+            padding: 8px 16px;
+            background: #F1F5F9;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: Inter, sans-serif;
+            transition: all 0.2s;
+        }
+
+        .btn-change-photo:hover {
+            background: #E2E8F0;
+        }
+
+        .avatar-hint {
+            font-size: 11px;
+            color: #94A3B8;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .form-section {
+            flex: 1;
+        }
+
+        .form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.half {
+            display: inline-flex;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: Inter, sans-serif;
+            color: #1E293B;
+            outline: none;
+            transition: border 0.2s;
+            background: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #2563EB;
+        }
+
+        .form-group input:disabled,
+        .form-group select:disabled,
+        .form-group textarea:disabled {
+            background: #F8FAFC;
+            color: #94A3B8;
+            cursor: not-allowed;
+        }
+
+        .form-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+        }
+
+        .btn-back {
+            height: 40px;
+            padding: 0 20px;
+            background: #F1F5F9;
+            color: #475569;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: Inter, sans-serif;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1;
+            box-sizing: border-box;
+        }
+
+        .btn-back:hover {
+            background: #E2E8F0;
+        }
+
+        .btn-save {
+            height: 40px;
+            padding: 0 24px;
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: Inter, sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1;
+            box-sizing: border-box;
+        }
+
         .btn-save:hover {
             background: #3A4F72;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
         }
-        .page-header { margin-bottom:24px; max-width:900px; width:100%; }
-        .page-header h1 { font-size:22px; font-weight:800; color:#1E293B; }
-        .page-header p { font-size:13px; color:#64748B; margin-top:4px; }
-        .profile-content { padding:32px; display:flex; flex-direction:column; align-items:center; }
+
+        .page-header {
+            margin-bottom: 24px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1E293B;
+        }
+
+        .page-header p {
+            font-size: 13px;
+            color: #64748B;
+            margin-top: 4px;
+        }
+
+        .profile-content {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 
 <body>
 
-<main class="main-wrapper" id="mainWrapper">
+    <main class="main-wrapper" id="mainWrapper">
 
-    <div id="sidebar-container"></div>
+        <div id="sidebar-container"></div>
 
-    <header class="topnav">
-        <div class="topnav-brand">
-            <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
-        <span style="padding-left: 10px;">NuLabel</span>
-        </div>
-        <div class="topnav-right">
-            <a href="Profile.html">
-                <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
-            </a>
-        </div>
-    </header>
+        <header class="topnav">
+            <div class="topnav-brand">
+                <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
+                <span style="padding-left: 10px;">NuLabel</span>
+            </div>
+            <div class="topnav-right">
+                <a href="Profile.html">
+                    <img src="" alt="Avatar" class="avatar" id="topnavAvatar">
+                </a>
+            </div>
+        </header>
 
-    <div class="profile-content">
-        <div class="page-header">
-            <h1>Thông tin cá nhân</h1>
-            <p>Cập nhật thông tin hồ sơ của bạn và quản lý các tùy chọn tài khoản.</p>
-        </div>
-
-        <div class="profile-card">
-            <div class="avatar-section">
-                <h3>Ảnh đại diện</h3>
-                <div class="avatar-preview-container">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Khang&style=transparent" alt="Avatar" class="avatar-preview">
-                </div>
-                <button class="btn-change-photo">Thay đổi ảnh</button>
-                <p class="avatar-hint">Khuyến nghị file .jpg hoặc .png, kích thước tối thiểu 400×400px.</p>
+        <div class="profile-content">
+            <div class="page-header">
+                <h1>Thông tin cá nhân</h1>
+                <p>Cập nhật thông tin hồ sơ của bạn và quản lý các tùy chọn tài khoản.</p>
             </div>
 
-            <div class="form-section">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Họ và Tên</label>
-                        <input type="text" id="pFullName" placeholder="Nguyễn Văn A">
+            <div class="profile-card">
+                <div class="avatar-section">
+                    <h3>Ảnh đại diện</h3>
+                    <div class="avatar-preview-container">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Khang&style=transparent" alt="Avatar"
+                            class="avatar-preview">
                     </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="pEmail" placeholder="user@nulabel.vn">
-                    </div>
-                    <div class="form-row">
+                    <button class="btn-change-photo">Thay đổi ảnh</button>
+                    <p class="avatar-hint">Khuyến nghị file .jpg hoặc .png, kích thước tối thiểu 400×400px.</p>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label>Giới tính</label>
-                            <select id="pGender">
-                                <option value="Nam">Nam</option>
-                                <option value="Nữ">Nữ</option>
-                            </select>
+                            <label>Họ và Tên</label>
+                            <input type="text" id="pFullName" placeholder="Nguyễn Văn A">
                         </div>
                         <div class="form-group">
-                            <label>Ngày sinh</label>
-                            <input type="date" id="pBirthDate">
+                            <label>Email</label>
+                            <input type="email" id="pEmail" placeholder="user@nulabel.vn">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Giới tính</label>
+                                <select id="pGender">
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày sinh</label>
+                                <input type="date" id="pBirthDate">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Số điện thoại</label>
+                            <input type="text" id="pPhone" placeholder="0988 123 456">
+                        </div>
+                        <div class="form-group">
+                            <label>Địa chỉ</label>
+                            <textarea id="pAddress" rows="2" placeholder="Địa chỉ của bạn"></textarea>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Số điện thoại</label>
-                        <input type="text" id="pPhone" placeholder="0988 123 456">
-                    </div>
-                    <div class="form-group">
-                        <label>Địa chỉ</label>
-                        <textarea id="pAddress" rows="2" placeholder="Địa chỉ của bạn"></textarea>
+                    <div class="form-footer">
+                        <a href="javascript:history.back()" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Quay
+                            lại</a>
+                        <button type="button" onclick="document.getElementById('modalChangePass').style.display='flex'"
+                            style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:8px"><i
+                                class="fa-solid fa-key"></i> Đổi mật khẩu</button>
+                        <button class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi</button>
                     </div>
                 </div>
-                <div class="form-footer">
-                    <a href="javascript:history.back()" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
-                    <button type="button" onclick="document.getElementById('modalChangePass').style.display='flex'" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:inline-flex;align-items:center;gap:8px"><i class="fa-solid fa-key"></i> Đổi mật khẩu</button>
-                    <button class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/avatar-sync.js"></script>
+    <script src="../js/profile.js"></script>
+
+    <!-- Modal đổi mật khẩu -->
+    <div id="modalChangePass"
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;font-family:Inter,sans-serif">
+        <div style="background:#fff;border-radius:14px;padding:28px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-key" style="color:#2563EB"></i> Đổi mật khẩu
                 </div>
+                <i class="fa-solid fa-xmark" onclick="closeChangePass()"
+                    style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
+            </div>
+            <div id="changePassError"
+                style="display:none;margin-bottom:14px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;color:#DC2626;align-items:center;gap:8px">
+                <i class="fa-solid fa-circle-xmark"></i><span id="changePassErrorMsg"></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                    <label
+                        style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật
+                        khẩu hiện tại</label>
+                    <input type="password" id="cpOld" placeholder="Nhập mật khẩu hiện tại"
+                        autocomplete="current-password"
+                        style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+                </div>
+                <div>
+                    <label
+                        style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật
+                        khẩu mới</label>
+                    <input type="password" id="cpNew" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"
+                        style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+                </div>
+                <div>
+                    <label
+                        style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Xác
+                        nhận mật khẩu mới</label>
+                    <input type="password" id="cpConfirm" placeholder="Nhập lại mật khẩu mới"
+                        autocomplete="new-password"
+                        style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+                <button onclick="closeChangePass()"
+                    style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Hủy</button>
+                <button onclick="submitChangePass()" id="btnChangePass"
+                    style="height:40px;padding:0 24px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-check"></i> Xác nhận
+                </button>
             </div>
         </div>
     </div>
 
-</main>
+    <script>
+        function closeChangePass() {
+            document.getElementById('modalChangePass').style.display = 'none';
+            document.getElementById('cpOld').value = '';
+            document.getElementById('cpNew').value = '';
+            document.getElementById('cpConfirm').value = '';
+            document.getElementById('changePassError').style.display = 'none';
+        }
 
-<script src="../js/sidebar.js"></script>
-<script src="../js/avatar-sync.js"></script>
-<script src="../js/profile.js"></script>
+        function showChangePassError(msg) {
+            const el = document.getElementById('changePassError');
+            document.getElementById('changePassErrorMsg').textContent = msg;
+            el.style.display = 'flex';
+        }
 
-<!-- Modal đổi mật khẩu -->
-<div id="modalChangePass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;font-family:Inter,sans-serif">
-    <div style="background:#fff;border-radius:14px;padding:28px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-            <div style="font-size:16px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:8px">
-                <i class="fa-solid fa-key" style="color:#2563EB"></i> Đổi mật khẩu
-            </div>
-            <i class="fa-solid fa-xmark" onclick="closeChangePass()" style="cursor:pointer;color:#94A3B8;font-size:16px"></i>
-        </div>
-        <div id="changePassError" style="display:none;margin-bottom:14px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:600;color:#DC2626;align-items:center;gap:8px">
-            <i class="fa-solid fa-circle-xmark"></i><span id="changePassErrorMsg"></span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:14px">
-            <div>
-                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật khẩu hiện tại</label>
-                <input type="password" id="cpOld" placeholder="Nhập mật khẩu hiện tại" autocomplete="current-password"
-                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
-            </div>
-            <div>
-                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Mật khẩu mới</label>
-                <input type="password" id="cpNew" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"
-                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
-            </div>
-            <div>
-                <label style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Xác nhận mật khẩu mới</label>
-                <input type="password" id="cpConfirm" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password"
-                    style="width:100%;height:42px;padding:0 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box">
-            </div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-            <button onclick="closeChangePass()" style="height:40px;padding:0 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Hủy</button>
-            <button onclick="submitChangePass()" id="btnChangePass" style="height:40px;padding:0 24px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px">
-                <i class="fa-solid fa-check"></i> Xác nhận
-            </button>
-        </div>
-    </div>
-</div>
+        async function submitChangePass() {
+            const oldPass = document.getElementById('cpOld').value;
+            const newPass = document.getElementById('cpNew').value;
+            const confirm = document.getElementById('cpConfirm').value;
 
-<script>
-function closeChangePass() {
-    document.getElementById('modalChangePass').style.display = 'none';
-    document.getElementById('cpOld').value = '';
-    document.getElementById('cpNew').value = '';
-    document.getElementById('cpConfirm').value = '';
-    document.getElementById('changePassError').style.display = 'none';
-}
+            if (!oldPass) return showChangePassError('Vui lòng nhập mật khẩu hiện tại');
+            if (!newPass || newPass.length < 6) return showChangePassError('Mật khẩu mới phải có ít nhất 6 ký tự');
+            if (newPass !== confirm) return showChangePassError('Mật khẩu xác nhận không khớp');
 
-function showChangePassError(msg) {
-    const el = document.getElementById('changePassError');
-    document.getElementById('changePassErrorMsg').textContent = msg;
-    el.style.display = 'flex';
-}
+            const btn = document.getElementById('btnChangePass');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
 
-async function submitChangePass() {
-    const oldPass = document.getElementById('cpOld').value;
-    const newPass = document.getElementById('cpNew').value;
-    const confirm = document.getElementById('cpConfirm').value;
+            try {
+                const token = localStorage.getItem('access_token');
+                const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
 
-    if (!oldPass) return showChangePassError('Vui lòng nhập mật khẩu hiện tại');
-    if (!newPass || newPass.length < 6) return showChangePassError('Mật khẩu mới phải có ít nhất 6 ký tự');
-    if (newPass !== confirm) return showChangePassError('Mật khẩu xác nhận không khớp');
+                const verifyRes = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: cu.username, password: oldPass })
+                });
+                if (!verifyRes.ok) return showChangePassError('Mật khẩu hiện tại không đúng');
 
-    const btn = document.getElementById('btnChangePass');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+                const res = await fetch('/api/users/' + cu.id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({ new_password: newPass })
+                });
+                if (!res.ok) throw new Error();
 
-    try {
-        const token = localStorage.getItem('access_token');
-        const cu = JSON.parse(localStorage.getItem('current_user') || '{}');
+                closeChangePass();
+                if (typeof showToast === 'function') showToast('Đổi mật khẩu thành công', 'success');
+                else alert('Đổi mật khẩu thành công!');
+            } catch (e) {
+                showChangePassError('Có lỗi xảy ra, vui lòng thử lại');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Xác nhận';
+            }
+        }
 
-        const verifyRes = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: cu.username, password: oldPass })
+        document.getElementById('modalChangePass').addEventListener('click', function (e) {
+            if (e.target === this) closeChangePass();
         });
-        if (!verifyRes.ok) return showChangePassError('Mật khẩu hiện tại không đúng');
-
-        const res = await fetch('/api/users/' + cu.id, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-            body: JSON.stringify({ new_password: newPass })
-        });
-        if (!res.ok) throw new Error();
-
-        closeChangePass();
-        if (typeof showToast === 'function') showToast('Đổi mật khẩu thành công', 'success');
-        else alert('Đổi mật khẩu thành công!');
-    } catch(e) {
-        showChangePassError('Có lỗi xảy ra, vui lòng thử lại');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Xác nhận';
-    }
-}
-
-document.getElementById('modalChangePass').addEventListener('click', function(e) {
-    if (e.target === this) closeChangePass();
-});
-</script>
+    </script>
 </body>
+
 </html>
