@@ -153,13 +153,13 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                 
                 for user_ann in user_list:
                     best_match = None
-                    best_iou = 0.1
+                    best_iou = 0.85
                     best_idx = -1
                     
                     for idx, ai_box in enumerate(available_ai):
                         if ai_box["category"] == user_ann["category"]:
                             iou_val = py_iou(user_ann, ai_box)
-                            if iou_val > best_iou:
+                            if iou_val >= best_iou:
                                 best_iou = iou_val
                                 best_match = ai_box
                                 best_idx = idx
@@ -432,10 +432,44 @@ def submit_task(
         task.status = "submitted"
 
     # Ghi lịch sử nộp bài
+    # Check if there is already a submission for this task with action "submitted"
+    existing_submission = db.query(TaskSubmission).filter(
+        TaskSubmission.task_id == task_id,
+        TaskSubmission.action == "submitted"
+    ).first()
+
+    snapshot_data = None
+    if not existing_submission:
+        # Save snapshot of all current annotations
+        anns = db.query(Annotation).filter(Annotation.task_id == task_id).all()
+        snapshot_list = []
+        for ann in anns:
+            snapshot_list.append({
+                "frame_id": ann.frame_id,
+                "camera": ann.camera,
+                "category": ann.category,
+                "bbox_x": ann.bbox_x,
+                "bbox_y": ann.bbox_y,
+                "bbox_w": ann.bbox_w,
+                "bbox_h": ann.bbox_h,
+                "confidence": ann.confidence,
+                "is_ai_generated": ann.is_ai_generated,
+                "ai_bbox_x": ann.ai_bbox_x,
+                "ai_bbox_y": ann.ai_bbox_y,
+                "ai_bbox_w": ann.ai_bbox_w,
+                "ai_bbox_h": ann.ai_bbox_h,
+                "track_id": ann.track_id,
+                "custom_name": ann.custom_name,
+                "needs_review": ann.needs_review,
+            })
+        import json
+        snapshot_data = json.dumps(snapshot_list, ensure_ascii=False)
+
     db.add(TaskSubmission(
         task_id=task_id,
         action="submitted",
         actor_id=current_user.id,
+        annotations_snapshot=snapshot_data,
     ))
 
     # Giữ feedback để reviewer biết frame nào cần kiểm tra lại lần 2
@@ -932,6 +966,30 @@ def get_task_evaluation_details(
             "is_ai_generated": ann.is_ai_generated,
         })
         
+    # Fetch first submission snapshot
+    first_sub = db.query(TaskSubmission).filter(
+        TaskSubmission.task_id == task_id,
+        TaskSubmission.action == "submitted"
+    ).order_by(TaskSubmission.created_at.asc()).first()
+    
+    first_sub_ann_groups = {}
+    has_first_sub = False
+    if first_sub and first_sub.annotations_snapshot:
+        has_first_sub = True
+        try:
+            first_sub_list = json.loads(first_sub.annotations_snapshot)
+            for ann in first_sub_list:
+                key = f"{ann['frame_id']}_{ann['camera']}"
+                if key not in first_sub_ann_groups:
+                    first_sub_ann_groups[key] = []
+                # Ensure it has 'id' for comparison matching
+                if 'id' not in ann:
+                    ann['id'] = f"fs_{ann['frame_id']}_{ann['camera']}_{len(first_sub_ann_groups[key])}"
+                first_sub_ann_groups[key].append(ann)
+        except Exception as e:
+            print(f"Error parsing first submission snapshot: {e}")
+            has_first_sub = False
+
     cache_dir = os.path.join("static", "cache", "predictions")
     os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, f"task_{task_id}.json")
@@ -1025,11 +1083,55 @@ def get_task_evaluation_details(
                     if user_ann["id"] not in matched_user_ids:
                         extra.append(user_ann)
                         
-                total_objs = len(matched) + len(missing) + len(extra)
-                cam_iou = 1.0
-                if total_objs > 0:
-                    sum_iou = sum(m["iou"] for m in matched)
-                    cam_iou = sum_iou / total_objs
+                real_matched_count = sum(1 for m in matched if m["iou"] >= 0.85)
+                ai_count = len(ai_list)
+                user_count = len(user_list)
+                
+                if ai_count == 0 and user_count == 0:
+                    cam_iou = 1.0
+                elif ai_count >= 1 and user_count == 0:
+                    cam_iou = 0.0
+                elif user_count >= 1:
+                    cam_iou = real_matched_count / user_count
+                else:
+                    cam_iou = 0.0
+                
+                # First submission comparison
+                first_user_list = first_sub_ann_groups.get(key, []) if has_first_sub else user_list
+                available_first = [dict(p) for p in first_user_list]
+                first_matched = []
+                first_missing = []
+                first_extra = []
+                first_matched_user_ids = set()
+                
+                for user_ann in user_list:
+                    best_match = None
+                    best_iou = 0.1
+                    best_idx = -1
+                    
+                    for idx, first_box in enumerate(available_first):
+                        if first_box["category"] == user_ann["category"]:
+                            iou_val = py_iou(user_ann, first_box)
+                            if iou_val > best_iou:
+                                best_iou = iou_val
+                                best_match = first_box
+                                best_idx = idx
+                                
+                    if best_match:
+                        first_matched.append({
+                            "user_box": user_ann,
+                            "first_box": best_match,
+                            "iou": round(best_iou, 4)
+                        })
+                        available_first.pop(best_idx)
+                        first_matched_user_ids.add(user_ann["id"])
+                        
+                for first_box in available_first:
+                    first_extra.append(first_box)
+                    
+                for user_ann in user_list:
+                    if user_ann["id"] not in first_matched_user_ids:
+                        first_missing.append(user_ann)
                 
                 cams_comparison[cam] = {
                     "ai_boxes": ai_list,
@@ -1037,7 +1139,13 @@ def get_task_evaluation_details(
                     "matched": matched,
                     "missing": missing,
                     "extra": extra,
-                    "similarity": round(cam_iou * 100, 2)
+                    "similarity": round(cam_iou * 100, 2),
+                    "first_submission": {
+                        "has_snapshot": has_first_sub,
+                        "extra": first_extra,
+                        "missing": first_missing,
+                        "matched": first_matched
+                    }
                 }
                 
         frames_data.append({

@@ -248,9 +248,6 @@ async function loadAllAnnotations() {
                 track_id: ann.track_id || null,
                 custom_name: ann.custom_name || null,
             });
-            if (ann.track_id && ann.custom_name) {
-                setTrackName(ann.category, ann.track_id, ann.custom_name);
-            }
         });
     } catch (e) { /* silent */ }
 }
@@ -784,14 +781,19 @@ function onMouseUp(e) {
         return;
     }
     const frame = frames[currentFrameIdx];
-    // Gán track_id: dùng _forceTrackId nếu chọn thực thể đã có, ngược lại tạo mới
-    const trackId = (window._forceTrackId !== undefined) ? window._forceTrackId : getNextTrackId(selectedClass);
-    window._forceTrackId = undefined;
+    const anns = currentAnns();
+    let maxId = 0;
+    anns.forEach(a => {
+        if (a.category === selectedClass && a.track_id && a.track_id > maxId) {
+            maxId = a.track_id;
+        }
+    });
+    const nextTrackId = maxId + 1;
 
     const ann = {
         id: genId(),
         category: selectedClass,
-        track_id: trackId,
+        track_id: nextTrackId,
         bbox_x: Math.max(0, drawRect.x / imgDisplayW),
         bbox_y: Math.max(0, drawRect.y / imgDisplayH),
         bbox_w: Math.min(1 - drawRect.x / imgDisplayW, drawRect.w / imgDisplayW),
@@ -801,7 +803,6 @@ function onMouseUp(e) {
         needs_review: false,
         hidden: false,
     };
-    const anns = currentAnns();
     anns.push(ann);
     setFrameAnns(frame.id, currentCamera, anns);
     selectedAnnId = ann.id;
@@ -928,28 +929,11 @@ function selectAt(px, py) {
 
 function deleteSelected() {
     if (!selectedAnnId) return;
-    const ann = currentAnns().find(a => a.id === selectedAnnId);
-    const trackId = ann?.track_id;
-    const category = ann?.category;
     const frame = frames[currentFrameIdx];
 
     setFrameAnns(frame.id, currentCamera, currentAnns().filter(a => a.id !== selectedAnnId));
     selectedAnnId = null;
 
-    // Xóa cùng track_id ở tất cả frames SAU frame hiện tại
-    if (trackId && category) {
-        for (let i = currentFrameIdx + 1; i < frames.length; i++) {
-            const futureFrame = frames[i];
-            const futureAnns = getFrameAnns(futureFrame.id, currentCamera);
-            const filtered = futureAnns.filter(a => !(a.category === category && a.track_id === trackId));
-            if (filtered.length !== futureAnns.length) {
-                setFrameAnns(futureFrame.id, currentCamera, filtered);
-                markUnsaved(futureFrame.id);
-            }
-        }
-    }
-
-    recalcTrackCounters();
     redrawAnnotations();
     renderLabelList();
     updateCamBadge();
@@ -972,84 +956,6 @@ function setupDropdownItems() {
             setActiveTool('box');
         });
 
-        // Hover → hiện submenu "Tạo mới" / "Thực thể đã có"
-        item.addEventListener('mouseenter', () => {
-            document.querySelectorAll('.sub-menu').forEach(s => s.remove());
-            const label = item.getAttribute('data-label');
-            const found = CLASSES.find(c => c.name === label);
-            if (!found) return;
-
-            // Track_id đã có trong toàn task
-            const allTracks = new Set();
-            Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
-                if (a.category === found.id && a.track_id) allTracks.add(a.track_id);
-            })));
-
-            // Lọc bỏ track_id đã có trong frame/camera hiện tại
-            const usedInFrame = new Set(
-                currentAnns().filter(a => a.category === found.id && a.track_id).map(a => a.track_id)
-            );
-            const availableTracks = [...allTracks].filter(tid => !usedInFrame.has(tid));
-
-            const sub = document.createElement('div');
-            sub.className = 'sub-menu';
-            sub.style.cssText = `position:absolute;right:100%;top:0;background:#fff;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.1);min-width:180px;padding:6px;z-index:1001`;
-
-            // Tạo mới
-            const newBtn = document.createElement('div');
-            newBtn.className = 'dropdown-item';
-            newBtn.innerHTML = '<i class="fa-solid fa-plus" style="color:#2563EB"></i> Tạo mới';
-            newBtn.addEventListener('click', e => {
-                e.stopPropagation();
-                selectedClass = found.id;
-                document.getElementById('box-dropdown')?.classList.remove('show');
-                sub.remove();
-                setActiveTool('box');
-                showToast(`Nhãn mới: ${found.name}`, 'custom', found.color);
-            });
-            sub.appendChild(newBtn);
-
-            // Thực thể đã có
-            if (availableTracks.length > 0) {
-                const divider = document.createElement('div');
-                divider.style.cssText = 'height:1px;background:#F1F5F9;margin:4px 0';
-                sub.appendChild(divider);
-                const header = document.createElement('div');
-                header.style.cssText = 'font-size:10px;font-weight:700;color:#94A3B8;padding:4px 14px;text-transform:uppercase;letter-spacing:0.5px';
-                header.textContent = 'Thực thể đã có';
-                sub.appendChild(header);
-
-                availableTracks.sort((a, b) => a - b).forEach(tid => {
-                    const customName = getTrackName(found.id, tid);
-                    const displayName = customName
-                        ? `${String(tid).padStart(2, '0')} - ${customName}`
-                        : `${String(tid).padStart(2, '0')}`;
-                    const btn = document.createElement('div');
-                    btn.className = 'dropdown-item';
-                    btn.innerHTML = `<i class="fa-solid fa-link" style="color:#64748B;font-size:11px"></i> ${displayName}`;
-                    btn.addEventListener('click', e => {
-                        e.stopPropagation();
-                        selectedClass = found.id;
-                        window._forceTrackId = tid;
-                        document.getElementById('box-dropdown')?.classList.remove('show');
-                        sub.remove();
-                        setActiveTool('box');
-                        showToast(`Thực thể: ${displayName}`, 'custom', found.color);
-                    });
-                    sub.appendChild(btn);
-                });
-            }
-
-            item.style.position = 'relative';
-            item.appendChild(sub);
-        });
-
-        item.addEventListener('mouseleave', () => {
-            setTimeout(() => {
-                const sub = item.querySelector('.sub-menu');
-                if (sub && !sub.matches(':hover')) sub.remove();
-            }, 100);
-        });
     });
 
     // Pointer tool
@@ -1178,12 +1084,8 @@ function renderLabelList() {
         // Render Label Items in Group
         html += groupAnns.map((ann) => {
             const color = cls.color;
-            const baseName = cls.name;
             const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
-            const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
-            const label = resolvedName
-                ? `${trackNum} - ${resolvedName}`
-                : `${trackNum}`;
+            const label = ann.custom_name ? `${trackNum} - ${ann.custom_name}` : `${trackNum}`;
             
             const aiMark = ann.is_ai_generated ? ` <span style="font-size:10px;color:#9333EA">AI</span>` : '';
             const needsFlag = ann.needs_review === true;
@@ -1202,9 +1104,6 @@ function renderLabelList() {
                             <i class="${hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
                                title="${hidden ? 'Hiện nhãn' : 'Ẩn nhãn'}" 
                                onclick="toggleAnnVisibility('${ann.id}');event.stopPropagation()"></i>
-                            <i class="fa-solid fa-arrows-rotate" title="Đổi thực thể"
-                               onclick="changeAnnEntity('${ann.id}');event.stopPropagation()"
-                               style="color:#7C3AED"></i>
                             <i class="fa-solid fa-tag" title="Đổi loại"
                                onclick="changeAnnCategory('${ann.id}');event.stopPropagation()"
                                style="color:#0891B2"></i>
@@ -1235,74 +1134,7 @@ function selectAnn(id) {
     }, 50);
 }
 
-// ============= TRACK MODAL =============
 let pendingAnn = null;
-
-function closeTrackModal() {
-    document.getElementById('trackModal').style.display = 'none';
-    pendingAnn = null;
-    if (drawCtx) drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-}
-
-function confirmTrack(trackId) {
-    if (!pendingAnn) return;
-    // Nếu là đổi thực thể → dùng confirmChangeEntity
-    if (pendingAnn._changeId) { confirmChangeEntity(trackId); return; }
-
-    const frame = frames[currentFrameIdx];
-    if (trackId === 'new') {
-        pendingAnn.track_id = getNextTrackId(pendingAnn.category);
-    } else {
-        pendingAnn.track_id = trackId;
-    }
-    const anns = currentAnns();
-    anns.push(pendingAnn);
-    setFrameAnns(frame.id, currentCamera, anns);
-    selectedAnnId = pendingAnn.id;
-    pendingAnn = null;
-    closeTrackModal();
-    redrawAnnotations();
-    renderLabelList();
-    updateCamBadge();
-    markUnsaved();
-}
-
-function showTrackModal(ann) {
-    if (window._forceTrackId !== undefined) {
-        pendingAnn = ann;
-        confirmTrack(window._forceTrackId);
-        window._forceTrackId = undefined;
-        return;
-    }
-    pendingAnn = ann;
-    const cls = CLASS_MAP[ann.category];
-    const clsName = cls ? cls.name : ann.category;
-
-    const allTracks = new Set();
-    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
-        if (a.category === ann.category && a.track_id) allTracks.add(a.track_id);
-    })));
-    const usedInCurrentFrame = new Set(
-        currentAnns().filter(a => a.category === ann.category && a.track_id).map(a => a.track_id)
-    );
-    const availableTracks = [...allTracks].filter(tid => !usedInCurrentFrame.has(tid));
-
-    if (availableTracks.length === 0) { confirmTrack('new'); return; }
-
-    document.getElementById('trackModalDesc').textContent = `"${clsName}" này là thực thể nào?`;
-    const opts = document.getElementById('trackOptions');
-    opts.innerHTML = availableTracks.sort((a, b) => a - b).map(tid => {
-        const customName = getTrackName(ann.category, tid);
-        const displayName = customName
-            ? `${String(tid).padStart(2, '0')} - ${customName}`
-            : `${String(tid).padStart(2, '0')}`;
-        return `<button onclick="confirmTrack(${tid})"
-            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
-            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
-            ${displayName}</button>`;
-    }).join('');
-    document.getElementById('trackModal').style.display = 'flex';
-}
 
 function changeAnnCategory(id) {
     const anns = currentAnns();
@@ -1331,98 +1163,15 @@ function confirmChangeCategory(annId, newCategory) {
 
     document.getElementById('changeCatModal').style.display = 'none';
 
-    // Tính track_id mới TRƯỚC khi đổi category (để không bị tính nhầm)
-    // Tìm max track_id của newCategory, bỏ qua annotation đang đổi
-    let maxId = 0;
-    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
-        if (a.id !== ann.id && a.category === newCategory && a.track_id && a.track_id > maxId) {
-            maxId = a.track_id;
-        }
-    })));
-    const newTrackId = maxId + 1;
-
-    // Đổi category và gán track_id mới
+    // Đổi category và gán track_id = null
     ann.category = newCategory;
-    ann.track_id = newTrackId;
+    ann.track_id = null;
 
     setFrameAnns(frame.id, currentCamera, anns);
     redrawAnnotations();
     renderLabelList();
     markUnsaved();
     showToast('Đã đổi loại đối tượng', 'success');
-}
-
-function changeAnnEntity(id) {
-    const anns = currentAnns();
-    const ann = anns.find(a => a.id === id);
-    if (!ann) return;
-
-    const cls = CLASS_MAP[ann.category];
-    const clsName = cls ? cls.name : ann.category;
-    const currentTrackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
-
-    // Lấy tất cả track_id đã có cho class này trong toàn task
-    const allTracks = new Set();
-    Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
-        if (a.category === ann.category && a.track_id && a.track_id !== ann.track_id) {
-            allTracks.add(a.track_id);
-        }
-    })));
-
-    if (allTracks.size === 0) {
-        showToast('Không có thực thể nào khác để đổi', 'info');
-        return;
-    }
-
-    // Dùng trackModal để chọn
-    pendingAnn = { ...ann, _changeId: id };
-    const clsNameDisp = clsName;
-    document.getElementById('trackModalDesc').textContent =
-        `Đổi "${currentTrackNum}" thành thực thể nào?`;
-
-    const opts = document.getElementById('trackOptions');
-    opts.innerHTML = [...allTracks].sort((a, b) => a - b).map(tid => {
-        const customName = getTrackName(ann.category, tid);
-        const displayName = customName
-            ? `${String(tid).padStart(2, '0')} - ${customName}`
-            : `${String(tid).padStart(2, '0')}`;
-        return `
-        <button onclick="confirmChangeEntity(${tid})"
-            style="width:100%;height:36px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;color:#1E293B;cursor:pointer;text-align:left;padding:0 14px"
-            onmouseover="this.style.background='#EEF2FF'" onmouseout="this.style.background='#F8FAFC'">
-            ${displayName}
-        </button>`;
-    }).join('');
-
-    // Nút tạo đối tượng mới với id tiếp theo
-    const nextId = getNextTrackId(ann.category);
-    if (trackCounters[ann.category]) trackCounters[ann.category]--; // rollback
-    opts.innerHTML += `
-        <button onclick="confirmChangeEntity('new')"
-            style="width:100%;height:36px;background:#EEF2FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-weight:700;color:#2563EB;cursor:pointer;text-align:left;padding:0 14px"
-            onmouseover="this.style.background='#DBEAFE'" onmouseout="this.style.background='#EEF2FF'">
-            + ${String(nextId).padStart(2, '0')} (đối tượng mới)
-        </button>`;
-
-    document.getElementById('trackModal').style.display = 'flex';
-}
-
-function confirmChangeEntity(newTrackId) {
-    if (!pendingAnn || !pendingAnn._changeId) return;
-    const frame = frames[currentFrameIdx];
-    const anns = currentAnns();
-    const ann = anns.find(a => a.id === pendingAnn._changeId);
-    if (ann) {
-        // 'new' → tạo track_id mới
-        ann.track_id = (newTrackId === 'new') ? getNextTrackId(ann.category) : newTrackId;
-        setFrameAnns(frame.id, currentCamera, anns);
-        redrawAnnotations();
-        renderLabelList();
-        markUnsaved();
-        showToast('Đã đổi thực thể', 'success');
-    }
-    pendingAnn = null;
-    closeTrackModal();
 }
 
 function toggleAnnVisibility(id) {
@@ -1437,25 +1186,9 @@ function toggleAnnVisibility(id) {
 
 function deleteAnn(id) {
     const frame = frames[currentFrameIdx];
-    const ann = currentAnns().find(a => a.id === id);
-    const trackId = ann?.track_id;
-    const category = ann?.category;
 
     setFrameAnns(frame.id, currentCamera, currentAnns().filter(a => a.id !== id));
     if (selectedAnnId === id) selectedAnnId = null;
-
-    // Xóa cùng track_id ở tất cả frames SAU frame hiện tại (cùng camera)
-    if (trackId && category) {
-        for (let i = currentFrameIdx + 1; i < frames.length; i++) {
-            const futureFrame = frames[i];
-            const futureAnns = getFrameAnns(futureFrame.id, currentCamera);
-            const filtered = futureAnns.filter(a => !(a.category === category && a.track_id === trackId));
-            if (filtered.length !== futureAnns.length) {
-                setFrameAnns(futureFrame.id, currentCamera, filtered);
-                markUnsaved(futureFrame.id);
-            }
-        }
-    }
 
     redrawAnnotations();
     renderLabelList();
@@ -1688,44 +1421,15 @@ async function runAI() {
 
         const newAnns = [...existingManualAnns];
 
-        // Hàm tính IoU giữa 2 bbox
-        function bboxIoU(a, b) {
-            const ax2 = a.bbox_x + a.bbox_w, ay2 = a.bbox_y + a.bbox_h;
-            const bx2 = b.bbox_x + b.bbox_w, by2 = b.bbox_y + b.bbox_h;
-            const ix1 = Math.max(a.bbox_x, b.bbox_x), iy1 = Math.max(a.bbox_y, b.bbox_y);
-            const ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
-            if (ix2 <= ix1 || iy2 <= iy1) return 0;
-            const inter = (ix2 - ix1) * (iy2 - iy1);
-            const union = a.bbox_w * a.bbox_h + b.bbox_w * b.bbox_h - inter;
-            return union > 0 ? inter / union : 0;
-        }
-
-        const usedOldIds = new Set();
         preds.forEach(p => {
-            // Tìm nhãn AI cũ cùng category có IoU cao nhất
-            let bestMatch = null, bestIou = 0.3; // threshold
-            existingAiAnns.forEach(old => {
-                if (old.category === p.category && !usedOldIds.has(old.id)) {
-                    const iouVal = bboxIoU(p, old);
-                    if (iouVal > bestIou) { bestIou = iouVal; bestMatch = old; }
-                }
-            });
-
-            let trackId;
-            if (bestMatch) {
-                // Cùng đối tượng → giữ track_id cũ
-                trackId = bestMatch.track_id;
-                usedOldIds.add(bestMatch.id);
-            } else {
-                // Đối tượng mới → tạo track_id mới
-                classMaxId[p.category] = (classMaxId[p.category] || 0) + 1;
-                trackId = classMaxId[p.category];
+            let nextId = 1;
+            while (newAnns.some(a => a.category === p.category && a.track_id === nextId)) {
+                nextId++;
             }
-
             newAnns.push({
                 id: genId(),
                 category: p.category,
-                track_id: trackId,
+                track_id: nextId,
                 bbox_x: p.bbox_x, bbox_y: p.bbox_y,
                 bbox_w: p.bbox_w, bbox_h: p.bbox_h,
                 confidence: p.confidence,
@@ -1961,15 +1665,12 @@ function renameAnn(id) {
     const anns = currentAnns();
     const ann = anns.find(a => a.id === id);
     if (!ann) return;
-    const cls = CLASS_MAP[ann.category];
-    const baseName = cls ? cls.name : ann.category;
     const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
-    const current = getTrackName(ann.category, ann.track_id) || ann.custom_name || '';
-    const newName = prompt(`Đổi tên cho "${trackNum}":\n(Để trống để dùng tên mặc định)`, current);
+    const current = ann.custom_name || '';
+    const newName = prompt(`Đổi tên cho đối tượng "${trackNum}":\n(Để trống để dùng mặc định)`, current);
     if (newName === null) return;
     const trimmed = newName.trim() || null;
     ann.custom_name = trimmed;
-    setTrackName(ann.category, ann.track_id, trimmed);
     const frame = frames[currentFrameIdx];
     setFrameAnns(frame.id, currentCamera, anns);
     redrawAnnotations();
@@ -2003,10 +1704,7 @@ function renderAttentionList() {
     list.innerHTML = flagged.map(ann => {
         const cls = CLASS_MAP[ann.category];
         const color = cls ? cls.color : '#14B8A6';
-        const baseName = cls ? cls.name : ann.category;
-        const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
-        const resolvedName = getTrackName(ann.category, ann.track_id) || ann.custom_name || null;
-        const label = resolvedName ? `${trackNum} - ${resolvedName}` : `${trackNum}`;
+        const label = cls ? cls.name : ann.category;
         const conf = ann.confidence != null ? `${Math.round(ann.confidence * 100)}%` : '';
         const sel = ann.id === selectedAnnId;
         return `

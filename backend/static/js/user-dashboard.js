@@ -206,7 +206,7 @@ function renderReviewTasks(tasks) {
         const desc = task.scene_description || '';
         const progress = task.frame_count > 0 ? Math.round((task.annotated_frames / task.frame_count) * 100) : 0;
         const progressColor = progress >= 100 ? 'green' : (progress >= 50 ? 'teal' : 'blue');
-        
+
         const canReview = task.status === 'submitted' || task.status === 'under_review';
         let actionHtml = '';
         if (task.admin_moderated) {
@@ -310,7 +310,7 @@ function showEvaluationDetailPopup(statusText, feedbackText, precision, matchedO
                     <i class="fa-solid fa-circle-check" style="color:#10B981; margin-right:4px;"></i>Khớp AI: <strong>${matchedObjs} nhãn</strong>
                 </div>
                 <div style="font-size:11px; color:#64748B;">
-                    <i class="fa-solid fa-circle-xmark" style="color:#EF4444; margin-right:4px;"></i>Sót / Sai lệch: <strong>${missingObjs} nhãn</strong>
+                    <i class="fa-solid fa-circle-xmark" style="color:#EF4444; margin-right:4px;"></i>Sai lệch đã sửa: <strong>${missingObjs} nhãn</strong>
                 </div>
                 <div style="font-size:11px; color:#64748B; grid-column: span 2;">
                     <i class="fa-solid fa-pen" style="color:#6366F1; margin-right:4px;"></i>Tổng số nhãn bạn đã vẽ: <strong>${userObjs} nhãn</strong>

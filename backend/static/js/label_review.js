@@ -608,8 +608,8 @@ function renderLabelList() {
         // Render Label Items in Group
         html += groupAnns.map((ann) => {
             const color = cls.color;
-            const tNum = ann.track_id ? String(ann.track_id).padStart(2,'0') : '??';
-            const label = ann.custom_name ? `${tNum} - ${ann.custom_name}` : `${tNum}`;
+            const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
+            const label = ann.custom_name ? `${trackNum} - ${ann.custom_name}` : `${trackNum}`;
             const isAnnHidden = hiddenIds.has(ann.id);
             const hidden = isAnnHidden || isCatHidden;
             const sel = ann.id === selectedAnnId;

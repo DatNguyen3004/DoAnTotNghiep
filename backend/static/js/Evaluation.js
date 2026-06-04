@@ -409,11 +409,24 @@ function resetMatchedState() {
 
 function toggleMatchedAI(userId, event) {
     event.stopPropagation();
-    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
-    if (!cur.hideAI && cur.hideUser) {
-        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: false });
+    if (!evaluationData) return;
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+    const comp = frame.comparison[selectedCamera];
+    if (!comp) return;
+    const entries = getCurrentEntries(comp);
+    const item = entries.find(item => String(item.id) === String(userId));
+    if (!item) return;
+
+    const cur = hiddenMatchedItems.get(String(userId)) || { hideAI: false, hideUser: false };
+    if (item.type === 'matched') {
+        if (!cur.hideAI && cur.hideUser) {
+            hiddenMatchedItems.set(String(userId), { hideAI: false, hideUser: false });
+        } else {
+            hiddenMatchedItems.set(String(userId), { hideAI: false, hideUser: true });
+        }
     } else {
-        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: true });
+        hiddenMatchedItems.set(String(userId), { hideAI: !cur.hideAI, hideUser: false });
     }
     renderMatchedLabels();
     redrawAnnotations();
@@ -421,11 +434,24 @@ function toggleMatchedAI(userId, event) {
 
 function toggleMatchedUser(userId, event) {
     event.stopPropagation();
-    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
-    if (cur.hideAI && !cur.hideUser) {
-        hiddenMatchedItems.set(userId, { hideAI: false, hideUser: false });
+    if (!evaluationData) return;
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+    const comp = frame.comparison[selectedCamera];
+    if (!comp) return;
+    const entries = getCurrentEntries(comp);
+    const item = entries.find(item => String(item.id) === String(userId));
+    if (!item) return;
+
+    const cur = hiddenMatchedItems.get(String(userId)) || { hideAI: false, hideUser: false };
+    if (item.type === 'matched') {
+        if (cur.hideAI && !cur.hideUser) {
+            hiddenMatchedItems.set(String(userId), { hideAI: false, hideUser: false });
+        } else {
+            hiddenMatchedItems.set(String(userId), { hideAI: true, hideUser: false });
+        }
     } else {
-        hiddenMatchedItems.set(userId, { hideAI: true, hideUser: false });
+        hiddenMatchedItems.set(String(userId), { hideAI: false, hideUser: !cur.hideUser });
     }
     renderMatchedLabels();
     redrawAnnotations();
@@ -433,9 +459,27 @@ function toggleMatchedUser(userId, event) {
 
 function toggleMatchedVisibility(userId, event) {
     event.stopPropagation();
-    const cur = hiddenMatchedItems.get(userId) || { hideAI: false, hideUser: false };
-    const currentlyHidden = cur.hideAI && cur.hideUser;
-    hiddenMatchedItems.set(userId, { hideAI: !currentlyHidden, hideUser: !currentlyHidden });
+    if (!evaluationData) return;
+    const frame = evaluationData.frames[selectedFrameIdx];
+    if (!frame) return;
+    const comp = frame.comparison[selectedCamera];
+    if (!comp) return;
+    const entries = getCurrentEntries(comp);
+    const item = entries.find(item => String(item.id) === String(userId));
+    if (!item) return;
+
+    const cur = hiddenMatchedItems.get(String(userId)) || { hideAI: false, hideUser: false };
+    const currentlyHidden = (item.type === 'matched' && cur.hideAI && cur.hideUser) ||
+                            (item.type === 'extra' && cur.hideUser) ||
+                            (item.type === 'missing' && cur.hideAI);
+
+    if (item.type === 'matched') {
+        hiddenMatchedItems.set(String(userId), { hideAI: !currentlyHidden, hideUser: !currentlyHidden });
+    } else if (item.type === 'extra') {
+        hiddenMatchedItems.set(String(userId), { hideAI: false, hideUser: !currentlyHidden });
+    } else if (item.type === 'missing') {
+        hiddenMatchedItems.set(String(userId), { hideAI: !currentlyHidden, hideUser: false });
+    }
     renderMatchedLabels();
     redrawAnnotations();
 }
@@ -452,14 +496,26 @@ function toggleCategoryVisibility(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    const items = comp.matched.filter(m => m.user_box.category === cat);
-    const allHidden = items.every(m => {
-        const o = hiddenMatchedItems.get(m.user_box.id) || {};
-        return o.hideAI && o.hideUser;
+    
+    const entries = getCurrentEntries(comp).filter(item => item.category === cat);
+    const allHidden = entries.every(item => {
+        const o = hiddenMatchedItems.get(String(item.id)) || {};
+        return (item.type === 'matched' && o.hideAI && o.hideUser) ||
+               (item.type === 'extra' && o.hideUser) ||
+               (item.type === 'missing' && o.hideAI);
     });
-    items.forEach(m => {
-        hiddenMatchedItems.set(m.user_box.id, { hideAI: !allHidden, hideUser: !allHidden });
+    
+    entries.forEach(item => {
+        const idStr = String(item.id);
+        if (item.type === 'matched') {
+            hiddenMatchedItems.set(idStr, { hideAI: !allHidden, hideUser: !allHidden });
+        } else if (item.type === 'extra') {
+            hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: !allHidden });
+        } else if (item.type === 'missing') {
+            hiddenMatchedItems.set(idStr, { hideAI: !allHidden, hideUser: false });
+        }
     });
+    
     renderMatchedLabels();
     redrawAnnotations();
 }
@@ -469,19 +525,30 @@ function toggleCategoryAI(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    const items = comp.matched.filter(m => m.user_box.category === cat);
-    if (items.length === 0) return;
+    
+    const entries = getCurrentEntries(comp).filter(item => item.category === cat);
+    if (entries.length === 0) return;
 
-    const allShowOnlyAI = items.every(m => {
-        const o = hiddenMatchedItems.get(m.user_box.id) || { hideAI: false, hideUser: false };
-        return !o.hideAI && o.hideUser;
+    // Check if currently all entries show only AI
+    const allShowOnlyAI = entries.every(item => {
+        const o = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
+        if (item.type === 'matched') return !o.hideAI && o.hideUser;
+        if (item.type === 'missing') return !o.hideAI;
+        return true; // Extra item is ignored for "AI-only" check
     });
 
-    items.forEach(m => {
-        if (allShowOnlyAI) {
-            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: false });
-        } else {
-            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: true });
+    entries.forEach(item => {
+        const idStr = String(item.id);
+        if (item.type === 'matched') {
+            if (allShowOnlyAI) {
+                hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: false });
+            } else {
+                hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: true });
+            }
+        } else if (item.type === 'missing') {
+            hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: false });
+        } else if (item.type === 'extra') {
+            hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: !allShowOnlyAI });
         }
     });
 
@@ -494,19 +561,30 @@ function toggleCategoryUser(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    const items = comp.matched.filter(m => m.user_box.category === cat);
-    if (items.length === 0) return;
+    
+    const entries = getCurrentEntries(comp).filter(item => item.category === cat);
+    if (entries.length === 0) return;
 
-    const allShowOnlyUser = items.every(m => {
-        const o = hiddenMatchedItems.get(m.user_box.id) || { hideAI: false, hideUser: false };
-        return o.hideAI && !o.hideUser;
+    // Check if currently all entries show only User
+    const allShowOnlyUser = entries.every(item => {
+        const o = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
+        if (item.type === 'matched') return o.hideAI && !o.hideUser;
+        if (item.type === 'extra') return !o.hideUser;
+        return true; // Missing item is ignored for "User-only" check
     });
 
-    items.forEach(m => {
-        if (allShowOnlyUser) {
-            hiddenMatchedItems.set(m.user_box.id, { hideAI: false, hideUser: false });
-        } else {
-            hiddenMatchedItems.set(m.user_box.id, { hideAI: true, hideUser: false });
+    entries.forEach(item => {
+        const idStr = String(item.id);
+        if (item.type === 'matched') {
+            if (allShowOnlyUser) {
+                hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: false });
+            } else {
+                hiddenMatchedItems.set(idStr, { hideAI: true, hideUser: false });
+            }
+        } else if (item.type === 'extra') {
+            hiddenMatchedItems.set(idStr, { hideAI: false, hideUser: false });
+        } else if (item.type === 'missing') {
+            hiddenMatchedItems.set(idStr, { hideAI: !allShowOnlyUser, hideUser: false });
         }
     });
 
@@ -514,7 +592,59 @@ function toggleCategoryUser(cat, event) {
     redrawAnnotations();
 }
 
-// Render matched labels panel on the right side
+// Get all entries depending on current toggle state (AI / User / Both)
+function getCurrentEntries(comp) {
+    if (!comp) return [];
+    const matched = comp.matched || [];
+    const extra = comp.extra || [];
+    const missing = comp.ai_boxes ? comp.ai_boxes.filter(box => 
+        !matched.some(m => m.ai_box.id === box.id || (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y))
+    ) : [];
+
+    let entries = [];
+    if (showAILabels || showUserLabels) {
+        matched.forEach(m => {
+            entries.push({
+                type: 'matched',
+                id: m.user_box.id,
+                category: m.user_box.category,
+                trackId: m.user_box.track_id,
+                iou: m.iou,
+                user_box: m.user_box,
+                ai_box: m.ai_box
+            });
+        });
+    }
+    if (showUserLabels) {
+        extra.forEach(ex => {
+            entries.push({
+                type: 'extra',
+                id: ex.id,
+                category: ex.category,
+                trackId: ex.track_id,
+                iou: 0,
+                user_box: ex,
+                ai_box: null
+            });
+        });
+    }
+    if (showAILabels) {
+        missing.forEach(mi => {
+            entries.push({
+                type: 'missing',
+                id: mi.id,
+                category: mi.category,
+                trackId: mi.track_id,
+                iou: 0,
+                user_box: null,
+                ai_box: mi
+            });
+        });
+    }
+    return entries;
+}
+
+// Render matched labels panel on the right side (renamed to Danh sách nhãn)
 function renderMatchedLabels() {
     renderFrameSimilarityCharts();
 
@@ -525,75 +655,122 @@ function renderMatchedLabels() {
     const frame = evaluationData.frames[selectedFrameIdx];
     if (!frame) return;
     const comp = frame.comparison[selectedCamera];
-    const matched = comp ? comp.matched : [];
+    const entries = getCurrentEntries(comp);
 
-    countBadge.textContent = matched.length;
+    countBadge.textContent = entries.length;
 
-    if (matched.length === 0) {
-        list.innerHTML = `<div style="color:#94A3B8;font-size:12px;text-align:center;padding:20px 0;"><i class="fa-solid fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:6px;"></i>Không có nhãn trùng khớp</div>`;
+    if (entries.length === 0) {
+        list.innerHTML = `<div style="color:#94A3B8;font-size:12px;text-align:center;padding:20px 0;"><i class="fa-solid fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:6px;"></i>Không có nhãn nào</div>`;
         return;
     }
 
     // Group by category
     const groups = {};
-    matched.forEach(m => {
-        const cat = m.user_box.category;
+    entries.forEach(item => {
+        const cat = item.category;
         if (!groups[cat]) groups[cat] = [];
-        groups[cat].push(m);
+        groups[cat].push(item);
     });
 
     list.innerHTML = Object.entries(groups).map(([cat, items]) => {
         const cls = CLASS_MAP[cat] || { name: cat, color: '#94A3B8', icon: 'fa-tag' };
         const isCollapsed = collapsedCategories.has(cat);
         const allAIHidden = items.every(m => {
-            const o = hiddenMatchedItems.get(m.user_box.id) || {};
-            return o.hideAI;
+            const o = hiddenMatchedItems.get(String(m.id)) || {};
+            return m.type === 'extra' || o.hideAI;
         });
         const allUserHidden = items.every(m => {
-            const o = hiddenMatchedItems.get(m.user_box.id) || {};
-            return o.hideUser;
+            const o = hiddenMatchedItems.get(String(m.id)) || {};
+            return m.type === 'missing' || o.hideUser;
         });
         const allHidden = items.every(m => {
-            const o = hiddenMatchedItems.get(m.user_box.id) || {};
-            return o.hideAI && o.hideUser;
+            const o = hiddenMatchedItems.get(String(m.id)) || {};
+            return (m.type === 'matched' && o.hideAI && o.hideUser) ||
+                   (m.type === 'extra' && o.hideUser) ||
+                   (m.type === 'missing' && o.hideAI);
         });
 
-        const itemsHtml = items.map((m, i) => {
-            const u = m.user_box;
-            const pct = Math.round(m.iou * 100);
-            const trackId = u.track_id != null ? String(u.track_id).padStart(2, '0') : String(i + 1).padStart(2, '0');
-            const isSel = selectedAnnId === u.id;
-            const ov = hiddenMatchedItems.get(u.id) || { hideAI: false, hideUser: false };
-            const isRowHidden = ov.hideAI && ov.hideUser;
+        const itemsHtml = items.map((item, i) => {
+            const isSel = String(selectedAnnId) === String(item.id);
+            const ov = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
+            const isRowHidden = (item.type === 'matched' && ov.hideAI && ov.hideUser) ||
+                                (item.type === 'extra' && ov.hideUser) ||
+                                (item.type === 'missing' && ov.hideAI);
 
-            let barColor = pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+            const trackId = item.trackId != null ? String(item.trackId).padStart(2, '0') : String(i + 1).padStart(2, '0');
 
-            return `<div onclick="selectedAnnId=${u.id};redrawAnnotations();renderMatchedLabels();"
+            let iouHtml = '';
+            if (item.type === 'matched') {
+                const pct = Math.round(item.iou * 100);
+                let barColor = pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+                iouHtml = `
+                    <div style="flex:1;display:flex;align-items:center;gap:4px;">
+                        <div style="flex:1;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;">
+                            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;"></div>
+                        </div>
+                        <span style="font-size:10px;font-weight:700;color:${barColor};min-width:28px;text-align:right;">${pct}%</span>
+                    </div>
+                `;
+            } else if (item.type === 'extra') {
+                iouHtml = `
+                    <div style="flex:1;display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:10px;color:#10B981;font-weight:600;">Người dùng</span>
+                    </div>
+                `;
+            } else {
+                iouHtml = `
+                    <div style="flex:1;display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:10px;color:#3B82F6;font-weight:600;">AI dự đoán</span>
+                    </div>
+                `;
+            }
+
+            // Buttons
+            let robotBtn = '';
+            if (item.type === 'matched' || item.type === 'missing') {
+                const hideAI = ov.hideAI;
+                robotBtn = `
+                    <button onclick="toggleMatchedAI('${item.id}',event)" title="${hideAI ? 'Hiện nhãn AI' : 'Ẩn nhãn AI'}"
+                        style="width:20px;height:20px;border-radius:4px;border:1px solid ${hideAI ? '#E2E8F0' : '#E0E7FF'};
+                               background:${hideAI ? '#F1F5F9' : '#EEF2FF'};color:${hideAI ? '#CBD5E1' : '#4F46E5'};
+                               font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
+                        <i class="fa-solid fa-robot"></i>
+                    </button>
+                `;
+            } else {
+                robotBtn = `
+                    <div style="width:20px;height:20px;flex-shrink:0;"></div>
+                `;
+            }
+
+            let userBtn = '';
+            if (item.type === 'matched' || item.type === 'extra') {
+                const hideUser = ov.hideUser;
+                userBtn = `
+                    <button onclick="toggleMatchedUser('${item.id}',event)" title="${hideUser ? 'Hiện nhãn người dùng' : 'Ẩn nhãn người dùng'}"
+                        style="width:20px;height:20px;border-radius:4px;border:1px solid ${hideUser ? '#E2E8F0' : '#D1FAE5'};
+                               background:${hideUser ? '#F1F5F9' : '#ECFDF5'};color:${hideUser ? '#CBD5E1' : '#059669'};
+                               font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
+                        <i class="fa-solid fa-user"></i>
+                    </button>
+                `;
+            } else {
+                userBtn = `
+                    <div style="width:20px;height:20px;flex-shrink:0;"></div>
+                `;
+            }
+
+            return `<div onclick="selectedAnnId='${item.id}';redrawAnnotations();renderMatchedLabels();"
                 style="display:flex;align-items:center;gap:5px;padding:5px 6px;cursor:pointer;
                        border-left:3px solid ${isSel ? '#4F46E5' : 'transparent'};
                        background:${isSel ? '#EEF2FF' : 'transparent'};
                        border-radius:0 6px 6px 0;transition:all 0.15s;margin-bottom:2px;">
                 <div style="width:7px;height:7px;border-radius:50%;background:${cls.color};flex-shrink:0;"></div>
-                <span style="font-size:12px;font-weight:800;color:#1E293B;min-width:22px;">${trackId}</span>
-                <div style="flex:1;display:flex;align-items:center;gap:4px;">
-                    <div style="flex:1;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;">
-                        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;"></div>
-                    </div>
-                    <span style="font-size:10px;font-weight:700;color:${barColor};min-width:28px;text-align:right;">${pct}%</span>
-                </div>
-                <button onclick="toggleMatchedAI(${u.id},event)" title="${ov.hideAI ? 'Hiện nhãn AI' : 'Ẩn nhãn AI'}"
-                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${ov.hideAI ? '#E2E8F0' : '#E0E7FF'};
-                           background:${ov.hideAI ? '#F1F5F9' : '#EEF2FF'};color:${ov.hideAI ? '#CBD5E1' : '#4F46E5'};
-                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
-                    <i class="fa-solid fa-robot"></i>
-                </button>
-                <button onclick="toggleMatchedUser(${u.id},event)" title="${ov.hideUser ? 'Hiện nhãn người dùng' : 'Ẩn nhãn người dùng'}"
-                    style="width:20px;height:20px;border-radius:4px;border:1px solid ${ov.hideUser ? '#E2E8F0' : '#D1FAE5'};
-                           background:${ov.hideUser ? '#F1F5F9' : '#ECFDF5'};color:${ov.hideUser ? '#CBD5E1' : '#059669'};
-                           font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;">
-                    <i class="fa-solid fa-user"></i>
-                </button>
-                <button onclick="toggleMatchedVisibility(${u.id},event)" title="${isRowHidden ? 'Hiện tất cả nhãn' : 'Ẩn tất cả nhãn'}"
+                <span style="font-size:11px;font-weight:700;color:#475569;min-width:18px;">${trackId}</span>
+                ${iouHtml}
+                ${robotBtn}
+                ${userBtn}
+                <button onclick="toggleMatchedVisibility('${item.id}',event)" title="${isRowHidden ? 'Hiện tất cả nhãn' : 'Ẩn tất cả nhãn'}"
                     style="width:20px;height:20px;border:none;background:none;color:${isRowHidden ? '#CBD5E1' : '#94A3B8'};cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-left:2px;">
                     <i class="fa-${isRowHidden ? 'regular' : 'solid'} fa-eye${isRowHidden ? '-slash' : ''}"></i>
                 </button>
@@ -637,34 +814,27 @@ function renderFrameSimilarityCharts() {
     if (!frame) return;
 
     let totalSimilarity = 0;
-    let cameraCount = 0;
-    let totalUserBoxesOnFrame = 0;
-    let totalAiBoxesOnFrame = 0;
-
-    frame.cameras.forEach(camKey => {
+    let totalUserAnnotations = 0;
+    let totalAIAnnotations = 0;
+    CAMERAS.forEach(camKey => {
         const comp = frame.comparison[camKey];
         if (comp) {
             if (typeof comp.similarity === 'number') {
                 totalSimilarity += comp.similarity;
-                cameraCount++;
             }
-            if (comp.user_boxes) {
-                totalUserBoxesOnFrame += comp.user_boxes.length;
-            }
-            if (comp.ai_boxes) {
-                totalAiBoxesOnFrame += comp.ai_boxes.length;
-            }
+            if (comp.user_boxes) totalUserAnnotations += comp.user_boxes.length;
+            if (comp.ai_boxes) totalAIAnnotations += comp.ai_boxes.length;
         }
     });
 
-    let averageSimilarity = cameraCount > 0 ? (totalSimilarity / cameraCount) : null;
-    if (averageSimilarity !== null && totalUserBoxesOnFrame === 0 && totalAiBoxesOnFrame > 0) {
+    let averageSimilarity = totalSimilarity / 6;
+    if (totalUserAnnotations === 0 && totalAIAnnotations > 0) {
         averageSimilarity = 0;
     }
 
     const radius = 46;
     const circumference = 2 * Math.PI * radius;
-    const displayPercent = averageSimilarity !== null ? averageSimilarity : 0;
+    const displayPercent = averageSimilarity;
     const strokeDashoffset = circumference - (displayPercent / 100) * circumference;
 
     let color = '#EF4444'; // Red
@@ -734,40 +904,32 @@ function selectAt(clientX, clientY) {
     if (!frame) return;
     const comp = frame.comparison[selectedCamera] || { ai_boxes: [], matched: [], extra: [] };
 
-    if (showUserLabels) {
-        for (let i = comp.extra.length - 1; i >= 0; i--) {
-            const ex = comp.extra[i];
-            if (px >= ex.bbox_x * imgDisplayW && px <= (ex.bbox_x + ex.bbox_w) * imgDisplayW &&
-                py >= ex.bbox_y * imgDisplayH && py <= (ex.bbox_y + ex.bbox_h) * imgDisplayH) {
-                selectedAnnId = ex.id; redrawAnnotations(); renderMatchedLabels(); return;
-            }
-        }
-        for (let i = comp.matched.length - 1; i >= 0; i--) {
-            const u = comp.matched[i].user_box;
-            if (px >= u.bbox_x * imgDisplayW && px <= (u.bbox_x + u.bbox_w) * imgDisplayW &&
+    const entries = getCurrentEntries(comp);
+
+    for (let i = entries.length - 1; i >= 0; i--) {
+        const item = entries[i];
+        if (item.type === 'matched') {
+            const u = item.user_box;
+            const ai = item.ai_box;
+            if (showUserLabels && px >= u.bbox_x * imgDisplayW && px <= (u.bbox_x + u.bbox_w) * imgDisplayW &&
                 py >= u.bbox_y * imgDisplayH && py <= (u.bbox_y + u.bbox_h) * imgDisplayH) {
-                selectedAnnId = u.id; redrawAnnotations(); renderMatchedLabels(); return;
+                selectedAnnId = item.id; redrawAnnotations(); renderMatchedLabels(); return;
             }
-        }
-    }
-    if (showAILabels) {
-        for (let i = comp.ai_boxes.length - 1; i >= 0; i--) {
-            const box = comp.ai_boxes[i];
-            if (px >= box.bbox_x * imgDisplayW && px <= (box.bbox_x + box.bbox_w) * imgDisplayW &&
-                py >= box.bbox_y * imgDisplayH && py <= (box.bbox_y + box.bbox_h) * imgDisplayH) {
-                // Find if this AI box is part of a matched pair
-                const match = comp.matched.find(m =>
-                    m.ai_box.id === box.id ||
-                    (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y)
-                );
-                if (match) {
-                    selectedAnnId = match.user_box.id;
-                } else {
-                    selectedAnnId = box.id;
-                }
-                redrawAnnotations();
-                renderMatchedLabels();
-                return;
+            if (showAILabels && px >= ai.bbox_x * imgDisplayW && px <= (ai.bbox_x + ai.bbox_w) * imgDisplayW &&
+                py >= ai.bbox_y * imgDisplayH && py <= (ai.bbox_y + ai.bbox_h) * imgDisplayH) {
+                selectedAnnId = item.id; redrawAnnotations(); renderMatchedLabels(); return;
+            }
+        } else if (item.type === 'extra') {
+            const ex = item.user_box;
+            if (showUserLabels && px >= ex.bbox_x * imgDisplayW && px <= (ex.bbox_x + ex.bbox_w) * imgDisplayW &&
+                py >= ex.bbox_y * imgDisplayH && py <= (ex.bbox_y + ex.bbox_h) * imgDisplayH) {
+                selectedAnnId = item.id; redrawAnnotations(); renderMatchedLabels(); return;
+            }
+        } else if (item.type === 'missing') {
+            const mi = item.ai_box;
+            if (showAILabels && px >= mi.bbox_x * imgDisplayW && px <= (mi.bbox_x + mi.bbox_w) * imgDisplayW &&
+                py >= mi.bbox_y * imgDisplayH && py <= (mi.bbox_y + mi.bbox_h) * imgDisplayH) {
+                selectedAnnId = item.id; redrawAnnotations(); renderMatchedLabels(); return;
             }
         }
     }
@@ -789,10 +951,18 @@ function redrawAnnotations() {
     // Build per-item hidden sets
     const hiddenAIKeys = new Set();
     const hiddenUserIds = new Set();
-    comp.matched.forEach(m => {
-        const ov = hiddenMatchedItems.get(m.user_box.id);
-        if (ov?.hideAI) hiddenAIKeys.add(`${m.ai_box.bbox_x}_${m.ai_box.bbox_y}`);
-        if (ov?.hideUser) hiddenUserIds.add(m.user_box.id);
+
+    const entries = getCurrentEntries(comp);
+    entries.forEach(item => {
+        const ov = hiddenMatchedItems.get(String(item.id));
+        if (item.type === 'matched') {
+            if (ov?.hideAI) hiddenAIKeys.add(`${item.ai_box.bbox_x}_${item.ai_box.bbox_y}`);
+            if (ov?.hideUser) hiddenUserIds.add(item.user_box.id);
+        } else if (item.type === 'extra') {
+            if (ov?.hideUser) hiddenUserIds.add(item.user_box.id);
+        } else if (item.type === 'missing') {
+            if (ov?.hideAI) hiddenAIKeys.add(`${item.ai_box.bbox_x}_${item.ai_box.bbox_y}`);
+        }
     });
 
     // 1. Draw AI boxes (dashed)
@@ -804,10 +974,10 @@ function redrawAnnotations() {
             const cls = CLASS_MAP[box.category];
             const color = cls ? cls.color : '#9333EA';
             const isMatchedToSelectedUser = comp.matched.some(m =>
-                m.user_box.id === selectedAnnId &&
-                (m.ai_box.id === box.id || (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y))
+                String(m.user_box.id) === String(selectedAnnId) &&
+                (String(m.ai_box.id) === String(box.id) || (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y))
             );
-            const sel = box.id === selectedAnnId || isMatchedToSelectedUser;
+            const sel = String(box.id) === String(selectedAnnId) || isMatchedToSelectedUser;
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
@@ -826,7 +996,7 @@ function redrawAnnotations() {
             const w = u.bbox_w * width, h = u.bbox_h * height;
             const cls = CLASS_MAP[u.category];
             const color = cls ? cls.color : '#10B981';
-            const sel = u.id === selectedAnnId;
+            const sel = String(u.id) === String(selectedAnnId);
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
@@ -836,11 +1006,12 @@ function redrawAnnotations() {
             annCtx.fillRect(x, y, w, h);
         });
         comp.extra.forEach(ex => {
+            if (hiddenUserIds.has(ex.id)) return;
             const x = ex.bbox_x * width, y = ex.bbox_y * height;
             const w = ex.bbox_w * width, h = ex.bbox_h * height;
             const cls = CLASS_MAP[ex.category];
             const color = cls ? cls.color : '#3B82F6';
-            const sel = ex.id === selectedAnnId;
+            const sel = String(ex.id) === String(selectedAnnId);
             annCtx.globalAlpha = hasSelection ? (sel ? 1.0 : 0.25) : 1.0;
             annCtx.strokeStyle = color;
             annCtx.lineWidth = sel ? 3.5 : 2.0;
@@ -1280,6 +1451,7 @@ function showEvaluationStats() {
     let matchedIoUCount = 0;
     let aiCorrectCount = 0;
 
+
     const classStats = {};
     CLASSES.forEach(c => {
         classStats[c.id] = { matched: 0, missing: 0, extra: 0, sumIoU: 0 };
@@ -1326,14 +1498,24 @@ function showEvaluationStats() {
             if (!comp) return;
 
             if (typeof comp.similarity === 'number') {
-                const simVal = isFrameUnlabeled ? 0 : comp.similarity;
+                const simVal = comp.similarity;
                 cameraStats[camKey].totalSimilarity += simVal;
                 cameraStats[camKey].count++;
             }
 
-            const matchedCount = comp.matched ? comp.matched.length : 0;
-            const missingCount = comp.missing ? comp.missing.length : 0;
-            const extraCount = comp.extra ? comp.extra.length : 0;
+            let matchedCount = 0;
+            let missingCount = comp.missing ? comp.missing.length : 0;
+            let extraCount = comp.extra ? comp.extra.length : 0;
+            if (comp.matched) {
+                comp.matched.forEach(m => {
+                    if (m.iou >= 0.85) {
+                        matchedCount++;
+                    } else {
+                        missingCount++;
+                        extraCount++;
+                    }
+                });
+            }
             const aiCount = comp.ai_boxes ? comp.ai_boxes.length : 0;
             const userCount = comp.user_boxes ? comp.user_boxes.length : 0;
 
@@ -1342,6 +1524,8 @@ function showEvaluationStats() {
             totalMatched += matchedCount;
             totalMissing += missingCount;
             totalExtra += extraCount;
+
+
 
             if (userCount === 0) {
                 aiCorrectCount += aiCount;
@@ -1358,11 +1542,16 @@ function showEvaluationStats() {
                 comp.matched.forEach(m => {
                     const cat = m.user_box.category;
                     if (classStats[cat]) {
-                        classStats[cat].matched++;
-                        classStats[cat].sumIoU += m.iou;
+                        if (m.iou >= 0.85) {
+                            classStats[cat].matched++;
+                            classStats[cat].sumIoU += m.iou;
+                            totalIoU += m.iou;
+                            matchedIoUCount++;
+                        } else {
+                            classStats[cat].missing++;
+                            classStats[cat].extra++;
+                        }
                     }
-                    totalIoU += m.iou;
-                    matchedIoUCount++;
                 });
             }
 
@@ -1399,17 +1588,28 @@ function showEvaluationStats() {
     });
 
     // Quality values
-    let sumCamSim = 0;
-    let countCamSim = 0;
-    Object.keys(cameraStats).forEach(camKey => {
-        const c = cameraStats[camKey];
-        if (c.count > 0) {
-            sumCamSim += (c.totalSimilarity / c.count);
-            countCamSim++;
+    let totalFrameSimSum = 0;
+    evaluationData.frames.forEach(frame => {
+        let frameSim = 0;
+        let totalUserAnnotations = 0;
+        let totalAIAnnotations = 0;
+        CAMERAS.forEach(camKey => {
+            const comp = frame.comparison[camKey];
+            if (comp) {
+                if (typeof comp.similarity === 'number') {
+                    frameSim += comp.similarity;
+                }
+                if (comp.user_boxes) totalUserAnnotations += comp.user_boxes.length;
+                if (comp.ai_boxes) totalAIAnnotations += comp.ai_boxes.length;
+            }
+        });
+        let avgFrameSim = frameSim / 6;
+        if (totalUserAnnotations === 0 && totalAIAnnotations > 0) {
+            avgFrameSim = 0;
         }
+        totalFrameSimSum += avgFrameSim;
     });
-
-    const overallSimilarity = countCamSim > 0 ? Math.round(sumCamSim / countCamSim) : 0;
+    const overallSimilarity = evaluationData.frames.length > 0 ? Math.round(totalFrameSimSum / evaluationData.frames.length) : 0;
     const userPrecision = (totalUser + totalMissing) > 0 ? Math.round((totalMatched / (totalUser + totalMissing)) * 100) : 0;
     const aiPrecision = totalAi > 0 ? Math.round((aiCorrectCount / totalAi) * 100) : 100;
     const averageIoUVal = matchedIoUCount > 0 ? Math.round((totalIoU / matchedIoUCount) * 100) : 0;
@@ -1496,6 +1696,8 @@ function showEvaluationStats() {
         };
     }).sort((a, b) => b.count - a.count);
 
+
+
     // Render HTML content
     container.innerHTML = `
         <!-- Overview Cards -->
@@ -1505,7 +1707,7 @@ function showEvaluationStats() {
                     <i class="fa-solid fa-robot"></i>
                 </div>
                 <div>
-                    <div style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;">Tổng số nhãn AI</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;">Tổng nhãn <b style="color:black">AI</b></div>
                     <div style="font-size:22px;font-weight:800;color:#0F172A;margin-top:2px;">${totalAi}</div>
                 </div>
             </div>
@@ -1530,17 +1732,7 @@ function showEvaluationStats() {
                 </div>
             </div>
 
-            <div class="stats-card">
-                <div style="width:48px;height:48px;border-radius:10px;background:#FFF5F5;color:#EF4444;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                </div>
-                <div>
-                    <div style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;">Tổng nhãn sai lệch</div>
-                    <div style="font-size:22px;font-weight:800;color:#EF4444;margin-top:2px;">
-                        ${totalExtra + totalMissing} <span style="font-size:12px;font-weight:500;color:#64748B;">(+${totalExtra} dư, -${totalMissing} thiếu)</span>
-                    </div>
-                </div>
-            </div>
+
         </div>
 
         <!-- Charts and Main Metrics Row -->
@@ -1741,12 +1933,12 @@ function selectEvalStatus(status) {
     selectedEvalStatusValue = status;
     const btnApprove = document.getElementById('btnEvalApprove');
     const btnReject = document.getElementById('btnEvalReject');
-    
+
     if (status === 'approved') {
         btnApprove.style.background = '#ECFDF5';
         btnApprove.style.color = '#059669';
         btnApprove.style.borderColor = '#10B981';
-        
+
         btnReject.style.background = '#fff';
         btnReject.style.color = '#64748B';
         btnReject.style.borderColor = '#CBD5E1';
@@ -1754,7 +1946,7 @@ function selectEvalStatus(status) {
         btnReject.style.background = '#FEF2F2';
         btnReject.style.color = '#DC2626';
         btnReject.style.borderColor = '#EF4444';
-        
+
         btnApprove.style.background = '#fff';
         btnApprove.style.color = '#64748B';
         btnApprove.style.borderColor = '#CBD5E1';
@@ -1770,7 +1962,7 @@ async function submitEvaluation() {
     const btn = document.getElementById('btnSubmitEval');
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...`;
-    
+
     try {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}/admin/override`, {
             method: 'POST',
@@ -1823,7 +2015,7 @@ function showToast(message, type = 'success') {
         font-family: Inter, sans-serif;
         animation: toastSlideIn 0.3s ease, toastFadeOut 0.3s ease 2.7s;
     `;
-    
+
     if (!document.getElementById('toast-keyframes-style')) {
         const style = document.createElement('style');
         style.id = 'toast-keyframes-style';
@@ -1839,7 +2031,7 @@ function showToast(message, type = 'success') {
         `;
         document.head.appendChild(style);
     }
-    
+
     toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${message}`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
