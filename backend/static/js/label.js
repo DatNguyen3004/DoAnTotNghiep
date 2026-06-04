@@ -340,7 +340,23 @@ document.addEventListener('keydown', e => {
         switchCamera(CAMERAS[parseInt(e.key) - 1]);
     }
 
-    // 5. CÔNG CỤ
+    // 5. CHỌN NHÃN NHANH (r, t, y, u, i, o)
+    const categoryKeys = {
+        'r': 'vehicle.car',
+        't': 'vehicle.truck',
+        'y': 'vehicle.bus',
+        'u': 'vehicle.motorcycle',
+        'i': 'human.pedestrian',
+        'o': 'vehicle.bicycle'
+    };
+    const pressedKey = e.key.toLowerCase();
+    if (categoryKeys[pressedKey] !== undefined) {
+        e.preventDefault();
+        selectClassById(categoryKeys[pressedKey]);
+        return;
+    }
+
+    // 6. CÔNG CỤ
     if (e.key === 'v' || e.key === 'V') setActiveTool('pointer');
     if (e.key === 'b' || e.key === 'B') setActiveTool('box');
     if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
@@ -349,10 +365,16 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
 
-    // 6. ZOOM (Phím lẻ)
+    // 7. ZOOM (Phím lẻ)
     if (e.key === '+' || e.key === '=') zoomIn();
     if (e.key === '-' || e.key === '_') zoomOut();
-    if (e.key === '0') { zoomLevel = 100; panOffset = { x: 0, y: 0 }; const _c = document.querySelector('.canvas-container'); if (_c) _c.style.transform = ''; applyZoom(); }
+    if (e.key === '0') {
+        zoomLevel = 100;
+        panOffset = { x: 0, y: 0 };
+        const _c = document.querySelector('.canvas-container');
+        if (_c) _c.style.transform = '';
+        applyZoom();
+    }
 });
 
 // Ctrl + Lăn chuột để Zoom
@@ -942,6 +964,23 @@ function deleteSelected() {
 }
 
 // ============= TOOL SETUP =============
+function selectClassById(classId) {
+    const found = CLASSES.find(c => c.id === classId);
+    if (found) {
+        selectedClass = found.id;
+        showToast(`Nhãn: ${found.name}`, 'custom', found.color);
+        
+        // Cập nhật màu sắc công cụ Box
+        const btnBox = document.getElementById('btn-box');
+        if (btnBox) {
+            btnBox.style.color = found.color;
+            btnBox.style.borderColor = found.color;
+        }
+    }
+    document.getElementById('box-dropdown')?.classList.remove('show');
+    setActiveTool('box');
+}
+
 function setupDropdownItems() {
     // Dropdown label items → set selectedClass
     document.querySelectorAll('.dropdown-item').forEach(item => {
@@ -950,13 +989,9 @@ function setupDropdownItems() {
             const label = item.getAttribute('data-label');
             const found = CLASSES.find(c => c.name === label);
             if (found) {
-                selectedClass = found.id;
-                showToast(`Nhãn: ${found.name}`, 'custom', found.color);
+                selectClassById(found.id);
             }
-            document.getElementById('box-dropdown')?.classList.remove('show');
-            setActiveTool('box');
         });
-
     });
 
     // Pointer tool

@@ -140,7 +140,7 @@ def get_user_stats(
     total_rejects = sum((t.reject_count or 0) for t in tasks)
     total_submissions = submitted + total_rejects
 
-    completed_times = [t.time_spent for t in tasks if t.time_spent and t.status in ('approved', 'submitted', 'under_review')]
+    completed_times = [t.time_spent for t in tasks if t.time_spent and t.status in ('approved', 'rejected', 'reviewed', 'submitted', 'under_review')]
     avg_time = int(sum(completed_times) / len(completed_times)) if completed_times else 0
 
     from routers.tasks import calculate_task_user_precision
@@ -150,7 +150,7 @@ def get_user_stats(
     for t in evaluated_tasks:
         precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))
 
-    quality_rate = round(sum(precisions) / len(precisions)) if precisions else 0
+    quality_rate = round(sum(precisions) / len(precisions)) if precisions else None
 
     # ── Thống kê kiểm thử (reviewer) ──
     rev_query = db.query(Task).filter(Task.reviewer_id == user_id)
@@ -164,7 +164,7 @@ def get_user_stats(
     # Tổng lần đã kiểm thử (đã có kết quả: reviewed, approved, rejected)
     total_review_done = sum(1 for t in reviewed_tasks if t.status in ('reviewed', 'approved', 'rejected'))
     # Tỷ lệ kiểm thử đúng
-    review_quality_rate = round((total_review_done - reviewer_wrong) / total_review_done * 100) if total_review_done > 0 else 0
+    review_quality_rate = round((total_review_done - reviewer_wrong) / total_review_done * 100) if total_review_done > 0 else None
 
     return {
         "user_id": user_id,

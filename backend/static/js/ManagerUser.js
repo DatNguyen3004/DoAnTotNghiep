@@ -191,8 +191,8 @@ async function loadUserStatsInline(userId) {
         const statsEl = document.getElementById(`stats_${userId}`);
         if (!statsEl) return;
 
-        if (s.total_tasks === 0) {
-            statsEl.innerHTML = `<span style="color:#94A3B8;font-size:12px">Chưa có</span>`;
+        if (s.total_tasks === 0 || s.quality_rate === null || s.quality_rate === undefined) {
+            statsEl.innerHTML = `<span style="color:#94A3B8;font-size:12px">Chưa đánh giá</span>`;
             return;
         }
 
@@ -227,7 +227,18 @@ if (searchInput) {
 async function openStatsModal(userId, username, fullName) {
     document.getElementById('statsUserName').textContent = fullName || username;
     document.getElementById('statsUserSub').textContent = `@${username}`;
-    document.getElementById('statsUserAvatar').textContent = username.substring(0, 2).toUpperCase();
+
+    const user = allUsers.find(u => u.id === userId);
+    const avatarEl = document.getElementById('statsUserAvatar');
+    if (avatarEl) {
+        if (user && user.avatar_url) {
+            avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${username}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
+        } else {
+            avatarEl.innerHTML = '';
+            avatarEl.textContent = username.substring(0, 2).toUpperCase();
+        }
+    }
+
     document.getElementById('statsBody').innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
     document.getElementById('statsModal').classList.add('active');
 
@@ -240,59 +251,77 @@ async function openStatsModal(userId, username, fullName) {
 
         // ── Tính màu & nhãn theo % độ tin cậy ──
         const rate = s.quality_rate;
-        const rateColor = rate >= 85 ? '#10B981' : rate >= 70 ? '#3B82F6' : '#EF4444';
-        const rateLabel = rate >= 85 ? 'Xuất sắc' : rate >= 70 ? 'Khá tốt' : 'Cần cải thiện';
+        const hasRate = rate !== null && rate !== undefined;
+        
+        const rateColor = !hasRate ? '#64748B' : (rate >= 85 ? '#10B981' : rate >= 70 ? '#3B82F6' : '#EF4444');
+        const rateLabel = !hasRate ? 'Chưa đánh giá' : (rate >= 85 ? 'Xuất sắc' : rate >= 70 ? 'Khá tốt' : 'Cần cải thiện');
+        const rateText = !hasRate ? '—' : `${rate}%`;
+        const progressWidth = !hasRate ? 0 : rate;
 
         // Thời gian trung bình: làm tròn tới phút
         const avgMinutes = s.avg_time_seconds > 0
             ? `${Math.round(s.avg_time_seconds / 60)} phút` : '—';
 
         // Nhận xét thuê/không thuê
-        const hireText  = rate >= 85 ? 'Nên thuê lại' : rate >= 70 ? 'Có thể cân nhắc' : 'Không nên thuê lại';
-        const hireIcon  = rate >= 85 ? 'fa-thumbs-up' : rate >= 70 ? 'fa-circle-exclamation' : 'fa-thumbs-down';
-        const hireBg    = rate >= 85 ? '#F0FDF4' : rate >= 70 ? '#EFF6FF' : '#FEF2F2';
-        const hireBorder= rate >= 85 ? '#BBF7D0' : rate >= 70 ? '#BFDBFE' : '#FECACA';
+        const hireText = !hasRate ? 'Chưa có đánh giá' : (rate >= 85 ? 'Nên thuê lại' : rate >= 70 ? 'Có thể cân nhắc' : 'Không nên thuê lại');
+        const hireIcon = !hasRate ? 'fa-circle-question' : (rate >= 85 ? 'fa-thumbs-up' : rate >= 70 ? 'fa-circle-exclamation' : 'fa-thumbs-down');
+        const hireBg = !hasRate ? '#F8FAFC' : (rate >= 85 ? '#F0FDF4' : rate >= 70 ? '#EFF6FF' : '#FEF2F2');
+        const hireBorder = !hasRate ? '#E2E8F0' : (rate >= 85 ? '#BBF7D0' : rate >= 70 ? '#BFDBFE' : '#FECACA');
+        const hireDesc = !hasRate ? 'Chưa thực hiện nhiệm vụ nào được đánh giá.' : `độ tin cậy gán nhãn trung bình đạt <strong style="color:${rateColor}">${rate}%</strong>`;
 
         document.getElementById('statsBody').innerHTML = `
-        <div id="stPanelLabel">
+        <div id="stPanelLabel" style="display:flex;flex-direction:column;gap:16px;">
             <!-- 2 số tổng quan -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
-                    <div style="font-size:22px;font-weight:800;color:#1E293B">${s.total_tasks}</div>
-                    <div style="font-size:11px;color:#64748B;margin-top:2px">Tổng nhiệm vụ</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 10px;text-align:center;box-shadow:inset 0 1px 2px rgba(0,0,0,0.01)">
+                    <div style="font-size:26px;font-weight:800;color:#0F172A;line-height:1.2">${s.total_tasks}</div>
+                    <div style="font-size:11px;font-weight:700;color:#64748B;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">Tổng nhiệm vụ</div>
                 </div>
-                <div style="background:#F8FAFC;border-radius:10px;padding:12px;text-align:center">
-                    <div style="font-size:22px;font-weight:800;color:${rateColor}">${rate}%</div>
-                    <div style="font-size:11px;color:${rateColor};font-weight:600;margin-top:2px">${rateLabel}</div>
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 10px;text-align:center;box-shadow:inset 0 1px 2px rgba(0,0,0,0.01)">
+                    <div style="font-size:26px;font-weight:800;color:${rateColor};line-height:1.2">${rateText}</div>
+                    <div style="font-size:11px;color:${rateColor};font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">${rateLabel}</div>
                 </div>
             </div>
-            <!-- Thanh kéo chất lượng -->
-            <div style="margin-bottom:14px">
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:4px">
-                    <span>Độ tin cậy trung bình (nhiệm vụ đã duyệt)</span>
-                    <span style="font-weight:700;color:${rateColor}">${rate}%</span>
+
+            <!-- Thanh tiến trình chất lượng -->
+            <div style="padding:0 2px">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;margin-bottom:6px">
+                    <span style="font-weight:600">Độ tin cậy trung bình (nhiệm vụ đã duyệt)</span>
+                    <span style="font-weight:800;color:${rateColor};font-size:13px">${rateText}</span>
                 </div>
-                <input type="range" min="0" max="100" value="${rate}" disabled
-                    style="width:100%;accent-color:${rateColor};height:6px;cursor:default">
+                <div style="width:100%;height:8px;background:#F1F5F9;border-radius:10px;overflow:hidden">
+                    <div style="width:${progressWidth}%;height:100%;background:${rateColor};border-radius:10px;transition:width 0.6s cubic-bezier(0.4, 0, 0.2, 1)"></div>
+                </div>
             </div>
+
             <!-- Chi tiết dạng lưới 2 cột -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
-                ${miniStat('fa-circle-check','#10B981','Đã duyệt (Admin)', s.admin_approved)}
-                ${miniStat('fa-paper-plane','#2563EB','Đã nộp (Reviewer OK)', s.reviewer_approved)}
-                ${miniStat('fa-check-double','#059669','Đạt yêu cầu', s.approved)}
-                ${miniStat('fa-circle-xmark','#EF4444','Chưa đạt yêu cầu', s.admin_rejected)}
-                ${miniStat('fa-pen','#7C3AED','Đang làm', s.in_progress)}
-                ${miniStat('fa-hourglass','#94A3B8','Chưa bắt đầu', s.pending)}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                ${miniStat('fa-circle-check', '#10B981', 'Đã được đánh giá', s.admin_approved)}
+                ${miniStat('fa-paper-plane', '#2563EB', 'Đã nộp', s.reviewer_approved)}
+                ${miniStat('fa-check-double', '#059669', 'Đạt yêu cầu', s.approved)}
+                ${miniStat('fa-circle-xmark', '#EF4444', 'Không đạt yêu cầu', s.admin_rejected)}
+                ${miniStat('fa-pen', '#7C3AED', 'Đang làm', s.in_progress)}
+                ${miniStat('fa-hourglass', '#94A3B8', 'Chưa bắt đầu', s.pending)}
             </div>
-            <div style="padding:8px 12px;background:#F8FAFC;border-radius:8px;font-size:12px;color:#64748B;display:flex;justify-content:space-between;margin-bottom:10px">
-                <span><i class="fa-solid fa-stopwatch" style="color:#0EA5E9;margin-right:4px"></i>Thời gian TB/nhiệm vụ</span>
-                <span style="font-weight:700;color:#1E293B">${avgMinutes}</span>
+
+            <!-- Thời gian trung bình -->
+            <div style="padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;font-size:12px;color:#475569;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:600;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-stopwatch" style="color:#0EA5E9;font-size:15px"></i>
+                    Thời gian trung bình / Nhiệm vụ
+                </span>
+                <span style="font-weight:800;color:#0F172A;font-size:13px">${avgMinutes}</span>
             </div>
-            <!-- Nhận xét -->
-            <div style="padding:10px 14px;border-radius:8px;background:${hireBg};border:1px solid ${hireBorder};font-size:12px;color:#64748B">
-                <i class="fa-solid ${hireIcon}" style="color:${rateColor};margin-right:4px"></i>
-                <strong style="color:${rateColor}">${hireText}</strong>
-                — độ tin cậy gán nhãn trung bình: <strong style="color:${rateColor}">${rate}%</strong>
+
+            <!-- Nhận xét và khuyến nghị -->
+            <div style="padding:14px 16px;border-radius:12px;background:${hireBg};border:1px solid ${hireBorder};font-size:12px;color:#475569;display:flex;align-items:center;gap:12px;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,0.01)">
+                <div style="width:30px;height:30px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center;color:${rateColor};box-shadow:0 2px 5px rgba(0,0,0,0.05);flex-shrink:0">
+                    <i class="fa-solid ${hireIcon}" style="font-size:13px"></i>
+                </div>
+                <div style="flex:1">
+                    <strong style="color:${rateColor};font-size:13px;display:block;margin-bottom:1px">${hireText}</strong>
+                    ${hireDesc}
+                </div>
             </div>
         </div>`;
     } catch (e) {
@@ -301,11 +330,13 @@ async function openStatsModal(userId, username, fullName) {
 }
 
 function miniStat(icon, color, label, value) {
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F8FAFC;border-radius:8px">
-        <i class="fa-solid ${icon}" style="color:${color};font-size:13px;width:14px;text-align:center;flex-shrink:0"></i>
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:${color}12;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fa-solid ${icon}" style="font-size:13px"></i>
+        </div>
         <div style="flex:1;min-width:0">
-            <div style="font-size:10px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
-            <div style="font-size:14px;font-weight:800;color:#1E293B">${value}</div>
+            <div style="font-size:10px;font-weight:600;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.3px">${label}</div>
+            <div style="font-size:15px;font-weight:800;color:#0F172A;margin-top:1px;line-height:1.2">${value}</div>
         </div>
     </div>`;
 }
@@ -314,7 +345,7 @@ function closeStatsModal() {
     document.getElementById('statsModal').classList.remove('active');
 }
 
-document.getElementById('statsModal').addEventListener('click', function(e) {
+document.getElementById('statsModal').addEventListener('click', function (e) {
     if (e.target === this) closeStatsModal();
 });
 

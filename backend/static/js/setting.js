@@ -50,14 +50,14 @@ async function loadSidebarProject() {
 // ============= SLIDER =============
 function updateSlider(sliderId, valueId, divisor) {
     const val = document.getElementById(sliderId).value;
-    document.getElementById(valueId).textContent = (val / divisor).toFixed(2);
+    document.getElementById(valueId).textContent = `${val}%`;
 }
 
 // ============= LOAD SETTINGS =============
 function loadSettings() {
     const aiThreshold = parseFloat(localStorage.getItem('ai_threshold') || '0.25');
     document.getElementById('aiThreshold').value = Math.round(aiThreshold * 100);
-    document.getElementById('aiThresholdVal').textContent = aiThreshold.toFixed(2);
+    document.getElementById('aiThresholdVal').textContent = `${Math.round(aiThreshold * 100)}%`;
 }
 
 // ============= SAVE SETTINGS =============
@@ -73,7 +73,7 @@ function saveSettings() {
 // ============= RESET SETTINGS =============
 function resetSettings() {
     document.getElementById('aiThreshold').value = 25;
-    document.getElementById('aiThresholdVal').textContent = '0.25';
+    document.getElementById('aiThresholdVal').textContent = '25%';
 }
 
 // ============= EXPORT PROJECT =============

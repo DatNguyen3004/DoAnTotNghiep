@@ -166,6 +166,12 @@ async function initPage() {
     } catch (err) {
         console.error(err);
         alert(err.message || 'Có lỗi xảy ra khi tải trang.');
+    } finally {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
     }
 }
 
@@ -470,8 +476,8 @@ function toggleMatchedVisibility(userId, event) {
 
     const cur = hiddenMatchedItems.get(String(userId)) || { hideAI: false, hideUser: false };
     const currentlyHidden = (item.type === 'matched' && cur.hideAI && cur.hideUser) ||
-                            (item.type === 'extra' && cur.hideUser) ||
-                            (item.type === 'missing' && cur.hideAI);
+        (item.type === 'extra' && cur.hideUser) ||
+        (item.type === 'missing' && cur.hideAI);
 
     if (item.type === 'matched') {
         hiddenMatchedItems.set(String(userId), { hideAI: !currentlyHidden, hideUser: !currentlyHidden });
@@ -496,15 +502,15 @@ function toggleCategoryVisibility(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    
+
     const entries = getCurrentEntries(comp).filter(item => item.category === cat);
     const allHidden = entries.every(item => {
         const o = hiddenMatchedItems.get(String(item.id)) || {};
         return (item.type === 'matched' && o.hideAI && o.hideUser) ||
-               (item.type === 'extra' && o.hideUser) ||
-               (item.type === 'missing' && o.hideAI);
+            (item.type === 'extra' && o.hideUser) ||
+            (item.type === 'missing' && o.hideAI);
     });
-    
+
     entries.forEach(item => {
         const idStr = String(item.id);
         if (item.type === 'matched') {
@@ -515,7 +521,7 @@ function toggleCategoryVisibility(cat, event) {
             hiddenMatchedItems.set(idStr, { hideAI: !allHidden, hideUser: false });
         }
     });
-    
+
     renderMatchedLabels();
     redrawAnnotations();
 }
@@ -525,7 +531,7 @@ function toggleCategoryAI(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    
+
     const entries = getCurrentEntries(comp).filter(item => item.category === cat);
     if (entries.length === 0) return;
 
@@ -561,7 +567,7 @@ function toggleCategoryUser(cat, event) {
     if (!evaluationData) return;
     const comp = evaluationData.frames[selectedFrameIdx]?.comparison[selectedCamera];
     if (!comp) return;
-    
+
     const entries = getCurrentEntries(comp).filter(item => item.category === cat);
     if (entries.length === 0) return;
 
@@ -597,7 +603,7 @@ function getCurrentEntries(comp) {
     if (!comp) return [];
     const matched = comp.matched || [];
     const extra = comp.extra || [];
-    const missing = comp.ai_boxes ? comp.ai_boxes.filter(box => 
+    const missing = comp.ai_boxes ? comp.ai_boxes.filter(box =>
         !matched.some(m => m.ai_box.id === box.id || (m.ai_box.bbox_x === box.bbox_x && m.ai_box.bbox_y === box.bbox_y))
     ) : [];
 
@@ -686,16 +692,16 @@ function renderMatchedLabels() {
         const allHidden = items.every(m => {
             const o = hiddenMatchedItems.get(String(m.id)) || {};
             return (m.type === 'matched' && o.hideAI && o.hideUser) ||
-                   (m.type === 'extra' && o.hideUser) ||
-                   (m.type === 'missing' && o.hideAI);
+                (m.type === 'extra' && o.hideUser) ||
+                (m.type === 'missing' && o.hideAI);
         });
 
         const itemsHtml = items.map((item, i) => {
             const isSel = String(selectedAnnId) === String(item.id);
             const ov = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
             const isRowHidden = (item.type === 'matched' && ov.hideAI && ov.hideUser) ||
-                                (item.type === 'extra' && ov.hideUser) ||
-                                (item.type === 'missing' && ov.hideAI);
+                (item.type === 'extra' && ov.hideUser) ||
+                (item.type === 'missing' && ov.hideAI);
 
             const trackId = item.trackId != null ? String(item.trackId).padStart(2, '0') : String(i + 1).padStart(2, '0');
 
@@ -1619,14 +1625,14 @@ function showEvaluationStats() {
             if (comp) {
                 const aiCount = comp.ai_boxes ? comp.ai_boxes.length : 0;
                 const userCount = comp.user_boxes ? comp.user_boxes.length : 0;
-                
+
                 frameAiCount += aiCount;
                 frameFinalCount += userCount;
 
                 if (comp.first_submission && comp.first_submission.has_snapshot) {
                     const firstMatchedList = comp.first_submission.matched ? comp.first_submission.matched : [];
                     const firstExtraList = comp.first_submission.extra ? comp.first_submission.extra : [];
-                    
+
                     frameFirstCount += (firstMatchedList.length + firstExtraList.length);
                     const matchedOverThreshold = firstMatchedList.filter(m => m.iou >= 0.85).length;
                     frameMatchedCount += matchedOverThreshold;
@@ -1657,6 +1663,9 @@ function showEvaluationStats() {
     const userPrecision = frameReliabilities.length > 0 ? Math.round(frameReliabilities.reduce((a, b) => a + b, 0) / frameReliabilities.length) : 100;
     const aiPrecision = totalAi > 0 ? Math.min(Math.round((aiCorrectCount / totalAi) * 100), 100) : 100;
     const averageIoUVal = matchedIoUCount > 0 ? Math.round((totalIoU / matchedIoUCount) * 100) : 0;
+
+    const timeSpentSec = evaluationData.time_spent || 0;
+    const timeSpentMin = (timeSpentSec / 60).toFixed(1);
 
     // Helper for rendering rings
     function makeProgressRing(percent, size, strokeWidth, strokeColor, trailColor, textColor) {
@@ -1707,6 +1716,48 @@ function showEvaluationStats() {
         ratingText = 'Cần kiểm tra';
         ratingColor = '#F59E0B';
         ratingBg = '#FFFBEB';
+    }
+
+    // Suggestions logic
+    const isTimeTooShort = (timeSpentSec > 0 && timeSpentSec < 120);
+    const isSimilarityTooHigh = (overallSimilarity >= 99);
+
+    let suggestionBg = '#F0FDF4';
+    let suggestionBorder = '#BBF7D0';
+    let suggestionIconBg = '#DCFCE7';
+    let suggestionIconColor = '#16A34A';
+    let suggestionIcon = 'fa-solid fa-circle-check';
+    let suggestionTitleColor = '#166534';
+    let suggestionTextColor = '#14532D';
+    let suggestionText = 'Hiện không phát hiện có gì bất thường.';
+
+    if (isTimeTooShort && isSimilarityTooHigh) {
+        suggestionBg = '#FEF2F2';
+        suggestionBorder = '#FCA5A5';
+        suggestionIconBg = '#FEE2E2';
+        suggestionIconColor = '#EF4444';
+        suggestionIcon = 'fa-solid fa-triangle-exclamation';
+        suggestionTitleColor = '#991B1B';
+        suggestionTextColor = '#7F1D1D';
+        suggestionText = `<b>Nghi ngờ gian lận:</b> Người dùng gán nhãn cực nhanh (${timeSpentMin} phút) và kết quả trùng khớp với AI tuyệt đối (${overallSimilarity}%). Rất có thể người này chỉ chạy AI rồi nộp bài luôn.`;
+    } else if (isTimeTooShort) {
+        suggestionBg = '#FFFBEB';
+        suggestionBorder = '#FDE68A';
+        suggestionIconBg = '#FEF3C7';
+        suggestionIconColor = '#D97706';
+        suggestionIcon = 'fa-solid fa-triangle-exclamation';
+        suggestionTitleColor = '#92400E';
+        suggestionTextColor = '#78350F';
+        suggestionText = `<b>Thời gian quá ngắn:</b> Người gán nhãn hoàn thành nhiệm vụ chỉ trong ${timeSpentMin} phút. Vui lòng kiểm tra kỹ xem họ có làm ẩu hoặc bỏ sót nhãn không.`;
+    } else if (isSimilarityTooHigh) {
+        suggestionBg = '#FFFBEB';
+        suggestionBorder = '#FDE68A';
+        suggestionIconBg = '#FEF3C7';
+        suggestionIconColor = '#D97706';
+        suggestionIcon = 'fa-solid fa-triangle-exclamation';
+        suggestionTitleColor = '#92400E';
+        suggestionTextColor = '#78350F';
+        suggestionText = `<b>Độ trùng khớp cực cao:</b> Kết quả trùng khớp gần như hoàn toàn với AI (${overallSimilarity}%). Cần rà soát xem người dùng có thực sự kiểm tra và sửa đổi các nhãn lỗi từ AI hay không.`;
     }
 
     // Camera stats list
@@ -1776,6 +1827,15 @@ function showEvaluationStats() {
                 </div>
             </div>
 
+            <div class="stats-card">
+                <div style="width:48px;height:48px;border-radius:10px;background:#FFF7ED;color:#EA580C;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+                <div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;">Thời gian gán nhãn</div>
+                    <div style="font-size:22px;font-weight:800;color:#EA580C;margin-top:2px;">${timeSpentMin} phút</div>
+                </div>
+            </div>
 
         </div>
 
@@ -1808,6 +1868,17 @@ function showEvaluationStats() {
                             ${makeProgressRing(aiPrecision, 88, 7, aiColors.color, aiColors.trail, aiColors.color)}
                         </div>
                         <span style="font-size:12px;font-weight:700;color:#334155;margin-top:8px;white-space:nowrap;">Độ tin cậy AI</span>
+                    </div>
+                </div>
+
+                <!-- Hệ thống gợi ý -->
+                <div style="margin-top:20px;padding:12px 16px;border-radius:10px;background:${suggestionBg};border:1px solid ${suggestionBorder};display:flex;align-items:start;gap:12px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:${suggestionIconBg};color:${suggestionIconColor};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">
+                        <i class="${suggestionIcon}"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:12px;font-weight:800;color:${suggestionTitleColor};text-transform:uppercase;letter-spacing:0.5px;">Hệ thống gợi ý</div>
+                        <div style="font-size:12px;color:${suggestionTextColor};margin-top:4px;line-height:1.5;">${suggestionText}</div>
                     </div>
                 </div>
 
@@ -1855,8 +1926,8 @@ function showEvaluationStats() {
                             <th style="padding:6px 0;text-align:center;">Trùng khớp</th>
                             <th style="padding:6px 0;text-align:center;">Dư thừa</th>
                             <th style="padding:6px 0;text-align:center;">Thiếu sót</th>
-                            <th style="padding:6px 0;text-align:center;">TB IoU khớp</th>
-                            <th style="padding:6px 0;text-align:right;">Độ chính xác</th>
+                            <th style="padding:6px 0;text-align:center;">Độ khớp</th>
+                            <th style="padding:6px 0;text-align:center;">Độ chính xác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1877,7 +1948,7 @@ function showEvaluationStats() {
                                     <td style="padding:10px 0;text-align:center;color:#EF4444;">${stat.extra}</td>
                                     <td style="padding:10px 0;text-align:center;color:#F59E0B;">${stat.missing}</td>
                                     <td style="padding:10px 0;text-align:center;color:#64748B;">${avgIoU}%</td>
-                                    <td style="padding:10px 0;text-align:right;font-weight:700;color:${accuracy >= 85 ? '#10B981' : (accuracy >= 60 ? '#3B82F6' : '#EF4444')}">${accuracy}%</td>
+                                    <td style="padding:10px 0;text-align:center;font-weight:700;color:${accuracy >= 85 ? '#10B981' : (accuracy >= 60 ? '#3B82F6' : '#EF4444')}">${accuracy}%</td>
                                 </tr>
                             `;
     }).join('')}

@@ -142,6 +142,8 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
     total_user_objs = 0
     total_matched_objs = 0
     total_missing_objs = 0
+    total_ai_matched_objs = 0
+    total_ai_missing_objs = 0
 
     def py_iou(boxA, boxB):
         ax1, ay1 = boxA["bbox_x"], boxA["bbox_y"]
@@ -203,8 +205,8 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                         matched_count += 1
                         available_ai.pop(best_idx)
                         
-                total_matched_objs += matched_count
-                total_missing_objs += len(available_ai)
+                total_ai_matched_objs += matched_count
+                total_ai_missing_objs += len(available_ai)
 
                 # Lần nộp đầu tiên (first submission)
                 first_list = first_ann_groups.get(key, []) if has_first_sub else user_list
@@ -227,6 +229,9 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                     if best_match:
                         cam_matched_first_final += 1
                         available_user.pop(best_idx)
+                
+                total_matched_objs += cam_matched_first_final
+                total_missing_objs += (len(first_list) - cam_matched_first_final) + (len(user_list) - cam_matched_first_final)
                 
                 frame_matched_count += cam_matched_first_final
 
@@ -251,6 +256,8 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
         "matched_objs": total_matched_objs,
         "missing_objs": total_missing_objs,
         "user_objs": total_user_objs,
+        "ai_matched_objs": total_ai_matched_objs,
+        "ai_missing_objs": total_ai_missing_objs,
     }
 
 def calculate_task_user_precision(db_session: Session, t_id: int, s_id: int) -> int:
@@ -283,6 +290,8 @@ def _enrich_task(task: Task, db: Session) -> dict:
     matched_objs = None
     missing_objs = None
     user_objs = None
+    ai_matched_objs = None
+    ai_missing_objs = None
 
     if task.status in ('approved', 'rejected'):
         try:
@@ -291,6 +300,8 @@ def _enrich_task(task: Task, db: Session) -> dict:
             matched_objs = details["matched_objs"]
             missing_objs = details["missing_objs"]
             user_objs = details["user_objs"]
+            ai_matched_objs = details["ai_matched_objs"]
+            ai_missing_objs = details["ai_missing_objs"]
         except Exception as e:
             print(f"Error calculating precision for task {task.id}: {e}")
 
@@ -318,6 +329,8 @@ def _enrich_task(task: Task, db: Session) -> dict:
         matched_objs=matched_objs,
         missing_objs=missing_objs,
         user_objs=user_objs,
+        ai_matched_objs=ai_matched_objs,
+        ai_missing_objs=ai_missing_objs,
     ).model_dump()
 
 
@@ -1232,6 +1245,7 @@ def get_task_evaluation_details(
         "scene_description": scene.description if scene else None,
         "status": task.status,
         "feedback": task.feedback,
+        "time_spent": task.time_spent,
         "labeler": {
             "id": labeler.id if labeler else None,
             "username": labeler.username if labeler else None,

@@ -69,27 +69,8 @@ function getStatusBadge(status) {
     return `<div class="status-badge ${info.class}"><div class="status-dot"></div>${info.label}</div>`;
 }
 
-async function startEvaluation(btn, taskId) {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const originalContent = btn.innerHTML;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
-
-    try {
-        const token = localStorage.getItem('access_token');
-        const res = await fetch(`${BASE_URL}/tasks/${taskId}/evaluation-details`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            throw new Error('Lỗi tải dữ liệu');
-        }
-        window.location.href = `Evaluation.html?taskId=${taskId}`;
-    } catch (err) {
-        console.error(err);
-        alert('Có lỗi xảy ra khi tải trang đối chiếu. Vui lòng thử lại.');
-        btn.disabled = false;
-        btn.innerHTML = originalContent;
-    }
+function startEvaluation(btn, taskId) {
+    window.location.href = `Evaluation.html?taskId=${taskId}`;
 }
 
 function getActionLink(task) {
@@ -186,6 +167,10 @@ function renderTasks(tasks) {
             : 0;
         const progressColor = progress >= 100 ? 'green' : (progress >= 50 ? 'teal' : 'blue');
 
+        const nameHtml = task.status === 'pending'
+            ? `<div style="display:flex;align-items:center;gap:6px;">${sceneName}<span style="background:#EF4444;color:#FFFFFF;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;display:inline-block;text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;box-shadow:0 2px 4px rgba(239, 68, 68, 0.2);">Mới</span></div>`
+            : `<div>${sceneName}</div>`;
+
         return `
             <tr>
                 <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
@@ -193,7 +178,7 @@ function renderTasks(tasks) {
                     <div class="scene-name">
                         <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
                         <div>
-                            <div>${sceneName}</div>
+                            ${nameHtml}
                             ${sceneDesc ? `<div class="scene-meta">${sceneDesc}</div>` : ''}
                         </div>
                     </div>
@@ -244,6 +229,41 @@ function updateStats(tasks) {
     document.getElementById('statNeedAttentionText').textContent = needAttention > 0 ? 'Cần xử lý' : 'Tốt';
     document.getElementById('statNeedAttentionText').style.color = needAttention > 0 ? '#D97706' : '#16A34A';
     document.getElementById('statAvgTime').textContent = avgTimeDisplay;
+
+    // AI Accuracy calculation for approved tasks
+    const approvedTasksList = tasks.filter(t => t.status === 'approved');
+    let avgAIAccuracy = 0;
+    if (approvedTasksList.length > 0) {
+        let sumAIAccuracy = 0;
+        let countWithAI = 0;
+        approvedTasksList.forEach(t => {
+            const matched = t.ai_matched_objs || 0;
+            const missing = t.ai_missing_objs || 0;
+            const totalAi = matched + missing;
+            if (totalAi > 0) {
+                sumAIAccuracy += (matched / totalAi) * 100;
+                countWithAI++;
+            } else {
+                sumAIAccuracy += 100;
+                countWithAI++;
+            }
+        });
+        if (countWithAI > 0) {
+            avgAIAccuracy = Math.round(sumAIAccuracy / countWithAI);
+        }
+    }
+
+    const aiAccuracyEl = document.getElementById('statAIAccuracy');
+    const aiAccuracyUnitEl = document.getElementById('statAIAccuracyUnit');
+    if (aiAccuracyEl && aiAccuracyUnitEl) {
+        if (approvedTasksList.length > 0) {
+            aiAccuracyEl.textContent = `${avgAIAccuracy}%`;
+            aiAccuracyUnitEl.textContent = 'trung bình';
+        } else {
+            aiAccuracyEl.textContent = '—';
+            aiAccuracyUnitEl.textContent = 'Chưa có nhiệm vụ đạt';
+        }
+    }
 
     const fp = document.getElementById('floatingProgress');
     if (fp) fp.textContent = `${completedPct}% hoàn thành`;

@@ -35,54 +35,57 @@
         <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card stat-1">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
-                        <div class="stat-title">KHUNG HÌNH PHÂN CÔNG</div>
+                <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Khung hình phân công</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statTotalFrames">—</div>
+                        <div class="stat-change" id="statTotalScenesText"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statTotalFrames">—</div>
-                    <div class="stat-change" id="statTotalScenesText"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-2">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
-                        <div class="stat-title">NHIỆM VỤ HOÀN THÀNH</div>
+                <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Nhiệm vụ hoàn thành</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statCompleted">—</div>
+                        <div class="stat-change" id="statCompletedPct"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statCompleted">—</div>
-                    <div class="stat-change" id="statCompletedPct"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-3">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                        <div class="stat-title">NHIỆM VỤ CẦN CHÚ Ý</div>
+                <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Nhiệm vụ cần chú ý</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statNeedAttention">—</div>
+                        <div class="stat-change" id="statNeedAttentionText"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statNeedAttention">—</div>
-                    <div class="stat-change" id="statNeedAttentionText"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-4">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-regular fa-clock"></i></div>
-                        <div class="stat-title">HIỆU SUẤT TRUNG BÌNH</div>
+                <div class="stat-icon"><i class="fa-regular fa-clock"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Hiệu suất trung bình</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statAvgTime">—</div>
+                        <div class="stat-change" id="statAvgTimeUnit">Phút / Nhiệm vụ</div>
                     </div>
                 </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statAvgTime">—</div>
-                    <div class="stat-change" id="statAvgTimeUnit">Phút / Nhiệm vụ</div>
+            </div>
+
+            <div class="stat-card stat-5">
+                <div class="stat-icon"><i class="fa-solid fa-robot"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Độ chính xác AI</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statAIAccuracy">—</div>
+                        <div class="stat-change" id="statAIAccuracyUnit">% trung bình</div>
+                    </div>
                 </div>
             </div>
         </div>

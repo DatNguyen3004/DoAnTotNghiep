@@ -278,7 +278,13 @@ async function loadThumb(frameNum, frameId) {
     } catch(e) {}
 }
 
-function markVisited(frameNum) { sessionStorage.setItem('visiting_frame_' + taskId, frameNum); }
+function markVisited(frameNum) {
+    sessionStorage.setItem('visiting_frame_' + taskId, frameNum);
+    if (mode === 'fix') {
+        doneFrames[frameNum] = true;
+        localStorage.setItem(storageKey, JSON.stringify(doneFrames));
+    }
+}
 
 function updateProgress() {
     let done = 0;

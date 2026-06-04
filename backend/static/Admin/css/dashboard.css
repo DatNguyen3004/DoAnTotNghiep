@@ -309,8 +309,8 @@ body {
 /* ============= STATS GRID ============= */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
     padding: 0 40px;
     margin-top: 12px;
 }
@@ -318,44 +318,42 @@ body {
 .stat-card {
     background: var(--bg-surface);
     border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    padding: 24px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 160px;
+    height: 155px;
     border: 1px solid var(--border-light);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
 }
 
-.stat-header {
+.stat-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-}
-
-.stat-icon-wrap {
-    display: flex;
+    height: 100%;
     justify-content: space-between;
-    align-items: flex-start;
 }
 
 .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    position: absolute;
+    right: 18px;
+    top: 20px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
 }
 
 .stat-title {
@@ -363,76 +361,101 @@ body {
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+    max-width: calc(100% - 46px);
+    line-height: 1.4;
 }
 
 .stat-value-wrap {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    flex-direction: column;
+    gap: 2px;
     margin-top: auto;
 }
 
 .stat-value {
-    font-size: 32px;
+    font-size: 30px;
     font-weight: 800;
-    color: #1E293B;
-    letter-spacing: -1px;
+    color: #0F172A;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
 }
 
 .stat-change {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* Card 1: Khung hình phân công */
+.stat-1 {
+    border-left: 4px solid #4F46E5;
 }
 
 .stat-1 .stat-icon {
     background: #EEF2FF;
     color: #4F46E5;
-    font-family: monospace;
 }
 
 .stat-1 .stat-change {
-    color: var(--primary-blue);
+    color: #4F46E5;
+}
+
+/* Card 2: Nhiệm vụ hoàn thành */
+.stat-2 {
+    border-left: 4px solid #10B981;
 }
 
 .stat-2 .stat-icon {
-    background: #DCFCE7;
-    color: #16A34A;
+    background: #ECFDF5;
+    color: #10B981;
 }
 
 .stat-2 .stat-change {
-    color: #16A34A;
+    color: #059669;
+}
+
+/* Card 3: Nhiệm vụ cần chú ý */
+.stat-3 {
+    border-left: 4px solid #F59E0B;
 }
 
 .stat-3 .stat-icon {
-    background: #FEF3C7;
-    color: #D97706;
+    background: #FFFBEB;
+    color: #F59E0B;
 }
 
 .stat-3 .stat-change {
     color: #D97706;
 }
 
+/* Card 4: Hiệu suất trung bình */
 .stat-4 {
-    background: linear-gradient(135deg, #4B638A, #334155);
-    border: none;
+    border-left: 4px solid #0284C7;
 }
 
 .stat-4 .stat-icon {
-    background: rgba(255, 255, 255, 0.15);
-    color: #FFFFFF;
-}
-
-.stat-4 .stat-title {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.stat-4 .stat-value {
-    color: #FFFFFF;
+    background: #E0F2FE;
+    color: #0284C7;
 }
 
 .stat-4 .stat-change {
-    color: rgba(255, 255, 255, 0.8);
+    color: #0284C7;
+}
+
+/* Card 5: Độ chính xác AI */
+.stat-5 {
+    border-left: 4px solid #8B5CF6;
+}
+
+.stat-5 .stat-icon {
+    background: #F5F3FF;
+    color: #8B5CF6;
+}
+
+.stat-5 .stat-change {
+    color: #7C3AED;
 }
 
 /* ============= TABS ============= */

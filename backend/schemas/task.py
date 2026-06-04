@@ -45,6 +45,8 @@ class TaskOut(BaseModel):
     matched_objs: Optional[int] = None
     missing_objs: Optional[int] = None
     user_objs: Optional[int] = None
+    ai_matched_objs: Optional[int] = None
+    ai_missing_objs: Optional[int] = None
 
     class Config:
         from_attributes = True

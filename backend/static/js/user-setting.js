@@ -56,7 +56,9 @@ async function loadSidebarProject() {
 function updateSlider(sliderId, valueId, divisor) {
     const el = document.getElementById(sliderId);
     const valEl = document.getElementById(valueId);
-    if (el && valEl) valEl.textContent = (el.value / divisor).toFixed(2);
+    if (el && valEl) {
+        valEl.textContent = `${el.value}%`;
+    }
 }
 
 function loadSettings() {
@@ -64,7 +66,7 @@ function loadSettings() {
     const slider = document.getElementById('aiReviewThreshold');
     const valEl = document.getElementById('aiReviewThresholdVal');
     if (slider) slider.value = Math.round(aiReviewThreshold * 100);
-    if (valEl) valEl.textContent = aiReviewThreshold.toFixed(2);
+    if (valEl) valEl.textContent = `${Math.round(aiReviewThreshold * 100)}%`;
 }
 
 function saveSettings() {
@@ -84,5 +86,5 @@ function resetSettings() {
     const slider = document.getElementById('aiReviewThreshold');
     const valEl = document.getElementById('aiReviewThresholdVal');
     if (slider) slider.value = 85;
-    if (valEl) valEl.textContent = '0.85';
+    if (valEl) valEl.textContent = '85%';
 }

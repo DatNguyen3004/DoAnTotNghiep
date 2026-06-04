@@ -30,54 +30,57 @@
         <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card stat-1">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-list-check"></i></div>
-                        <div class="stat-title">TỔNG NHIỆM VỤ</div>
+                <div class="stat-icon"><i class="fa-solid fa-list-check"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Tổng nhiệm vụ</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statTotal">—</div>
+                        <div class="stat-change" id="statTotalText"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statTotal">—</div>
-                    <div class="stat-change" id="statTotalText"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-2">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
-                        <div class="stat-title">ĐẠT YÊU CẦU</div>
+                <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Đạt yêu cầu</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statDone">—</div>
+                        <div class="stat-change" id="statDonePct"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statDone">—</div>
-                    <div class="stat-change" id="statDonePct"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-3">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <div class="stat-title">CẦN KIỂM TRA</div>
+                <div class="stat-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Cần kiểm tra</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statReview">-</div>
+                        <div class="stat-change" id="statReviewText"></div>
                     </div>
-                </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statReview">-</div>
-                    <div class="stat-change" id="statReviewText"></div>
                 </div>
             </div>
 
             <div class="stat-card stat-4">
-                <div class="stat-header">
-                    <div class="stat-icon-wrap">
-                        <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                        <div class="stat-title">CẦN CHÚ Ý</div>
+                <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Cần chú ý</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statRejected">—</div>
+                        <div class="stat-change" id="statRejectedText">Cần chú ý</div>
                     </div>
                 </div>
-                <div class="stat-value-wrap">
-                    <div class="stat-value" id="statRejected">—</div>
-                    <div class="stat-change" id="statRejectedText">Cần chú ý</div>
+            </div>
+
+            <div class="stat-card stat-5">
+                <div class="stat-icon"><i class="fa-solid fa-star-half-stroke"></i></div>
+                <div class="stat-content">
+                    <div class="stat-title">Độ tin cậy</div>
+                    <div class="stat-value-wrap">
+                        <div class="stat-value" id="statUserReliability">—</div>
+                        <div class="stat-change" id="statUserReliabilityUnit">% trung bình</div>
+                    </div>
                 </div>
             </div>
         </div>

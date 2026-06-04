@@ -121,11 +121,16 @@ function renderMyTasks(tasks) {
         const desc = task.scene_description || '';
         const progress = task.frame_count > 0 ? Math.round((task.annotated_frames / task.frame_count) * 100) : 0;
         const progressColor = progress >= 100 ? 'green' : (progress >= 50 ? 'teal' : 'blue');
+        
+        const nameHtml = task.status === 'pending'
+            ? `<div style="display:flex;align-items:center;gap:6px;">${name}<span style="background:#EF4444;color:#FFFFFF;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;display:inline-block;text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;box-shadow:0 2px 4px rgba(239, 68, 68, 0.2);">Mới</span></div>`
+            : `<div>${name}</div>`;
+
         return `<tr>
             <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
             <td><div class="scene-name">
                 <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
-                <div><div>${name}</div>${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
+                <div>${nameHtml}${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
             </div></td>
             <td>${getStatusBadge(task.status, task.admin_moderated)}</td>
             <td><div class="progress-cell">
@@ -262,6 +267,35 @@ function updateStats(tasks) {
     document.getElementById('statRejected').textContent = rejected;
     document.getElementById('statReview').textContent = pendingReview;
     document.getElementById('statReviewText').textContent = pendingReview > 0 ? 'đang chờ' : '';
+
+    // Độ tin cậy trung bình của các nhiệm vụ đã được admin đánh giá (approved hoặc rejected)
+    const evaluatedTasksList = tasks.filter(t => t.status === 'approved' || t.status === 'rejected');
+    let avgReliability = 0;
+    let countEvaluatedWithPrecision = 0;
+    let sumReliability = 0;
+
+    evaluatedTasksList.forEach(t => {
+        if (t.precision !== null && t.precision !== undefined) {
+            sumReliability += t.precision;
+            countEvaluatedWithPrecision++;
+        }
+    });
+
+    if (countEvaluatedWithPrecision > 0) {
+        avgReliability = Math.round(sumReliability / countEvaluatedWithPrecision);
+    }
+
+    const reliabilityEl = document.getElementById('statUserReliability');
+    const reliabilityUnitEl = document.getElementById('statUserReliabilityUnit');
+    if (reliabilityEl && reliabilityUnitEl) {
+        if (countEvaluatedWithPrecision > 0) {
+            reliabilityEl.textContent = `${avgReliability}%`;
+            reliabilityUnitEl.textContent = 'trung bình';
+        } else {
+            reliabilityEl.textContent = '—';
+            reliabilityUnitEl.textContent = 'Chưa được đánh giá';
+        }
+    }
 }
 
 // ============= SEARCH =============
@@ -307,7 +341,7 @@ function showEvaluationDetailPopup(statusText, feedbackText, precision, matchedO
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
                 <div style="font-size:11px; color:#64748B;">
-                    <i class="fa-solid fa-circle-check" style="color:#10B981; margin-right:4px;"></i>Khớp AI: <strong>${matchedObjs} nhãn</strong>
+                    <i class="fa-solid fa-circle-check" style="color:#10B981; margin-right:4px;"></i>Khớp nhãn đầu: <strong>${matchedObjs} nhãn</strong>
                 </div>
                 <div style="font-size:11px; color:#64748B;">
                     <i class="fa-solid fa-circle-xmark" style="color:#EF4444; margin-right:4px;"></i>Sai lệch đã sửa: <strong>${missingObjs} nhãn</strong>
