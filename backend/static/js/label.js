@@ -345,6 +345,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'b' || e.key === 'B') setActiveTool('box');
     if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
     if (e.key === 'e' || e.key === 'E') setActiveTool('resize');
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); runAI(); }
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
 

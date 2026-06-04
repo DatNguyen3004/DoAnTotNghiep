@@ -1527,11 +1527,7 @@ function showEvaluationStats() {
 
 
 
-            if (userCount === 0) {
-                aiCorrectCount += aiCount;
-            } else {
-                aiCorrectCount += matchedCount;
-            }
+            aiCorrectCount += matchedCount;
 
             cameraStats[camKey].totalUser += userCount;
             cameraStats[camKey].matched += matchedCount;
@@ -1610,8 +1606,56 @@ function showEvaluationStats() {
         totalFrameSimSum += avgFrameSim;
     });
     const overallSimilarity = evaluationData.frames.length > 0 ? Math.round(totalFrameSimSum / evaluationData.frames.length) : 0;
-    const userPrecision = (totalUser + totalMissing) > 0 ? Math.round((totalMatched / (totalUser + totalMissing)) * 100) : 0;
-    const aiPrecision = totalAi > 0 ? Math.round((aiCorrectCount / totalAi) * 100) : 100;
+
+    const frameReliabilities = [];
+    evaluationData.frames.forEach(frame => {
+        let frameFirstCount = 0;
+        let frameAiCount = 0;
+        let frameFinalCount = 0;
+        let frameMatchedCount = 0;
+
+        CAMERAS.forEach(camKey => {
+            const comp = frame.comparison[camKey];
+            if (comp) {
+                const aiCount = comp.ai_boxes ? comp.ai_boxes.length : 0;
+                const userCount = comp.user_boxes ? comp.user_boxes.length : 0;
+                
+                frameAiCount += aiCount;
+                frameFinalCount += userCount;
+
+                if (comp.first_submission && comp.first_submission.has_snapshot) {
+                    const firstMatchedList = comp.first_submission.matched ? comp.first_submission.matched : [];
+                    const firstExtraList = comp.first_submission.extra ? comp.first_submission.extra : [];
+                    
+                    frameFirstCount += (firstMatchedList.length + firstExtraList.length);
+                    const matchedOverThreshold = firstMatchedList.filter(m => m.iou >= 0.85).length;
+                    frameMatchedCount += matchedOverThreshold;
+                } else {
+                    frameFirstCount += userCount;
+                    frameMatchedCount += userCount;
+                }
+            }
+        });
+
+        let frameRel = 100;
+        if (frameFirstCount === 0) {
+            if (frameAiCount === 0) {
+                frameRel = 100;
+            } else {
+                frameRel = 0;
+            }
+        } else {
+            if (frameFinalCount === 0) {
+                frameRel = 0;
+            } else {
+                frameRel = Math.min(Math.round((frameMatchedCount / frameFinalCount) * 100), 100);
+            }
+        }
+        frameReliabilities.push(frameRel);
+    });
+
+    const userPrecision = frameReliabilities.length > 0 ? Math.round(frameReliabilities.reduce((a, b) => a + b, 0) / frameReliabilities.length) : 100;
+    const aiPrecision = totalAi > 0 ? Math.min(Math.round((aiCorrectCount / totalAi) * 100), 100) : 100;
     const averageIoUVal = matchedIoUCount > 0 ? Math.round((totalIoU / matchedIoUCount) * 100) : 0;
 
     // Helper for rendering rings

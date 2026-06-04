@@ -102,6 +102,7 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
     frames = db_session.query(Frame).filter(Frame.scene_id == s_id).all()
     user_annotations = db_session.query(Annotation).filter(Annotation.task_id == t_id).all()
 
+    # Nhóm final annotations theo frame_id và camera
     user_ann_groups = {}
     for ann in user_annotations:
         key = f"{ann.frame_id}_{ann.camera}"
@@ -114,6 +115,29 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
             "bbox_w": ann.bbox_w,
             "bbox_h": ann.bbox_h,
         })
+
+    # Lấy snapshot của lần nộp đầu tiên
+    first_sub = db_session.query(TaskSubmission).filter(
+        TaskSubmission.task_id == t_id,
+        TaskSubmission.action == "submitted"
+    ).order_by(TaskSubmission.created_at.asc()).first()
+    
+    first_sub_list = []
+    has_first_sub = False
+    if first_sub and first_sub.annotations_snapshot:
+        try:
+            first_sub_list = json.loads(first_sub.annotations_snapshot)
+            has_first_sub = True
+        except Exception:
+            pass
+
+    # Nhóm first submission annotations theo frame_id và camera
+    first_ann_groups = {}
+    for ann in first_sub_list:
+        key = f"{ann.get('frame_id')}_{ann.get('camera')}"
+        if key not in first_ann_groups:
+            first_ann_groups[key] = []
+        first_ann_groups[key].append(ann)
 
     total_user_objs = 0
     total_matched_objs = 0
@@ -136,26 +160,38 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
         union = (boxA["bbox_w"] * boxA["bbox_h"]) + (boxB["bbox_w"] * boxB["bbox_h"]) - inter
         return inter / union if union > 0.0 else 0.0
 
+    frame_reliabilities = []
+
     for f in frames:
+        frame_first_count = 0
+        frame_ai_count = 0
+        frame_final_count = 0
+        frame_matched_count = 0
+
         for cam in CAMERA_COLUMN_MAP.keys():
             column = CAMERA_COLUMN_MAP[cam]
             if getattr(f, column, None):
                 key = f"{f.id}_{cam}"
+                
+                # AI Predictions
                 ai_list = all_ai_preds.get(key)
                 if ai_list is None:
                     ai_list = get_ai_predictions_for_frame_cam(db_session, f.id, cam)
-                
-                user_list = user_ann_groups.get(key, [])
-                total_user_objs += len(user_list)
+                frame_ai_count += len(ai_list)
                 
                 available_ai = [dict(p) for p in ai_list]
-                matched_count = 0
                 
+                # Final User annotations
+                user_list = user_ann_groups.get(key, [])
+                frame_final_count += len(user_list)
+                total_user_objs += len(user_list)
+                
+                # Tính matched/missing so với AI
+                matched_count = 0
                 for user_ann in user_list:
                     best_match = None
                     best_iou = 0.85
                     best_idx = -1
-                    
                     for idx, ai_box in enumerate(available_ai):
                         if ai_box["category"] == user_ann["category"]:
                             iou_val = py_iou(user_ann, ai_box)
@@ -163,7 +199,6 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                                 best_iou = iou_val
                                 best_match = ai_box
                                 best_idx = idx
-                                
                     if best_match:
                         matched_count += 1
                         available_ai.pop(best_idx)
@@ -171,9 +206,45 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                 total_matched_objs += matched_count
                 total_missing_objs += len(available_ai)
 
-    precision = 0
-    if (total_user_objs + total_missing_objs) > 0:
-        precision = round((total_matched_objs / (total_user_objs + total_missing_objs)) * 100)
+                # Lần nộp đầu tiên (first submission)
+                first_list = first_ann_groups.get(key, []) if has_first_sub else user_list
+                frame_first_count += len(first_list)
+
+                # So khớp giữa lần nộp đầu tiên và lần nộp cuối cùng
+                available_user = [dict(u) for u in user_list]
+                cam_matched_first_final = 0
+                for first_ann in first_list:
+                    best_match = None
+                    best_iou = 0.85
+                    best_idx = -1
+                    for idx, u_ann in enumerate(available_user):
+                        if u_ann["category"] == first_ann["category"]:
+                            iou_val = py_iou(first_ann, u_ann)
+                            if iou_val >= best_iou:
+                                best_iou = iou_val
+                                best_match = u_ann
+                                best_idx = idx
+                    if best_match:
+                        cam_matched_first_final += 1
+                        available_user.pop(best_idx)
+                
+                frame_matched_count += cam_matched_first_final
+
+        # Tính độ tin cậy của khung hình này
+        if frame_first_count == 0:
+            if frame_ai_count == 0:
+                frame_rel = 100.0
+            else:
+                frame_rel = 0.0
+        else:
+            if frame_final_count == 0:
+                frame_rel = 0.0
+            else:
+                frame_rel = min(round((frame_matched_count / frame_final_count) * 100), 100)
+        
+        frame_reliabilities.append(frame_rel)
+
+    precision = round(sum(frame_reliabilities) / len(frame_reliabilities)) if frame_reliabilities else 100
 
     return {
         "precision": precision,
