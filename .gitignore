@@ -85,3 +85,7 @@ htmlcov/
 
 # ── Electron build output ─────────────────────────────────────────────────────
 release/
+
+# ── Temporary / Local Documentation ──────────────────────────────────────────
+.kiro/
+Summary_DoAnTotNghiep.md
