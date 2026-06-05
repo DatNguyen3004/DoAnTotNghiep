@@ -33,7 +33,7 @@ NUSCENES_ROOT = r"D:\Dataset-image\v1.0-mini"
 NUSCENES_META = os.path.join(NUSCENES_ROOT, "v1.0-mini")
 
 # AI Model
-YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS", "weights/yolov8n.pt")
+YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS", "weights/yolov8m.pt")
 
 # Email (Gmail SMTP)
 SMTP_HOST = "smtp.gmail.com"
