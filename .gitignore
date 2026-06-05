@@ -60,6 +60,8 @@ backend/static/uploads/frames/
 backend/static/uploads/images/
 backend/static/uploads/videos/
 backend/static/uploads/nuscenes/
+backend/static/uploads/chat/
+backend/static/uploads/video_cache/
 
 # ── Dataset ───────────────────────────────────────────────────────────────────
 Dataset/
