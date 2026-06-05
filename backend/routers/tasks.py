@@ -293,7 +293,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
     ai_matched_objs = None
     ai_missing_objs = None
 
-    if task.status in ('approved', 'rejected'):
+    if task.status in ('approved', 'rejected', 'reviewed'):
         try:
             details = get_task_precision_details(db, task.id, task.scene_id)
             precision = details["precision"]

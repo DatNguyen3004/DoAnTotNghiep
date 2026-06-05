@@ -145,7 +145,7 @@ def get_user_stats(
 
     from routers.tasks import calculate_task_user_precision
 
-    evaluated_tasks = [t for t in tasks if t.status in ('approved', 'rejected')]
+    evaluated_tasks = [t for t in tasks if t.status in ('approved', 'rejected', 'reviewed')]
     precisions = []
     for t in evaluated_tasks:
         precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))

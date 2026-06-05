@@ -268,8 +268,8 @@ function updateStats(tasks) {
     document.getElementById('statReview').textContent = pendingReview;
     document.getElementById('statReviewText').textContent = pendingReview > 0 ? 'đang chờ' : '';
 
-    // Độ tin cậy trung bình của các nhiệm vụ đã được admin đánh giá (approved hoặc rejected)
-    const evaluatedTasksList = tasks.filter(t => t.status === 'approved' || t.status === 'rejected');
+    // Độ tin cậy trung bình của các nhiệm vụ đã được đánh giá (approved, rejected hoặc reviewed)
+    const evaluatedTasksList = tasks.filter(t => t.status === 'approved' || t.status === 'rejected' || t.status === 'reviewed');
     let avgReliability = 0;
     let countEvaluatedWithPrecision = 0;
     let sumReliability = 0;
