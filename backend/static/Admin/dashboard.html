@@ -95,7 +95,7 @@
             <div class="tabs-container">
                 <button class="tab-btn active" onclick="switchTab(event, 'tab-tasks')" id="tabBtnTasks">
                     <i class="fa-solid fa-list-check"></i>
-                    Nhiệm vụ gán nhãn
+                    Nhiệm vụ đã giao
                     <span class="tab-badge badge-blue" id="tabBadgeTasks">0</span>
                 </button>
                 <button class="tab-btn" onclick="switchTab(event, 'tab-members')" id="tabBtnMembers">
@@ -124,8 +124,63 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" placeholder="Tìm kiếm nhiệm vụ..." id="searchTasks">
                         </div>
+                        <button class="btn-filter" id="btnTaskFilterToggle" onclick="toggleTaskFilterPanel()"
+                            style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            <i class="fa-solid fa-filter"></i> Bộ lọc
+                            <span class="filter-badge" id="taskFilterBadge"
+                                style="display: none; background: #2563EB; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center;">0</span>
+                        </button>
                         <button class="btn-assign-task" id="btnAssignTask" onclick="openAssignModal()">
                             <i class="fa-solid fa-user-plus"></i> Phân công
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assigned Tasks Filter Panel -->
+                <div class="filter-panel" id="taskFilterPanel">
+                    <div class="filter-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <!-- Trạng thái -->
+                        <div class="filter-group">
+                            <label>Trạng thái</label>
+                            <select id="filterTaskStatus" onchange="applyAssignedPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="pending">Chờ xử lý</option>
+                                <option value="in_progress">Đang làm</option>
+                                <option value="under_review">Đang kiểm tra</option>
+                                <option value="reviewed">Đã kiểm tra</option>
+                                <option value="approved">Đạt</option>
+                                <option value="rejected">Chưa đạt</option>
+                            </select>
+                        </div>
+
+                        <!-- Tiến độ -->
+                        <div class="filter-group">
+                            <label>Tiến độ</label>
+                            <select id="filterTaskProgress" onchange="applyAssignedPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="range_1_50">1 - 50%</option>
+                                <option value="range_51_100">51 - 100%</option>
+                            </select>
+                        </div>
+
+                        <!-- Người thực hiện (Chọn nhiều) -->
+                        <div class="filter-group">
+                            <label>Người thực hiện</label>
+                            <div class="custom-multiselect" id="customAssigneeSelect">
+                                <button type="button" class="multiselect-trigger"
+                                    onclick="toggleAssigneeDropdown(event)">
+                                    <span id="multiselectPlaceholder">Tất cả</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                                <div class="multiselect-dropdown" id="assigneeDropdownMenu">
+                                    <!-- Dynamically populated checkboxes -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset-filters" onclick="resetTaskFilters()">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
                         </button>
                     </div>
                 </div>
@@ -156,17 +211,100 @@
         <!-- Tab 2: Members -->
         <div id="tab-members" class="tab-content">
             <section class="data-section">
-                <div class="data-header">
+                <div class="data-header"
+                    style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                     <div class="data-title">
                         <h2>Thành viên dự án</h2>
                         <p>Quản lý cộng tác viên gán nhãn trong dự án</p>
                     </div>
-                    <button class="btn-assign-task" onclick="openAddMemberModal()">
-                        <i class="fa-solid fa-user-plus"></i> Thêm thành viên
-                    </button>
+                    <div class="data-actions" style="display: flex; gap: 12px; align-items: center;">
+                        <div class="search-input" style="width: 340px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" placeholder="Tìm theo tên hoặc tên đăng nhập..." id="searchMembers">
+                        </div>
+                        <button class="btn-filter" id="btnMembersFilterToggle" onclick="toggleMembersFilterPanel()"
+                            style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            <i class="fa-solid fa-filter"></i> Bộ lọc
+                            <span class="filter-badge" id="membersFilterBadge"
+                                style="display: none; background: #2563EB; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center;">0</span>
+                        </button>
+                        <button class="btn-assign-task" onclick="openAddMemberModal()" style="white-space: nowrap;">
+                            <i class="fa-solid fa-user-plus"></i> Thêm thành viên
+                        </button>
+                    </div>
                 </div>
-                <div class="members-grid" id="membersGrid">
-                    <!-- Dynamic members -->
+
+                <!-- Members Filter Panel -->
+                <div class="filter-panel" id="membersFilterPanel">
+                    <div class="filter-grid" style="grid-template-columns: repeat(4, 1fr);">
+                        <!-- Sắp xếp Nhiệm vụ đã giao -->
+                        <div class="filter-group">
+                            <label>Nhiệm vụ đã giao</label>
+                            <select id="sortMembersAssigned" onchange="applyMembersPagination(true)">
+                                <option value="none">Mặc định</option>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
+
+                        <!-- Sắp xếp Nhiệm vụ đã kiểm tra -->
+                        <div class="filter-group">
+                            <label>Nhiệm vụ đã kiểm tra</label>
+                            <select id="sortMembersReviewed" onchange="applyMembersPagination(true)">
+                                <option value="none">Mặc định</option>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
+
+                        <!-- Sắp xếp Nhiệm vụ đã đánh giá -->
+                        <div class="filter-group">
+                            <label>Nhiệm vụ đã được đánh giá</label>
+                            <select id="sortMembersEvaluated" onchange="applyMembersPagination(true)">
+                                <option value="none">Mặc định</option>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
+
+                        <!-- Tiến độ -->
+                        <div class="filter-group">
+                            <label>Tiến độ</label>
+                            <select id="filterMembersProgress" onchange="applyMembersPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="range_0_50">0 - 50%</option>
+                                <option value="range_51_100">51 - 100%</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset-filters" onclick="resetMembersFilters()">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                        </button>
+                    </div>
+                </div>
+
+                <table id="membersTable">
+                    <thead>
+                        <tr>
+                            <th style="width:48px;text-align:center">STT</th>
+                            <th style="width:64px;text-align:center">Ảnh</th>
+                            <th>Tên tài khoản</th>
+                            <th style="width:100px;text-align:center">Đã giao</th>
+                            <th style="width:120px;text-align:center">Đã kiểm tra</th>
+                            <th style="width:120px;text-align:center">Đã đánh giá</th>
+                            <th style="width:130px;text-align:center">Chất lượng</th>
+                            <th style="width:150px;text-align:left">Tiến độ</th>
+                            <th style="width:100px;text-align:center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersBody">
+                        <!-- Dynamic members -->
+                    </tbody>
+                </table>
+                <div class="table-footer">
+                    <div class="showing-text" id="showingMembers"></div>
+                    <div class="pagination" id="membersPagination"></div>
                 </div>
             </section>
         </div>
@@ -176,19 +314,86 @@
         <!-- Tab 3: All Tasks -->
         <div id="tab-all-tasks" class="tab-content">
             <section class="data-section">
-                <div class="data-header">
+                <div class="data-header"
+                    style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                     <div class="data-title">
                         <h2>Tất cả các nhiệm vụ</h2>
                         <p>Danh sách tất cả nhiệm vụ trong dự án</p>
                     </div>
+                    <div class="data-actions" style="display: flex; gap: 12px; align-items: center;">
+                        <div class="search-input" style="width: 280px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" placeholder="Tìm theo tên hoặc mô tả..." id="searchAllTasks">
+                        </div>
+                        <button class="btn-filter" id="btnAllTasksFilterToggle" onclick="toggleAllTasksFilterPanel()"
+                            style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            <i class="fa-solid fa-filter"></i> Bộ lọc
+                            <span class="filter-badge" id="allTasksFilterBadge"
+                                style="display: none; background: #2563EB; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center;">0</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- All Tasks Filter Panel -->
+                <div class="filter-panel" id="allTasksFilterPanel">
+                    <div class="filter-grid">
+                        <!-- Thời gian -->
+                        <div class="filter-group">
+                            <label>Thời gian</label>
+                            <select id="filterAllTasksTime" onchange="applyAllScenesPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="morning">Buổi sáng</option>
+                                <option value="afternoon">Buổi chiều</option>
+                                <option value="evening">Buổi tối</option>
+                            </select>
+                        </div>
+
+                        <!-- Số khung hình -->
+                        <div class="filter-group">
+                            <label>Số khung hình</label>
+                            <select id="filterAllTasksFrames" onchange="applyAllScenesPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="range_1_50">1 - 50</option>
+                                <option value="range_51_100">51 - 100</option>
+                                <option value="range_gt_100">Trên 100</option>
+                            </select>
+                        </div>
+
+                        <!-- Sắp xếp Số khung hình -->
+                        <div class="filter-group">
+                            <label>Số khung hình</label>
+                            <select id="sortAllTasksFrames" onchange="applyAllScenesPagination(true)">
+                                <option value="none">Mặc định</option>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
+
+                        <!-- Trạng thái -->
+                        <div class="filter-group">
+                            <label>Trạng thái</label>
+                            <select id="filterAllTasksStatus" onchange="applyAllScenesPagination(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="assigned">Đã giao</option>
+                                <option value="unassigned">Chưa giao</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset-filters" onclick="resetAllTasksFilters()">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                        </button>
+                    </div>
+                </div>
+
                 <table id="allTasksTable">
                     <thead>
                         <tr>
                             <th style="width:48px;text-align:center">STT</th>
-                            <th>TÊN NHIỆM VỤ</th>
-                            <th style="width:100px">KHUNG HÌNH</th>
-                            <th style="width:120px;text-align:center">THAO TÁC</th>
+                            <th>Tên nhiệm vụ</th>
+                            <th style="width:130px;text-align:center">Khung hình</th>
+                            <th style="width:120px;text-align:center">Trạng thái</th>
+                            <th style="width:120px;text-align:center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="allTasksBody">
@@ -200,6 +405,7 @@
                 </table>
                 <div class="table-footer">
                     <div class="showing-text" id="showingAllTasks"></div>
+                    <div class="pagination" id="allTasksPagination"></div>
                 </div>
             </section>
         </div>
@@ -281,18 +487,56 @@
                 <button class="modal-close" onclick="closeAssignModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
+                <!-- Hidden select elements for backward compatibility -->
+                <select id="selectScene" style="display: none;">
+                    <option value="">-- Chọn nhiệm vụ --</option>
+                </select>
+                <select id="selectLabeler" style="display: none;">
+                    <option value="">-- Chọn người thực hiện --</option>
+                </select>
+
                 <div class="form-group">
                     <label>Nhiệm vụ</label>
-                    <select id="selectScene">
-                        <option value="">-- Chọn nhiệm vụ --</option>
-                    </select>
+                    <div class="custom-search-select" id="searchSelectScene">
+                        <div class="select-trigger" onclick="toggleSearchSelect('searchSelectScene')">
+                            <span class="select-selected-value" id="selectedSceneText">-- Chọn nhiệm vụ --</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" placeholder="Tìm kiếm nhiệm vụ..."
+                                    oninput="filterSearchSelect('searchSelectScene', this.value)"
+                                    onclick="event.stopPropagation()">
+                            </div>
+                            <div class="select-options-list" id="sceneOptionsList">
+                                <!-- Dynamically populated options -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="helper-text" id="sceneHelper">Chỉ hiển thị các nhiệm vụ chưa được phân công</div>
                 </div>
+
                 <div class="form-group">
                     <label>Phân công cho</label>
-                    <select id="selectLabeler">
-                        <option value="">-- Chọn người thực hiện --</option>
-                    </select>
+                    <div class="custom-search-select" id="searchSelectLabeler">
+                        <div class="select-trigger" onclick="toggleSearchSelect('searchSelectLabeler')">
+                            <span class="select-selected-value" id="selectedLabelerText">-- Chọn người thực hiện
+                                --</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" placeholder="Tìm kiếm người thực hiện..."
+                                    oninput="filterSearchSelect('searchSelectLabeler', this.value)"
+                                    onclick="event.stopPropagation()">
+                            </div>
+                            <div class="select-options-list" id="labelerOptionsList">
+                                <!-- Dynamically populated options -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="helper-text">Chọn người thực hiện gán nhãn</div>
                 </div>
             </div>
@@ -322,7 +566,7 @@
                     <div style="position:relative">
                         <i class="fa-solid fa-magnifying-glass"
                             style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:14px"></i>
-                        <input type="text" id="memberSearchInput" placeholder="Tìm theo tên hoặc username..."
+                        <input type="text" id="memberSearchInput" placeholder="Tìm theo tên hoặc tên đăng nhập..."
                             style="width:100%;height:44px;padding:0 16px 0 40px;border:1px solid var(--border-light);border-radius:10px;font-size:14px;outline:none;background:#F8FAFC;"
                             oninput="filterUserList(this.value)">
                     </div>

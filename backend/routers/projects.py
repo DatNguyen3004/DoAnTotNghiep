@@ -416,6 +416,7 @@ def list_members(
                 "full_name": user.full_name,
                 "email": user.email,
                 "role": user.role,
+                "avatar_url": user.avatar_url,
                 "task_count": 0,
                 "completed": 0,
             })

@@ -325,6 +325,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
         assigned_user=TaskUserInfo.model_validate(assignee) if assignee else None,
         reviewer_user=TaskUserInfo.model_validate(reviewer) if reviewer else None,
         admin_moderated=admin_moderated,
+        is_deleted=task.is_deleted,
         precision=precision,
         matched_objs=matched_objs,
         missing_objs=missing_objs,
@@ -359,11 +360,11 @@ def list_tasks(
     if status:
         query = query.filter(Task.status == status)
 
-    if role == "reviewer":
-        # Tasks where current user is the reviewer
-        query = query.filter(Task.reviewer_id == current_user.id)
-    elif current_user.role != "admin":
-        # Regular users see only their assigned tasks
+    if current_user.role == "admin":
+        query = query.filter(Task.is_deleted == False)
+    elif role == "reviewer":
+        query = query.filter(Task.reviewer_id == current_user.id, Task.is_deleted == False)
+    else:
         query = query.filter(Task.assigned_to == current_user.id)
 
     tasks = query.order_by(Task.created_at.desc()).all()
@@ -438,11 +439,9 @@ def delete_task(
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Không tìm thấy task")
-    # Xóa annotations trước
-    db.query(Annotation).filter(Annotation.task_id == task_id).delete()
-    db.delete(task)
+    task.is_deleted = True
     db.commit()
-    return {"message": "Đã xóa task"}
+    return {"message": "Đã xóa task (soft-delete)"}
 
 # ───────────────────────────────────────────────
 # PUT /api/tasks/{task_id}/status

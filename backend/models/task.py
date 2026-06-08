@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Unicode, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Unicode, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -19,6 +19,7 @@ class Task(Base):
     reject_count        = Column(Integer, default=0)       # số lần bị reject bởi reviewer
     reviewer_wrong_count = Column(Integer, default=0)      # số lần reviewer approve nhưng admin reject lại
     admin_chat_cleared_at = Column(DateTime, nullable=True)
+    is_deleted  = Column(Boolean, default=False, nullable=False)
     created_at  = Column(DateTime, server_default=func.now())
     updated_at  = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

@@ -10,6 +10,7 @@ class SceneOut(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     frame_count: int = 0
+    first_frame_timestamp: Optional[int] = None
 
     class Config:
         from_attributes = True

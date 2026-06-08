@@ -110,6 +110,9 @@ def list_scenes(
         .order_by(Scene.scene_token)
         .all()
     )
+    for s in scenes:
+        first_frame = db.query(Frame).filter(Frame.scene_id == s.id).order_by(Frame.frame_index).first()
+        s.first_frame_timestamp = first_frame.timestamp if first_frame else None
     return scenes
 
 

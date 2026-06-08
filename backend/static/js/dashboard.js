@@ -106,6 +106,8 @@ function getUserCell(user) {
 
 // ============= LOAD TASKS =============
 let allTasks = [];
+let currentAssignedPage = 1;
+const assignedItemsPerPage = 5;
 
 async function loadTasks() {
     const tbody = document.getElementById('tasksBody');
@@ -127,8 +129,11 @@ async function loadTasks() {
 
         allTasks = await tasksRes.json();
         console.log("DEBUG - Dữ liệu nhiệm vụ nhận được:", allTasks); // Dòng này để soi lỗi
-        renderTasks(allTasks);
+        applyAssignedPagination(true);
         updateStats(allTasks);
+        if (allProjectMembers.length > 0) {
+            applyMembersPagination(true);
+        }
     } catch (e) {
         console.warn('Tasks API not available, showing demo data:', e);
         showDemoTasks();
@@ -137,14 +142,155 @@ async function loadTasks() {
 
 function showDemoTasks() {
     allTasks = [];
-    renderTasks(allTasks);
+    applyAssignedPagination(true);
     updateStats(allTasks);
+    if (allProjectMembers.length > 0) {
+        applyMembersPagination(true);
+    }
 }
 
-function renderTasks(tasks) {
+function toggleTaskFilterPanel() {
+    const panel = document.getElementById('taskFilterPanel');
+    const btn = document.getElementById('btnTaskFilterToggle');
+    if (!panel || !btn) return;
+    panel.classList.toggle('active');
+    btn.classList.toggle('active');
+}
+
+function toggleAssigneeDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('assigneeDropdownMenu');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+    }
+}
+
+// Close assignee dropdown when clicking outside
+document.addEventListener('click', function (event) {
+    const customSelect = document.getElementById('customAssigneeSelect');
+    const dropdown = document.getElementById('assigneeDropdownMenu');
+    if (customSelect && dropdown && !customSelect.contains(event.target)) {
+        dropdown.classList.remove('active');
+    }
+});
+
+function updateMultiselectPlaceholder() {
+    const container = document.getElementById('assigneeDropdownMenu');
+    const placeholder = document.getElementById('multiselectPlaceholder');
+    if (!container || !placeholder) return;
+
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    if (checkedBoxes.length === 0) {
+        placeholder.textContent = 'Tất cả';
+    } else if (checkedBoxes.length === 1) {
+        const label = checkedBoxes[0].closest('label');
+        placeholder.textContent = label ? label.innerText.trim() : '1 người';
+    } else {
+        placeholder.textContent = `Đang chọn ${checkedBoxes.length} người`;
+    }
+}
+
+function resetTaskFilters() {
+    if (document.getElementById('filterTaskStatus')) document.getElementById('filterTaskStatus').value = 'all';
+    if (document.getElementById('filterTaskProgress')) document.getElementById('filterTaskProgress').value = 'all';
+    
+    const container = document.getElementById('assigneeDropdownMenu');
+    if (container) {
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+    }
+    
+    updateMultiselectPlaceholder();
+    
+    if (document.getElementById('searchTasks')) document.getElementById('searchTasks').value = '';
+    applyAssignedPagination(true);
+}
+
+function applyAssignedPagination(resetPage = false) {
+    if (resetPage) {
+        currentAssignedPage = 1;
+    }
+
+    const q = (document.getElementById('searchTasks')?.value || '').toLowerCase();
+    const filterStatus = document.getElementById('filterTaskStatus')?.value || 'all';
+    const filterProgress = document.getElementById('filterTaskProgress')?.value || 'all';
+
+    // Get checked assignee IDs
+    const checkedAssigneeIds = [];
+    const container = document.getElementById('assigneeDropdownMenu');
+    if (container) {
+        container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            checkedAssigneeIds.push(parseInt(cb.value));
+        });
+    }
+
+    let filtered = allTasks.filter(t => {
+        // Search by name and description and username
+        const name = (t.scene_name || '').toLowerCase();
+        const desc = (t.scene_description || '').toLowerCase();
+        const user = (t.assigned_user?.username || '').toLowerCase();
+        
+        const matchesSearch = name.includes(q) || desc.includes(q) || user.includes(q);
+        if (!matchesSearch) return false;
+
+        // Filter by status
+        if (filterStatus !== 'all') {
+            if (t.status !== filterStatus) return false;
+        }
+
+        // Filter by progress
+        if (filterProgress !== 'all') {
+            const progress = t.frame_count > 0
+                ? Math.round((t.annotated_frames / t.frame_count) * 100)
+                : 0;
+            if (filterProgress === 'range_1_50') {
+                if (progress < 1 || progress > 50) return false;
+            } else if (filterProgress === 'range_51_100') {
+                if (progress < 51 || progress > 100) return false;
+            }
+        }
+
+        // Filter by assignee
+        if (checkedAssigneeIds.length > 0) {
+            if (!t.assigned_user || !checkedAssigneeIds.includes(t.assigned_user.id)) return false;
+        }
+
+        return true;
+    });
+
+    // Update filter badge count
+    let activeCount = 0;
+    if (filterStatus !== 'all') activeCount++;
+    if (filterProgress !== 'all') activeCount++;
+    if (checkedAssigneeIds.length > 0) activeCount++;
+
+    const badge = document.getElementById('taskFilterBadge');
+    if (badge) {
+        if (activeCount > 0) {
+            badge.textContent = activeCount;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / assignedItemsPerPage) || 1;
+    if (currentAssignedPage > totalPages) currentAssignedPage = totalPages;
+    if (currentAssignedPage < 1) currentAssignedPage = 1;
+
+    const startIndex = (currentAssignedPage - 1) * assignedItemsPerPage;
+    const pageTasks = filtered.slice(startIndex, startIndex + assignedItemsPerPage);
+
+    renderTasks(pageTasks, startIndex, totalItems);
+    renderAssignedPaginationControls(totalPages);
+}
+
+function renderTasks(tasks, startIndex = 0, totalItems = 0) {
     const tbody = document.getElementById('tasksBody');
 
-    if (!tasks.length) {
+    if (!totalItems) {
         tbody.innerHTML = `
             <tr><td colspan="6">
                 <div class="empty-state">
@@ -173,7 +319,7 @@ function renderTasks(tasks) {
 
         return `
             <tr>
-                <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
+                <td style="text-align:center;font-weight:600;color:#64748B">${startIndex + idx + 1}</td>
                 <td>
                     <div class="scene-name">
                         <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
@@ -197,8 +343,35 @@ function renderTasks(tasks) {
             </tr>`;
     }).join('');
 
-    document.getElementById('showingText').textContent = `Hiển thị ${tasks.length} nhiệm vụ`;
-    document.getElementById('tabBadgeTasks').textContent = tasks.length;
+    document.getElementById('showingText').textContent = `Hiển thị ${startIndex + 1} - ${startIndex + tasks.length} trên tổng số ${totalItems} nhiệm vụ`;
+    document.getElementById('tabBadgeTasks').textContent = totalItems;
+}
+
+function renderAssignedPaginationControls(totalPages) {
+    const container = document.getElementById('pagination');
+    if (!container) return;
+
+    let html = '';
+    const prevDisabled = currentAssignedPage === 1 ? 'disabled' : '';
+    html += `<button class="page-btn ${prevDisabled}" onclick="${currentAssignedPage === 1 ? '' : 'changeAssignedPage(' + (currentAssignedPage - 1) + ')'}"><i class="fa-solid fa-angle-left"></i></button>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentAssignedPage - 1 && i <= currentAssignedPage + 1)) {
+            html += `<button class="page-btn ${i === currentAssignedPage ? 'active' : ''}" onclick="changeAssignedPage(${i})">${i}</button>`;
+        } else if (i === currentAssignedPage - 2 || i === currentAssignedPage + 2) {
+            html += `<span style="padding: 6px 12px; color: #64748B;">...</span>`;
+        }
+    }
+
+    const nextDisabled = currentAssignedPage === totalPages ? 'disabled' : '';
+    html += `<button class="page-btn ${nextDisabled}" onclick="${currentAssignedPage === totalPages ? '' : 'changeAssignedPage(' + (currentAssignedPage + 1) + ')'}"><i class="fa-solid fa-angle-right"></i></button>`;
+
+    container.innerHTML = html;
+}
+
+function changeAssignedPage(page) {
+    currentAssignedPage = page;
+    applyAssignedPagination(false);
 }
 
 function updateStats(tasks) {
@@ -271,70 +444,322 @@ function updateStats(tasks) {
 
 // ============= SEARCH =============
 document.getElementById('searchTasks').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    const filtered = allTasks.filter(t => {
-        const name = (t.scene_name || '').toLowerCase();
-        const user = (t.assigned_user?.username || '').toLowerCase();
-        return name.includes(q) || user.includes(q);
-    });
-    renderTasks(filtered);
+    applyAssignedPagination(true);
 });
 
 // ============= LOAD MEMBERS =============
 let allProjectMembers = [];
 let allSystemUsers = [];
+let currentMembersPage = 1;
+const membersPerPage = 5;
+
+function toggleMembersFilterPanel() {
+    const panel = document.getElementById('membersFilterPanel');
+    const btn = document.getElementById('btnMembersFilterToggle');
+    if (!panel || !btn) return;
+    panel.classList.toggle('active');
+    btn.classList.toggle('active');
+}
+
+function resetMembersFilters() {
+    if (document.getElementById('sortMembersAssigned')) document.getElementById('sortMembersAssigned').value = 'none';
+    if (document.getElementById('sortMembersReviewed')) document.getElementById('sortMembersReviewed').value = 'none';
+    if (document.getElementById('sortMembersEvaluated')) document.getElementById('sortMembersEvaluated').value = 'none';
+    if (document.getElementById('filterMembersProgress')) document.getElementById('filterMembersProgress').value = 'all';
+    if (document.getElementById('searchMembers')) document.getElementById('searchMembers').value = '';
+    applyMembersPagination(true);
+}
+
+function applyMembersPagination(resetPage = false) {
+    if (resetPage) {
+        currentMembersPage = 1;
+    }
+
+    const q = (document.getElementById('searchMembers')?.value || '').toLowerCase();
+    const sortAssigned = document.getElementById('sortMembersAssigned')?.value || 'none';
+    const sortReviewed = document.getElementById('sortMembersReviewed')?.value || 'none';
+    const sortEvaluated = document.getElementById('sortMembersEvaluated')?.value || 'none';
+    const filterProgress = document.getElementById('filterMembersProgress')?.value || 'all';
+
+    // Compute stats for all members in the context of the current project tasks
+    const membersWithStats = allProjectMembers.map(m => {
+        const userTasks = allTasks.filter(t => t.assigned_to === m.id || t.assigned_user?.id === m.id);
+        const totalAssigned = userTasks.length;
+        const totalReviewed = userTasks.filter(t => t.status === 'reviewed').length;
+        const totalEvaluated = userTasks.filter(t => t.status === 'approved' || t.status === 'rejected').length;
+        
+        let avgProgress = 0;
+        if (totalAssigned > 0) {
+            const sumProgress = userTasks.reduce((sum, t) => {
+                const p = t.frame_count > 0 ? (t.annotated_frames / t.frame_count) * 100 : 0;
+                return sum + p;
+            }, 0);
+            avgProgress = Math.round(sumProgress / totalAssigned);
+        }
+
+        return {
+            ...m,
+            total_assigned: totalAssigned,
+            total_reviewed: totalReviewed,
+            total_evaluated: totalEvaluated,
+            progress: avgProgress
+        };
+    });
+
+    // Filter
+    let filtered = membersWithStats.filter(m => {
+        const fullName = (m.full_name || '').toLowerCase();
+        const username = (m.username || '').toLowerCase();
+        const matchesSearch = fullName.includes(q) || username.includes(q);
+        if (!matchesSearch) return false;
+
+        if (filterProgress !== 'all') {
+            const p = m.progress;
+            if (filterProgress === 'range_0_50') {
+                if (p < 0 || p > 50) return false;
+            } else if (filterProgress === 'range_51_100') {
+                if (p < 51 || p > 100) return false;
+            }
+        }
+
+        return true;
+    });
+
+    // Sort
+    if (sortAssigned !== 'none') {
+        filtered.sort((a, b) => sortAssigned === 'desc' ? b.total_assigned - a.total_assigned : a.total_assigned - b.total_assigned);
+    } else if (sortReviewed !== 'none') {
+        filtered.sort((a, b) => sortReviewed === 'desc' ? b.total_reviewed - a.total_reviewed : a.total_reviewed - b.total_reviewed);
+    } else if (sortEvaluated !== 'none') {
+        filtered.sort((a, b) => sortEvaluated === 'desc' ? b.total_evaluated - a.total_evaluated : a.total_evaluated - b.total_evaluated);
+    }
+
+    // Update filter badge count
+    let activeCount = 0;
+    if (sortAssigned !== 'none') activeCount++;
+    if (sortReviewed !== 'none') activeCount++;
+    if (sortEvaluated !== 'none') activeCount++;
+    if (filterProgress !== 'all') activeCount++;
+
+    const badge = document.getElementById('membersFilterBadge');
+    if (badge) {
+        if (activeCount > 0) {
+            badge.textContent = activeCount;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Set tab badge
+    const tabBadge = document.getElementById('tabBadgeMembers');
+    if (tabBadge) {
+        tabBadge.textContent = allProjectMembers.length;
+    }
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / membersPerPage) || 1;
+    if (currentMembersPage > totalPages) currentMembersPage = totalPages;
+    if (currentMembersPage < 1) currentMembersPage = 1;
+
+    const startIndex = (currentMembersPage - 1) * membersPerPage;
+    const pageMembers = filtered.slice(startIndex, startIndex + membersPerPage);
+
+    renderMembersTable(pageMembers, startIndex, totalItems);
+    renderMembersPaginationControls(totalPages);
+}
+
+function renderMembersTable(members, startIndex = 0, totalItems = 0) {
+    const tbody = document.getElementById('membersBody');
+    if (!tbody) return;
+
+    if (!totalItems) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94A3B8">Không tìm thấy thành viên nào</td></tr>`;
+        document.getElementById('showingMembers').textContent = '';
+        return;
+    }
+
+    const colors = ['#4F46E5', '#0891B2', '#7C3AED', '#059669', '#DC2626', '#D97706'];
+
+    tbody.innerHTML = members.map((m, idx) => {
+        const initials = (m.username || '?').substring(0, 2).toUpperCase();
+        const color = colors[idx % colors.length];
+        const bgColor = color + '15';
+        
+        const avatarHtml = m.avatar_url
+            ? `<img src="${m.avatar_url}" alt="${m.username}" class="user-avatar" style="object-fit:cover;border-radius:50%;width:36px;height:36px;flex-shrink:0;">`
+            : `<div class="user-avatar" style="background:${bgColor};color:${color}">${initials}</div>`;
+
+        const name = m.full_name || m.username;
+
+        const roleBadge = m.role === 'admin'
+            ? '<span style="background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:6px">Admin</span>'
+            : '';
+
+        const removeBtn = m.role !== 'admin'
+            ? `<button onclick="removeMember(${m.id}, '${m.username}')" class="btn-action btn-delete" title="Xóa khỏi dự án" style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:16px;padding:4px;transition:color 0.2s">
+                <i class="fa-regular fa-trash-can"></i>
+               </button>`
+            : `<span style="color:#94A3B8;font-size:12px">-</span>`;
+
+        // Quality column value
+        let qualityHtml = `<span style="color:#94A3B8;font-size:12px">—</span>`;
+        if (m.role !== 'admin') {
+            if (m.total_assigned === 0 || m.quality_rate === null || m.quality_rate === undefined) {
+                qualityHtml = `<span style="color:#94A3B8;font-size:12px">Chưa đánh giá</span>`;
+            } else {
+                const rate = m.quality_rate;
+                const color = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
+                const label = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
+                qualityHtml = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                        <div style="font-size:13px;font-weight:700;color:${color}">${rate}%</div>
+                        <div style="font-size:10px;color:${color};font-weight:600;white-space:nowrap">${label}</div>
+                    </div>`;
+            }
+        }
+
+        return `
+            <tr>
+                <td style="text-align:center;font-weight:600;color:#64748B">${startIndex + idx + 1}</td>
+                <td style="text-align:center;">${avatarHtml}</td>
+                <td>
+                    <div class="user-info">
+                        <div>
+                            <span class="user-name">${name}${roleBadge}</span>
+                            <span class="user-role">@${m.username}</span>
+                        </div>
+                    </div>
+                </td>
+                <td style="text-align:center;font-weight:600;color:#1E293B">${m.total_assigned}</td>
+                <td style="text-align:center;font-weight:600;color:#1E293B">${m.total_reviewed}</td>
+                <td style="text-align:center;font-weight:600;color:#1E293B">${m.total_evaluated}</td>
+                <td style="text-align:center;">${qualityHtml}</td>
+                <td style="text-align:center;">
+                    <div class="progress-cell" style="justify-content: center;">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${m.progress >= 100 ? 'green' : (m.progress >= 50 ? 'teal' : 'blue')}" style="width:${m.progress}%"></div>
+                        </div>
+                        <span class="progress-text">${m.progress}%</span>
+                    </div>
+                </td>
+                <td style="text-align:center;">${removeBtn}</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('showingMembers').textContent = `Hiển thị ${startIndex + 1} - ${startIndex + members.length} trên tổng số ${totalItems} thành viên`;
+}
+
+function renderMembersPaginationControls(totalPages) {
+    const container = document.getElementById('membersPagination');
+    if (!container) return;
+
+    let html = '';
+    const prevDisabled = currentMembersPage === 1 ? 'disabled' : '';
+    html += `<button class="page-btn ${prevDisabled}" onclick="${currentMembersPage === 1 ? '' : 'changeMembersPage(' + (currentMembersPage - 1) + ')'}"><i class="fa-solid fa-angle-left"></i></button>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentMembersPage - 1 && i <= currentMembersPage + 1)) {
+            html += `<button class="page-btn ${i === currentMembersPage ? 'active' : ''}" onclick="changeMembersPage(${i})">${i}</button>`;
+        } else if (i === currentMembersPage - 2 || i === currentMembersPage + 2) {
+            html += `<span style="padding: 6px 12px; color: #64748B;">...</span>`;
+        }
+    }
+
+    const nextDisabled = currentMembersPage === totalPages ? 'disabled' : '';
+    html += `<button class="page-btn ${nextDisabled}" onclick="${currentMembersPage === totalPages ? '' : 'changeMembersPage(' + (currentMembersPage + 1) + ')'}"><i class="fa-solid fa-angle-right"></i></button>`;
+
+    container.innerHTML = html;
+}
+
+function changeMembersPage(page) {
+    currentMembersPage = page;
+    applyMembersPagination(false);
+}
+
+// Hook searchMembers input event listener
+setTimeout(() => {
+    const searchMembersEl = document.getElementById('searchMembers');
+    if (searchMembersEl) {
+        searchMembersEl.addEventListener('input', function () {
+            applyMembersPagination(true);
+        });
+    }
+}, 100);
 
 async function loadMembers() {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}/members`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!res.ok) { allProjectMembers = []; renderMembers([]); return; }
-        allProjectMembers = await res.json();
-        renderMembers(allProjectMembers);
+        if (!res.ok) {
+            allProjectMembers = [];
+            applyMembersPagination(true);
+            populateAssigneeFilterCheckboxes([]);
+            return;
+        }
+        const rawMembers = await res.json();
+
+        // Parallel pre-fetching of stats/quality for all members in the current project
+        const memberPromises = rawMembers.map(async (m) => {
+            if (m.role === 'admin') {
+                m.quality_rate = null;
+                return m;
+            }
+            try {
+                const statsRes = await fetch(`${BASE_URL}/users/${m.id}/stats?project_id=${projectId}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (statsRes.ok) {
+                    const s = await statsRes.json();
+                    m.quality_rate = s.quality_rate;
+                } else {
+                    m.quality_rate = null;
+                }
+            } catch (e) {
+                m.quality_rate = null;
+            }
+            return m;
+        });
+
+        allProjectMembers = await Promise.all(memberPromises);
+        applyMembersPagination(true);
+        populateAssigneeFilterCheckboxes(allProjectMembers.filter(m => m.role === 'user'));
     } catch (e) {
         allProjectMembers = [];
-        renderMembers([]);
+        applyMembersPagination(true);
+        populateAssigneeFilterCheckboxes([]);
     }
 }
 
-function renderMembers(members) {
-    const grid = document.getElementById('membersGrid');
-    document.getElementById('tabBadgeMembers').textContent = members.length;
+function populateAssigneeFilterCheckboxes(members) {
+    const container = document.getElementById('assigneeDropdownMenu');
+    if (!container) return;
+    
+    // Remember currently checked user IDs to restore them
+    const checkedIds = new Set();
+    container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        checkedIds.add(parseInt(cb.value));
+    });
 
-    const colors = ['#4F46E5', '#0891B2', '#7C3AED', '#059669', '#DC2626', '#D97706'];
-
-    if (!members.length) {
-        grid.innerHTML = `<div style="text-align:center;padding:40px;color:#94A3B8;font-size:14px;grid-column:1/-1">
-            <i class="fa-solid fa-users" style="font-size:32px;display:block;margin-bottom:12px;color:#CBD5E1"></i>
-            Chưa có thành viên nào. Nhấn "Thêm thành viên" để bắt đầu.
-        </div>`;
+    if (!members || !members.length) {
+        container.innerHTML = `<span style="font-size:12px;color:#94A3B8;padding:8px;">Không có thành viên</span>`;
         return;
     }
 
-    grid.innerHTML = members.map((m, i) => {
-        const initials = (m.username || '?').substring(0, 2).toUpperCase();
-        const color = colors[i % colors.length];
-        const bgColor = color + '15';
-        const roleBadge = m.role === 'admin'
-            ? '<span style="background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">Admin</span>'
-            : '<span style="background:#DBEAFE;color:#2563EB;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">Người thực hiện</span>';
-        const removeBtn = m.role !== 'admin'
-            ? `<button onclick="removeMember(${m.id}, '${m.username}')" title="Xóa khỏi dự án"
-                style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:14px;padding:4px;transition:color 0.2s"
-                onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#CBD5E1'">
-                <i class="fa-solid fa-xmark"></i></button>` : '';
-
+    container.innerHTML = members.map(m => {
+        const isChecked = checkedIds.has(m.id) ? 'checked' : '';
+        const displayName = m.full_name || m.username;
         return `
-            <div class="member-card">
-                <div class="member-avatar-lg" style="background:${bgColor};color:${color}">${initials}</div>
-                <div class="member-info">
-                    <div class="member-name">${m.full_name || m.username} ${roleBadge}</div>
-                    <div class="member-role">@${m.username}</div>
-                </div>
-                ${removeBtn}
-            </div>`;
+            <label class="multiselect-item" onclick="event.stopPropagation()">
+                <input type="checkbox" value="${m.id}" ${isChecked} onchange="updateMultiselectPlaceholder(); applyAssignedPagination(true);" style="cursor: pointer; width: 14px; height: 14px; margin: 0;">
+                ${displayName}
+            </label>
+        `;
     }).join('');
+
+    updateMultiselectPlaceholder();
 }
 
 // ============= LOAD SIDEBAR PROJECT =============
@@ -367,10 +792,94 @@ async function openAssignModal() {
 
 function closeAssignModal() {
     document.getElementById('assignModal').classList.remove('active');
+    document.querySelectorAll('.custom-search-select').forEach(el => el.classList.remove('active'));
 }
 
 document.getElementById('assignModal').addEventListener('click', function (e) {
     if (e.target === this) closeAssignModal();
+});
+
+/* ============= CUSTOM SEARCHABLE SELECT FUNCTIONS ============= */
+function toggleSearchSelect(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    
+    document.querySelectorAll('.custom-search-select').forEach(other => {
+        if (other.id !== containerId) {
+            other.classList.remove('active');
+        }
+    });
+    
+    el.classList.toggle('active');
+    
+    if (el.classList.contains('active')) {
+        const input = el.querySelector('.select-search-box input');
+        if (input) {
+            input.value = '';
+            input.focus();
+            filterSearchSelect(containerId, '');
+        }
+    }
+}
+
+function filterSearchSelect(containerId, query) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const q = query.toLowerCase().trim();
+    const options = el.querySelectorAll('.select-option');
+    options.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        if (text.includes(q)) {
+            opt.style.display = 'flex';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+}
+
+function selectSearchOption(containerId, value, labelText) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    let targetSelectId = '';
+    let triggerTextId = '';
+    if (containerId === 'searchSelectScene') {
+        targetSelectId = 'selectScene';
+        triggerTextId = 'selectedSceneText';
+    } else if (containerId === 'searchSelectLabeler') {
+        targetSelectId = 'selectLabeler';
+        triggerTextId = 'selectedLabelerText';
+    }
+    
+    const hiddenSelect = document.getElementById(targetSelectId);
+    if (hiddenSelect) {
+        hiddenSelect.value = value;
+        hiddenSelect.dispatchEvent(new Event('change'));
+    }
+    
+    const triggerText = document.getElementById(triggerTextId);
+    if (triggerText) {
+        triggerText.textContent = labelText;
+    }
+    
+    container.querySelectorAll('.select-option').forEach(opt => {
+        if (opt.getAttribute('data-value') === String(value)) {
+            opt.classList.add('selected');
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
+    
+    container.classList.remove('active');
+}
+
+// Close searchable select dropdowns when clicking outside
+document.addEventListener('click', function (e) {
+    document.querySelectorAll('.custom-search-select').forEach(el => {
+        if (!el.contains(e.target)) {
+            el.classList.remove('active');
+        }
+    });
 });
 
 async function loadAssignData() {
@@ -385,17 +894,34 @@ async function loadAssignData() {
             availableScenes = allScenesData.filter(s => !assignedSceneIds.has(s.id));
 
             const select = document.getElementById('selectScene');
+            const sceneList = document.getElementById('sceneOptionsList');
+            const selectedSceneText = document.getElementById('selectedSceneText');
+            
+            if (selectedSceneText) selectedSceneText.textContent = '-- Chọn nhiệm vụ --';
+            
             if (availableScenes.length === 0) {
                 select.innerHTML = '<option value="" disabled>Tất cả nhiệm vụ đã được phân công</option>';
+                if (sceneList) {
+                    sceneList.innerHTML = `<div style="padding: 12px; text-align: center; color: #94A3B8; font-size: 13px;">Tất cả nhiệm vụ đã được phân công</div>`;
+                }
                 document.getElementById('sceneHelper').textContent = 'Tất cả nhiệm vụ đã được phân công!';
             } else {
                 select.innerHTML = '<option value="">-- Chọn nhiệm vụ --</option>';
+                let listHtml = '';
                 availableScenes.forEach(s => {
                     const name = s.name || s.scene_token || `Nhiệm vụ #${s.id}`;
                     const desc = s.description ? ` — ${s.description}` : '';
                     const frames = s.frame_count ? ` (${s.frame_count} khung hình)` : '';
                     select.innerHTML += `<option value="${s.id}">${name}${desc}${frames}</option>`;
+                    
+                    listHtml += `
+                        <div class="select-option" data-value="${s.id}" onclick="selectSearchOption('searchSelectScene', ${s.id}, '${name}')">
+                            <span style="font-weight: 600; color: #334155;">${name}</span>
+                            <span class="option-meta">${s.frame_count ? s.frame_count + ' khung hình' : '0 khung hình'}${s.description ? ' • ' + s.description : ''}</span>
+                        </div>
+                    `;
                 });
+                if (sceneList) sceneList.innerHTML = listHtml;
                 document.getElementById('sceneHelper').textContent = `${availableScenes.length} nhiệm vụ chưa phân công`;
             }
         } else {
@@ -414,11 +940,26 @@ async function loadAssignData() {
             const members = await memberRes.json();
             availableLabelers = members.filter(u => u.role === 'user');
             const select = document.getElementById('selectLabeler');
+            const labelerList = document.getElementById('labelerOptionsList');
+            const selectedLabelerText = document.getElementById('selectedLabelerText');
+            
+            if (selectedLabelerText) selectedLabelerText.textContent = '-- Chọn người thực hiện --';
+            
             select.innerHTML = '<option value="">-- Chọn người thực hiện --</option>';
+            let listHtml = '';
             availableLabelers.forEach(u => {
                 const label = u.full_name ? `${u.username} (${u.full_name})` : u.username;
+                const displayName = u.full_name || u.username;
                 select.innerHTML += `<option value="${u.id}">${label}</option>`;
+                
+                listHtml += `
+                    <div class="select-option" data-value="${u.id}" onclick="selectSearchOption('searchSelectLabeler', ${u.id}, '${displayName}')">
+                        <span style="font-weight: 600; color: #334155;">${displayName}</span>
+                        <span class="option-meta">@${u.username} • ${u.email || ''}</span>
+                    </div>
+                `;
             });
+            if (labelerList) labelerList.innerHTML = listHtml;
         }
     } catch (e) { console.error('Load members failed:', e); }
 }
@@ -601,6 +1142,10 @@ async function deleteTask(taskId) {
 }
 
 // ============= ALL TASKS TAB =============
+let allScenes = [];
+let currentAllScenesPage = 1;
+const allScenesItemsPerPage = 5;
+
 async function loadAllTasks() {
     const tbody = document.getElementById('allTasksBody');
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
@@ -612,42 +1157,213 @@ async function loadAllTasks() {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error();
-        const scenes = await res.json();
+        allScenes = await res.json();
 
-        if (!scenes.length) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">Chưa có nhiệm vụ nào</td></tr>`;
-            document.getElementById('showingAllTasks').textContent = '';
-            return;
-        }
-
-        tbody.innerHTML = scenes.map((scene, idx) => {
-            const name = scene.name || scene.scene_token || `Nhiệm vụ #${scene.id}`;
-            const desc = scene.description || '—';
-            return `<tr>
-                <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
-                <td>
-                    <div class="scene-name">
-                        <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
-                        <div>
-                            <div>${name}</div>
-                            <div class="scene-meta">${desc}</div>
-                        </div>
-                    </div>
-                </td>
-                <td><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} khung hình</span></td>
-                <td>
-                    <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g, '\\"')}",scene_description:"${(scene.description || '').replace(/"/g, '\\"')}",_previewSceneId:${scene.id}})'
-                        class="action-link" style="font-size:12px">
-                        <i class="fa-solid fa-pen"></i> Sửa tên
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('showingAllTasks').textContent = `${scenes.length} nhiệm vụ`;
+        applyAllScenesPagination(true);
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
+}
+
+function toggleAllTasksFilterPanel() {
+    const panel = document.getElementById('allTasksFilterPanel');
+    const btn = document.getElementById('btnAllTasksFilterToggle');
+    if (!panel || !btn) return;
+    panel.classList.toggle('active');
+    btn.classList.toggle('active');
+}
+
+function resetAllTasksFilters() {
+    if (document.getElementById('filterAllTasksTime')) document.getElementById('filterAllTasksTime').value = 'all';
+    if (document.getElementById('filterAllTasksFrames')) document.getElementById('filterAllTasksFrames').value = 'all';
+    if (document.getElementById('sortAllTasksFrames')) document.getElementById('sortAllTasksFrames').value = 'none';
+    if (document.getElementById('filterAllTasksStatus')) document.getElementById('filterAllTasksStatus').value = 'all';
+    if (document.getElementById('searchAllTasks')) document.getElementById('searchAllTasks').value = '';
+    applyAllScenesPagination(true);
+}
+
+function applyAllScenesPagination(resetPage = false) {
+    if (resetPage) {
+        currentAllScenesPage = 1;
+    }
+
+    const q = (document.getElementById('searchAllTasks')?.value || '').toLowerCase();
+    const filterTime = document.getElementById('filterAllTasksTime')?.value || 'all';
+    const filterFrames = document.getElementById('filterAllTasksFrames')?.value || 'all';
+    const sortFrames = document.getElementById('sortAllTasksFrames')?.value || 'none';
+    const filterStatus = document.getElementById('filterAllTasksStatus')?.value || 'all';
+
+    const assignedSceneIds = new Set((allTasks || []).map(t => t.scene_id));
+
+    let filtered = allScenes.filter(s => {
+        // Search by name and description
+        const name = (s.name || s.scene_token || '').toLowerCase();
+        const desc = (s.description || '').toLowerCase();
+        
+        const matchesSearch = name.includes(q) || desc.includes(q);
+        if (!matchesSearch) return false;
+
+        // Filter by first frame's timestamp (nuScenes timestamp is in microseconds)
+        if (filterTime !== 'all' && s.first_frame_timestamp) {
+            const date = new Date(s.first_frame_timestamp / 1000);
+            const hour = date.getHours();
+            const minute = date.getMinutes();
+            const timeInMins = hour * 60 + minute;
+            
+            if (filterTime === 'morning') {
+                // Morning: 1h -> 11h59 (60 mins to 719 mins)
+                if (timeInMins < 60 || timeInMins >= 720) return false;
+            } else if (filterTime === 'afternoon') {
+                // Afternoon: 12h -> 17h59 (720 mins to 1079 mins)
+                if (timeInMins < 720 || timeInMins >= 1080) return false;
+            } else if (filterTime === 'evening') {
+                // Evening: 18h -> 0h59 (1080 mins to 1439 mins OR 0 mins to 59 mins)
+                if (timeInMins >= 60 && timeInMins < 1080) return false;
+            }
+        }
+
+        // Filter by frame count
+        if (filterFrames !== 'all') {
+            const fc = s.frame_count || 0;
+            if (filterFrames === 'range_1_50') {
+                if (fc < 1 || fc > 50) return false;
+            } else if (filterFrames === 'range_51_100') {
+                if (fc < 51 || fc > 100) return false;
+            } else if (filterFrames === 'range_gt_100') {
+                if (fc <= 100) return false;
+            }
+        }
+
+        // Filter by status
+        if (filterStatus !== 'all') {
+            const isAssigned = assignedSceneIds.has(s.id);
+            if (filterStatus === 'assigned' && !isAssigned) return false;
+            if (filterStatus === 'unassigned' && isAssigned) return false;
+        }
+
+        return true;
+    });
+
+    // Sort by frame count
+    if (sortFrames !== 'none') {
+        filtered.sort((a, b) => {
+            const aFc = a.frame_count || 0;
+            const bFc = b.frame_count || 0;
+            if (sortFrames === 'desc') {
+                return bFc - aFc;
+            } else {
+                return aFc - bFc;
+            }
+        });
+    }
+
+    // Update filter badge count
+    let activeCount = 0;
+    if (filterTime !== 'all') activeCount++;
+    if (filterFrames !== 'all') activeCount++;
+    if (sortFrames !== 'none') activeCount++;
+    if (filterStatus !== 'all') activeCount++;
+
+    const badge = document.getElementById('allTasksFilterBadge');
+    if (badge) {
+        if (activeCount > 0) {
+            badge.textContent = activeCount;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / allScenesItemsPerPage) || 1;
+    if (currentAllScenesPage > totalPages) currentAllScenesPage = totalPages;
+    if (currentAllScenesPage < 1) currentAllScenesPage = 1;
+
+    const startIndex = (currentAllScenesPage - 1) * allScenesItemsPerPage;
+    const pageScenes = filtered.slice(startIndex, startIndex + allScenesItemsPerPage);
+
+    renderAllScenesTable(pageScenes, startIndex, totalItems);
+    renderAllScenesPaginationControls(totalPages);
+}
+
+// Hook search input event listener
+setTimeout(() => {
+    const searchAllTasksEl = document.getElementById('searchAllTasks');
+    if (searchAllTasksEl) {
+        searchAllTasksEl.addEventListener('input', function () {
+            applyAllScenesPagination(true);
+        });
+    }
+}, 100);
+
+function renderAllScenesTable(scenes, startIndex = 0, totalItems = 0) {
+    const tbody = document.getElementById('allTasksBody');
+    if (!totalItems) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#94A3B8">Chưa có nhiệm vụ nào</td></tr>`;
+        document.getElementById('showingAllTasks').textContent = '';
+        return;
+    }
+
+    const assignedSceneIds = new Set((allTasks || []).map(t => t.scene_id));
+
+    tbody.innerHTML = scenes.map((scene, idx) => {
+        const name = scene.name || scene.scene_token || `Nhiệm vụ #${scene.id}`;
+        const desc = scene.description || '—';
+        const isAssigned = assignedSceneIds.has(scene.id);
+        const statusHtml = isAssigned
+            ? `<span class="status-badge st-approved"><span class="status-dot"></span>Đã giao</span>`
+            : `<span class="status-badge st-pending"><span class="status-dot"></span>Chưa giao</span>`;
+
+        return `<tr>
+            <td style="text-align:center;font-weight:600;color:#64748B">${startIndex + idx + 1}</td>
+            <td>
+                <div class="scene-name">
+                    <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
+                    <div>
+                        <div>${name}</div>
+                        <div class="scene-meta">${desc}</div>
+                    </div>
+                </div>
+            </td>
+            <td style="text-align:center;"><span style="font-size:12px;color:#64748B">${scene.frame_count || 0} khung hình</span></td>
+            <td style="text-align:center;">${statusHtml}</td>
+            <td style="text-align:center;">
+                <button onclick='openSceneEditModal({scene_id:${scene.id},scene_name:"${(name).replace(/"/g, '\\"')}",scene_description:"${(scene.description || '').replace(/"/g, '\\"')}",_previewSceneId:${scene.id}})'
+                    class="action-link" style="font-size:12px">
+                    <i class="fa-solid fa-pen"></i> Sửa tên
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('showingAllTasks').textContent = `Hiển thị ${startIndex + 1} - ${startIndex + scenes.length} trên tổng số ${totalItems} nhiệm vụ`;
+}
+
+function renderAllScenesPaginationControls(totalPages) {
+    const container = document.getElementById('allTasksPagination');
+    if (!container) return;
+
+    let html = '';
+    const prevDisabled = currentAllScenesPage === 1 ? 'disabled' : '';
+    html += `<button class="page-btn ${prevDisabled}" onclick="${currentAllScenesPage === 1 ? '' : 'changeAllScenesPage(' + (currentAllScenesPage - 1) + ')'}"><i class="fa-solid fa-angle-left"></i></button>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentAllScenesPage - 1 && i <= currentAllScenesPage + 1)) {
+            html += `<button class="page-btn ${i === currentAllScenesPage ? 'active' : ''}" onclick="changeAllScenesPage(${i})">${i}</button>`;
+        } else if (i === currentAllScenesPage - 2 || i === currentAllScenesPage + 2) {
+            html += `<span style="padding: 6px 12px; color: #64748B;">...</span>`;
+        }
+    }
+
+    const nextDisabled = currentAllScenesPage === totalPages ? 'disabled' : '';
+    html += `<button class="page-btn ${nextDisabled}" onclick="${currentAllScenesPage === totalPages ? '' : 'changeAllScenesPage(' + (currentAllScenesPage + 1) + ')'}"><i class="fa-solid fa-angle-right"></i></button>`;
+
+    container.innerHTML = html;
+}
+
+function changeAllScenesPage(page) {
+    currentAllScenesPage = page;
+    applyAllScenesPagination(false);
 }
 
 // ============= SCENE EDIT MODAL =============

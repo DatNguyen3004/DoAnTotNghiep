@@ -65,7 +65,7 @@ let allUsers = [];
 async function loadUsers() {
     const tbody = document.querySelector('tbody');
     tbody.innerHTML = `
-        <tr><td colspan="7" style="text-align:center;padding:40px;">
+        <tr><td colspan="8" style="text-align:center;padding:40px;">
             <div style="color:#94A3B8">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;margin-bottom:12px;display:block"></i>
                 Đang tải danh sách người dùng...
@@ -82,8 +82,36 @@ async function loadUsers() {
             return;
         }
 
-        allUsers = await res.json();
-        renderUsers(allUsers);
+        const rawUsers = await res.json();
+        
+        // Parallel pre-fetching of stats for all users
+        const userPromises = rawUsers.map(async (u) => {
+            if (u.role === 'admin') {
+                u.total_tasks = 0;
+                u.quality_rate = null;
+                return u;
+            }
+            try {
+                const statsRes = await fetch(`${BASE_URL}/users/${u.id}/stats?project_id=${projectId}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                if (statsRes.ok) {
+                    const s = await statsRes.json();
+                    u.total_tasks = s.total_tasks || 0;
+                    u.quality_rate = s.quality_rate;
+                } else {
+                    u.total_tasks = 0;
+                    u.quality_rate = null;
+                }
+            } catch (e) {
+                u.total_tasks = 0;
+                u.quality_rate = null;
+            }
+            return u;
+        });
+
+        allUsers = await Promise.all(userPromises);
+        applyFilters();
     } catch (e) {
         console.warn('Users API not available, showing demo data:', e);
         showDemoUsers();
@@ -92,23 +120,23 @@ async function loadUsers() {
 
 function showDemoUsers() {
     allUsers = [
-        { id: 1, username: 'labeler01', full_name: 'Nguyễn Văn A', email: 'annotator.a@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true },
-        { id: 2, username: 'labeler02', full_name: 'Trần Thị B', email: 'annotator.b@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true },
-        { id: 3, username: 'labeler03', full_name: 'Lê Minh C', email: 'annotator.c@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true },
+        { id: 1, username: 'labeler01', full_name: 'Nguyễn Văn A', email: 'annotator.a@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true, gender: 'Nam', total_tasks: 12, quality_rate: 88 },
+        { id: 2, username: 'labeler02', full_name: 'Trần Thị B', email: 'annotator.b@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true, gender: 'Nữ', total_tasks: 5, quality_rate: 64 },
+        { id: 3, username: 'labeler03', full_name: 'Lê Minh C', email: 'annotator.c@nulabel.com', role: 'user', created_at: '2026-04-15T00:00:00', is_active: true, gender: 'Nam', total_tasks: 0, quality_rate: null },
     ];
-    renderUsers(allUsers);
+    applyFilters();
 }
 
-function renderUsers(users) {
+function renderUsers(users, startIndex = 0, totalItems = 0) {
     const tbody = document.querySelector('tbody');
     const showingText = document.querySelector('.showing-text');
 
     if (!users.length) {
         tbody.innerHTML = `
-            <tr><td colspan="7" style="text-align:center;padding:60px;color:#94A3B8">
+            <tr><td colspan="8" style="text-align:center;padding:60px;color:#94A3B8">
                 <i class="fa-regular fa-user" style="font-size:40px;display:block;margin-bottom:12px;color:#CBD5E1"></i>
                 <div style="font-weight:700;color:#475569;margin-bottom:6px">Chưa có người dùng nào</div>
-                <div style="font-size:13px">Nhấn "Thêm cộng tác viên" để tạo tài khoản mới.</div>
+                <div style="font-size:13px">Không tìm thấy người dùng phù hợp với tiêu chí lọc.</div>
             </td></tr>`;
         if (showingText) showingText.textContent = 'Không có dữ liệu';
         return;
@@ -128,12 +156,31 @@ function renderUsers(users) {
             ? `<img src="${user.avatar_url}" alt="${name}" class="user-avatar" style="object-fit:cover;border-radius:50%;width:36px;height:36px;flex-shrink:0;">`
             : `<div class="user-avatar">${initials}</div>`;
 
-        // Stats placeholder — sẽ được load async
-        const statsId = `stats_${user.id}`;
+        // Tasks column value
+        const tasksHtml = user.role === 'admin' 
+            ? `<span style="color:#94A3B8;font-size:12px">—</span>`
+            : `<span style="font-weight:600;color:#1E293B">${user.total_tasks}</span>`;
+
+        // Quality column value
+        let qualityHtml = `<span style="color:#94A3B8;font-size:12px">—</span>`;
+        if (user.role !== 'admin') {
+            if (user.total_tasks === 0 || user.quality_rate === null || user.quality_rate === undefined) {
+                qualityHtml = `<span style="color:#94A3B8;font-size:12px">Chưa đánh giá</span>`;
+            } else {
+                const rate = user.quality_rate;
+                const color = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
+                const label = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
+                qualityHtml = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                        <div style="font-size:13px;font-weight:700;color:${color}">${rate}%</div>
+                        <div style="font-size:10px;color:${color};font-weight:600">${label}</div>
+                    </div>`;
+            }
+        }
 
         return `
             <tr>
-                <td style="text-align:center;">${idx + 1}</td>
+                <td style="text-align:center;">${startIndex + idx + 1}</td>
                 <td>
                     <div class="user-info">
                         ${avatarHtml}
@@ -147,11 +194,14 @@ function renderUsers(users) {
                 <td>
                     <span class="badge-role" style="background:${roleBg};color:${roleColor}">${role}</span>
                 </td>
-                <td style="text-align:center;" id="${statsId}">
-                    <span style="color:#94A3B8;font-size:12px">—</span>
+                <td style="text-align:center;">
+                    ${tasksHtml}
+                </td>
+                <td style="text-align:center;">
+                    ${qualityHtml}
                 </td>
                 <td>${createdAt}</td>
-                <td style="text-align:center;">
+                <td style="text-align:center; white-space:nowrap;">
                     ${user.role !== 'admin' ? `
                     <button class="btn-action btn-view" title="Xem thống kê" onclick="openStatsModal(${user.id}, '${name}', '${user.full_name || name}')">
                         <i class="fa-solid fa-chart-bar"></i>
@@ -168,58 +218,171 @@ function renderUsers(users) {
     }).join('');
 
     if (showingText) {
-        showingText.textContent = `Hiển thị ${users.length} trên tổng số ${users.length} người dùng`;
+        showingText.textContent = `Hiển thị ${startIndex + 1} - ${startIndex + users.length} trên tổng số ${totalItems} người dùng`;
     }
-
-    // Load stats cho từng user role=user
-    users.filter(u => u.role !== 'admin').forEach(u => loadUserStatsInline(u.id));
 }
 
-async function loadUserStatsInline(userId) {
-    try {
-        const res = await fetch(`${BASE_URL}/users/${userId}/stats?project_id=${projectId}`, {
-            headers: { Authorization: `Bearer ${getToken()}` }
+// ============= FILTER & SORT LOGIC =============
+let currentPage = 1;
+const itemsPerPage = 5;
+
+function toggleFilterPanel() {
+    const panel = document.getElementById('filterPanel');
+    const btn = document.getElementById('btnFilterToggle');
+    panel.classList.toggle('active');
+    btn.classList.toggle('active');
+}
+
+function applyFilters(keepPage = false) {
+    if (!keepPage) {
+        currentPage = 1;
+    }
+
+    const searchInputEl = document.querySelector('.search-box input');
+    const q = (searchInputEl ? searchInputEl.value : '').toLowerCase();
+    const gender = document.getElementById('filterGender').value;
+    const role = document.getElementById('filterRole').value;
+    const sortQuality = document.getElementById('sortQuality').value;
+    const sortCreatedAt = document.getElementById('sortCreatedAt').value;
+    const sortTotalTasks = document.getElementById('sortTotalTasks').value;
+
+    let filtered = allUsers.filter(u => {
+        // Search query filter
+        const name = (u.full_name || '').toLowerCase();
+        const username = (u.username || '').toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        const matchesSearch = name.includes(q) || username.includes(q) || email.includes(q);
+        if (!matchesSearch) return false;
+
+        // Role filter
+        if (role !== 'all' && u.role !== role) return false;
+
+        // Gender filter
+        if (gender !== 'all') {
+            const userGender = (u.gender || '').toLowerCase();
+            const targetGender = gender.toLowerCase();
+            if (userGender !== targetGender) return false;
+        }
+
+        return true;
+    });
+
+    // ── Sorting ──
+    // Quality sort
+    if (sortQuality !== 'none') {
+        filtered.sort((a, b) => {
+            const aVal = a.role === 'admin' ? -1 : (a.quality_rate !== null && a.quality_rate !== undefined ? a.quality_rate : -1);
+            const bVal = b.role === 'admin' ? -1 : (b.quality_rate !== null && b.quality_rate !== undefined ? b.quality_rate : -1);
+
+            if (sortQuality === 'desc') {
+                return bVal - aVal;
+            } else {
+                return aVal - bVal;
+            }
         });
-        if (!res.ok) return;
-        const s = await res.json();
+    }
 
-        const taskEl = document.getElementById(`task_${userId}`);
-        if (taskEl) {
-            taskEl.innerHTML = `<span style="font-weight:600;color:#1E293B">${s.total_tasks}</span>`;
+    // Created At sort
+    if (sortCreatedAt !== 'none') {
+        filtered.sort((a, b) => {
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+            if (sortCreatedAt === 'desc') {
+                return bTime - aTime;
+            } else {
+                return aTime - bTime;
+            }
+        });
+    }
+
+    // Total Tasks sort
+    if (sortTotalTasks !== 'none') {
+        filtered.sort((a, b) => {
+            const aTasks = a.role === 'admin' ? -1 : (a.total_tasks || 0);
+            const bTasks = b.role === 'admin' ? -1 : (b.total_tasks || 0);
+            if (sortTotalTasks === 'desc') {
+                return bTasks - aTasks;
+            } else {
+                return aTasks - bTasks;
+            }
+        });
+    }
+
+    // Update active filter badge count
+    let activeFiltersCount = 0;
+    if (gender !== 'all') activeFiltersCount++;
+    if (role !== 'all') activeFiltersCount++;
+    if (sortQuality !== 'none') activeFiltersCount++;
+    if (sortCreatedAt !== 'none') activeFiltersCount++;
+    if (sortTotalTasks !== 'none') activeFiltersCount++;
+
+    const badge = document.getElementById('filterBadge');
+    if (badge) {
+        if (activeFiltersCount > 0) {
+            badge.textContent = activeFiltersCount;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
         }
+    }
 
-        const statsEl = document.getElementById(`stats_${userId}`);
-        if (!statsEl) return;
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
 
-        if (s.total_tasks === 0 || s.quality_rate === null || s.quality_rate === undefined) {
-            statsEl.innerHTML = `<span style="color:#94A3B8;font-size:12px">Chưa đánh giá</span>`;
-            return;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const pageUsers = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    renderUsers(pageUsers, startIndex, totalItems);
+    renderPaginationControls(totalPages);
+}
+
+function renderPaginationControls(totalPages) {
+    const container = document.getElementById('userPagination');
+    if (!container) return;
+
+    let html = '';
+    // Left angle
+    const prevDisabledClass = currentPage === 1 ? 'disabled' : '';
+    html += `<i class="fa-solid fa-angle-left ${prevDisabledClass}" onclick="${currentPage === 1 ? '' : 'changePage(' + (currentPage - 1) + ')'}"></i>`;
+
+    // Pages
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            html += `<span class="page-num ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</span>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+            html += `<span class="page-ellipsis">...</span>`;
         }
+    }
 
-        const rate = s.quality_rate;
-        const color = rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444';
-        const label = rate >= 80 ? 'Tốt' : rate >= 50 ? 'Trung bình' : 'Cần cải thiện';
+    // Right angle
+    const nextDisabledClass = currentPage === totalPages ? 'disabled' : '';
+    html += `<i class="fa-solid fa-angle-right ${nextDisabledClass}" onclick="${currentPage === totalPages ? '' : 'changePage(' + (currentPage + 1) + ')'}"></i>`;
 
-        statsEl.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="font-size:13px;font-weight:700;color:${color}">${rate}%</div>
-                <div style="font-size:10px;color:${color};font-weight:600">${label}</div>
-            </div>`;
-    } catch (e) { /* silent */ }
+    container.innerHTML = html;
+}
+
+function changePage(page) {
+    currentPage = page;
+    applyFilters(true);
+}
+
+function resetFilters() {
+    document.getElementById('filterGender').value = 'all';
+    document.getElementById('filterRole').value = 'all';
+    document.getElementById('sortQuality').value = 'none';
+    document.getElementById('sortCreatedAt').value = 'none';
+    document.getElementById('sortTotalTasks').value = 'none';
+    currentPage = 1;
+    applyFilters(true);
 }
 
 // ============= SEARCH =============
 const searchInput = document.querySelector('.search-box input');
 if (searchInput) {
     searchInput.addEventListener('input', function () {
-        const q = this.value.toLowerCase();
-        const filtered = allUsers.filter(u => {
-            const name = (u.full_name || '').toLowerCase();
-            const username = (u.username || '').toLowerCase();
-            const email = (u.email || '').toLowerCase();
-            return name.includes(q) || username.includes(q) || email.includes(q);
-        });
-        renderUsers(filtered);
+        applyFilters(false);
     });
 }
 

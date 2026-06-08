@@ -541,19 +541,70 @@ tr:last-child td {
 
 .pagination {
     display: flex;
-    gap: 12px;
-    color: var(--text-muted);
-    font-size: 14px;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
 }
 
 .pagination i {
     cursor: pointer;
-    padding: 4px;
-    transition: color 0.2s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    background: #fff;
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: all 0.2s;
 }
 
-.pagination i:hover {
-    color: var(--text-main);
+.pagination i:hover:not(.disabled) {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    background: #EFF6FF;
+}
+
+.pagination i.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-num {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.page-num:hover {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    background: #EFF6FF;
+}
+
+.page-num.active {
+    color: #fff;
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.page-ellipsis {
+    color: var(--text-muted);
+    font-size: 13px;
+    width: 32px;
+    text-align: center;
 }
 
 /* Floating Status */
@@ -867,4 +918,142 @@ tr:last-child td {
     to {
         opacity: 0;
     }
+}
+
+/* ============= FILTER BUTTON & PANEL ============= */
+.toolbar-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-filter:hover {
+    background: #F8FAFC;
+    color: var(--primary-blue);
+    border-color: #CBD5E1;
+}
+
+.btn-filter.active {
+    background: #EFF6FF;
+    color: var(--primary-blue);
+    border-color: #93C5FD;
+}
+
+.filter-badge {
+    background: var(--primary-blue);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;
+}
+
+.filter-panel {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    margin-bottom: 0;
+}
+
+.filter-panel.active {
+    max-height: 350px;
+    opacity: 1;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group select {
+    height: 38px;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--text-main);
+    outline: none;
+    background: #F8FAFC;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.filter-group select:hover,
+.filter-group select:focus {
+    border-color: var(--primary-blue);
+    background: #fff;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    border-top: 1px solid #F1F5F9;
+    background: #FAFAFA;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.btn-reset-filters {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-reset-filters:hover {
+    color: var(--danger);
+    background: #FEF2F2;
 }

@@ -109,11 +109,50 @@
                         <h2>Nhiệm vụ của tôi</h2>
                         <p>Danh sách các nhiệm vụ gán nhãn được giao cho bạn</p>
                     </div>
-                    <div class="data-actions">
-                        <div class="search-input">
+                    <div class="data-actions" style="display: flex; gap: 12px; align-items: center;">
+                        <div class="search-input" style="width: 280px;">
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" placeholder="Tìm kiếm nhiệm vụ..." id="searchMyTasks">
                         </div>
+                        <button class="btn-filter" id="btnMyTasksFilterToggle" onclick="toggleMyTasksFilterPanel()"
+                            style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            <i class="fa-solid fa-filter"></i> Bộ lọc
+                            <span class="filter-badge" id="myTasksFilterBadge"
+                                style="display: none; background: #2563EB; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center;">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- My Tasks Filter Panel -->
+                <div class="filter-panel" id="myTasksFilterPanel">
+                    <div class="filter-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <!-- Trạng thái -->
+                        <div class="filter-group">
+                            <label>Trạng thái</label>
+                            <select id="filterMyTasksStatus" onchange="applyMyTasksFilters(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="pending">Chờ xử lý</option>
+                                <option value="in_progress">Đang làm</option>
+                                <option value="under_review">Đang kiểm tra</option>
+                                <option value="approved">Đạt</option>
+                                <option value="rejected">Chưa đạt</option>
+                            </select>
+                        </div>
+
+                        <!-- Tiến độ -->
+                        <div class="filter-group">
+                            <label>Tiến độ</label>
+                            <select id="filterMyTasksProgress" onchange="applyMyTasksFilters(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="range_0_50">0 - 50%</option>
+                                <option value="range_51_100">51 - 100%</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset-filters" onclick="resetMyTasksFilters()">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                        </button>
                     </div>
                 </div>
 
@@ -132,6 +171,7 @@
 
                 <div class="table-footer">
                     <div class="showing-text" id="showingMyTasks">Đang tải...</div>
+                    <div class="pagination" id="myTasksPagination"></div>
                 </div>
             </section>
         </div>
@@ -144,11 +184,57 @@
                         <h2>Cần kiểm tra</h2>
                         <p>Các bài nộp của người khác đang chờ bạn kiểm tra</p>
                     </div>
-                    <div class="data-actions">
-                        <div class="search-input">
+                    <div class="data-actions" style="display: flex; gap: 12px; align-items: center;">
+                        <div class="search-input" style="width: 280px;">
                             <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" placeholder="Tìm kiếm..." id="searchReview">
+                            <input type="text" placeholder="Tìm kiếm nhiệm vụ..." id="searchReview">
                         </div>
+                        <button class="btn-filter" id="btnReviewFilterToggle" onclick="toggleReviewFilterPanel()"
+                            style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            <i class="fa-solid fa-filter"></i> Bộ lọc
+                            <span class="filter-badge" id="reviewFilterBadge"
+                                style="display: none; background: #2563EB; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center;">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Review Tasks Filter Panel -->
+                <div class="filter-panel" id="reviewFilterPanel">
+                    <div class="filter-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <!-- Trạng thái -->
+                        <div class="filter-group">
+                            <label>Trạng thái</label>
+                            <select id="filterReviewStatus" onchange="applyReviewFilters(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="under_review">Đang kiểm tra</option>
+                                <option value="reviewed">Đã kiểm tra</option>
+                                <option value="approved">Đạt</option>
+                                <option value="rejected">Chưa đạt</option>
+                            </select>
+                        </div>
+
+                        <!-- Tiến độ -->
+                        <div class="filter-group">
+                            <label>Tiến độ</label>
+                            <select id="filterReviewProgress" onchange="applyReviewFilters(true)">
+                                <option value="all">Tất cả</option>
+                                <option value="range_0_50">0 - 50%</option>
+                                <option value="range_51_100">51 - 100%</option>
+                            </select>
+                        </div>
+
+                        <!-- Người nộp -->
+                        <div class="filter-group">
+                            <label>Người nộp</label>
+                            <select id="filterReviewSubmitter" onchange="applyReviewFilters(true)">
+                                <option value="all">Tất cả</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset-filters" onclick="resetReviewFilters()">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                        </button>
                     </div>
                 </div>
 
@@ -168,6 +254,7 @@
 
                 <div class="table-footer">
                     <div class="showing-text" id="showingReview">Đang tải...</div>
+                    <div class="pagination" id="reviewTasksPagination"></div>
                 </div>
             </section>
         </div>

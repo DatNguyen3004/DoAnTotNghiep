@@ -62,7 +62,10 @@ const STATUS_MAP = {
     rejected: { label: 'Chưa đạt', cls: 'st-rejected' }
 };
 
-function getStatusBadge(status, adminModerated = false) {
+function getStatusBadge(status, adminModerated = false, isDeleted = false) {
+    if (isDeleted) {
+        return `<div class="status-badge" style="background:#F1F5F9;color:#475569;border-color:#E2E8F0"><div class="status-dot" style="background:#64748B"></div>Đã hủy</div>`;
+    }
     if (status === 'rejected') {
         if (adminModerated) {
             return `<div class="status-badge st-rejected"><div class="status-dot"></div>Chưa đạt</div>`;
@@ -97,14 +100,14 @@ async function loadMyTasks() {
         });
         if (!res.ok) throw new Error();
         myTasks = await res.json();
-        renderMyTasks(myTasks);
+        applyMyTasksFilters(true);
         updateStats(myTasks);
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
 }
 
-function renderMyTasks(tasks) {
+function renderMyTasks(tasks, startIndex = 0) {
     const tbody = document.getElementById('myTasksBody');
     if (!tasks.length) {
         tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
@@ -127,12 +130,12 @@ function renderMyTasks(tasks) {
             : `<div>${name}</div>`;
 
         return `<tr>
-            <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
+            <td style="text-align:center;font-weight:600;color:#64748B">${startIndex + idx + 1}</td>
             <td><div class="scene-name">
                 <div class="scene-icon"><i class="fa-solid fa-film"></i></div>
                 <div>${nameHtml}${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
             </div></td>
-            <td>${getStatusBadge(task.status, task.admin_moderated)}</td>
+            <td>${getStatusBadge(task.status, task.admin_moderated, task.is_deleted)}</td>
             <td><div class="progress-cell">
                 <div class="progress-bar"><div class="progress-fill ${progressColor}" style="width:${progress}%"></div></div>
                 <span class="progress-text">${task.frame_count > 0 ? progress + '%' : '—'}</span>
@@ -140,11 +143,16 @@ function renderMyTasks(tasks) {
             <td>${getMyTaskAction(task)}</td>
         </tr>`;
     }).join('');
-    document.getElementById('showingMyTasks').textContent = `Hiển thị ${tasks.length} nhiệm vụ`;
-    document.getElementById('tabBadgeMyTasks').textContent = tasks.length;
+    document.getElementById('tabBadgeMyTasks').textContent = myTasks.length;
 }
 
 function getMyTaskAction(task) {
+    if (task.is_deleted) {
+        const feedbackEscaped = (task.feedback || '').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        return `<button onclick="showEvaluationDetailPopup('Đã hủy', '${feedbackEscaped}', ${task.precision !== null ? task.precision : 'null'}, ${task.matched_objs !== null ? task.matched_objs : 'null'}, ${task.missing_objs !== null ? task.missing_objs : 'null'}, ${task.user_objs !== null ? task.user_objs : 'null'})" class="action-link" style="border:none;background:#F1F5F9;color:#475569;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#64748B';this.style.color='#FFFFFF';" onmouseout="this.style.background='#F1F5F9';this.style.color='#475569';" title="Xem nhận xét từ Admin">
+                <i class="fa-solid fa-eye"></i> Xem đánh giá
+            </button>`;
+    }
     const s = task.status;
     if (s === 'approved') {
         const feedbackEscaped = (task.feedback || '').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
@@ -187,14 +195,15 @@ async function loadReviewTasks() {
         });
         if (!res.ok) throw new Error();
         reviewTasks = await res.json();
-        renderReviewTasks(reviewTasks);
+        populateSubmitterFilter(reviewTasks);
+        applyReviewFilters(true);
         updateStats(myTasks);
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#EF4444">Không thể tải dữ liệu</td></tr>`;
     }
 }
 
-function renderReviewTasks(tasks) {
+function renderReviewTasks(tasks, startIndex = 0) {
     const tbody = document.getElementById('reviewTasksBody');
     if (!tasks.length) {
         tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
@@ -235,13 +244,13 @@ function renderReviewTasks(tasks) {
         }
 
         return `<tr>
-            <td style="text-align:center;font-weight:600;color:#64748B">${idx + 1}</td>
+            <td style="text-align:center;font-weight:600;color:#64748B">${startIndex + idx + 1}</td>
             <td><div class="scene-name">
                 <div class="scene-icon" style="background:#FAF5FF;color:#9333EA"><i class="fa-solid fa-film"></i></div>
                 <div><div>${name}</div>${desc ? `<div class="scene-meta">${desc}</div>` : ''}</div>
             </div></td>
             <td>${getUserCell(task.assigned_user)}</td>
-            <td>${getStatusBadge(task.status, task.admin_moderated)}</td>
+            <td>${getStatusBadge(task.status, task.admin_moderated, task.is_deleted)}</td>
             <td><div class="progress-cell">
                 <div class="progress-bar"><div class="progress-fill ${progressColor}" style="width:${progress}%"></div></div>
                 <span class="progress-text">${task.frame_count > 0 ? progress + '%' : '—'}</span>
@@ -249,17 +258,17 @@ function renderReviewTasks(tasks) {
             <td>${actionHtml}</td>
         </tr>`;
     }).join('');
-    document.getElementById('showingReview').textContent = `Hiển thị ${tasks.length} bài cần kiểm tra`;
-    document.getElementById('tabBadgeReview').textContent = tasks.length;
+    document.getElementById('tabBadgeReview').textContent = reviewTasks.length;
 }
 
 // ============= STATS =============
 function updateStats(tasks) {
-    const total = tasks.length;
-    const done = tasks.filter(t => t.status === 'approved').length;
-    const rejected = tasks.filter(t => t.status === 'rejected').length;
+    const activeTasks = tasks.filter(t => !t.is_deleted);
+    const total = activeTasks.length;
+    const done = activeTasks.filter(t => t.status === 'approved').length;
+    const rejected = activeTasks.filter(t => t.status === 'rejected').length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    const pendingReview = reviewTasks.filter(t => t.status === 'under_review').length;
+    const pendingReview = reviewTasks.filter(t => !t.is_deleted && t.status === 'under_review').length;
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statTotalText').textContent = `${total} nhiệm vụ`;
     document.getElementById('statDone').textContent = done;
@@ -268,7 +277,7 @@ function updateStats(tasks) {
     document.getElementById('statReview').textContent = pendingReview;
     document.getElementById('statReviewText').textContent = pendingReview > 0 ? 'đang chờ' : '';
 
-    // Độ tin cậy trung bình của các nhiệm vụ đã được đánh giá (approved, rejected hoặc reviewed)
+    // Độ tin cậy trung bình của các nhiệm vụ đã được đánh giá (approved, rejected hoặc reviewed), bao gồm cả những task đã hủy (soft-delete)
     const evaluatedTasksList = tasks.filter(t => t.status === 'approved' || t.status === 'rejected' || t.status === 'reviewed');
     let avgReliability = 0;
     let countEvaluatedWithPrecision = 0;
@@ -298,15 +307,254 @@ function updateStats(tasks) {
     }
 }
 
-// ============= SEARCH =============
+// ============= SEARCH & FILTER =============
 document.getElementById('searchMyTasks').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    renderMyTasks(myTasks.filter(t => (t.scene_name || '').toLowerCase().includes(q)));
+    applyMyTasksFilters(true);
 });
 document.getElementById('searchReview').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    renderReviewTasks(reviewTasks.filter(t => (t.scene_name || '').toLowerCase().includes(q)));
+    applyReviewFilters(true);
 });
+
+let currentMyTasksPage = 1;
+const itemsPerPage = 5;
+
+let currentReviewPage = 1;
+const reviewItemsPerPage = 5;
+
+let myTasksFilterOpen = false;
+let reviewFilterOpen = false;
+
+function toggleMyTasksFilterPanel() {
+    const panel = document.getElementById('myTasksFilterPanel');
+    const btn = document.getElementById('btnMyTasksFilterToggle');
+    myTasksFilterOpen = !myTasksFilterOpen;
+    if (myTasksFilterOpen) {
+        panel.classList.add('active');
+        btn.classList.add('active');
+    } else {
+        panel.classList.remove('active');
+        btn.classList.remove('active');
+    }
+}
+
+function resetMyTasksFilters() {
+    document.getElementById('searchMyTasks').value = '';
+    document.getElementById('filterMyTasksStatus').value = 'all';
+    document.getElementById('filterMyTasksProgress').value = 'all';
+    applyMyTasksFilters(true);
+}
+
+function toggleReviewFilterPanel() {
+    const panel = document.getElementById('reviewFilterPanel');
+    const btn = document.getElementById('btnReviewFilterToggle');
+    reviewFilterOpen = !reviewFilterOpen;
+    if (reviewFilterOpen) {
+        panel.classList.add('active');
+        btn.classList.add('active');
+    } else {
+        panel.classList.remove('active');
+        btn.classList.remove('active');
+    }
+}
+
+function resetReviewFilters() {
+    document.getElementById('searchReview').value = '';
+    document.getElementById('filterReviewStatus').value = 'all';
+    document.getElementById('filterReviewProgress').value = 'all';
+    document.getElementById('filterReviewSubmitter').value = 'all';
+    applyReviewFilters(true);
+}
+
+function updateMyTasksFilterBadge(count) {
+    const badge = document.getElementById('myTasksFilterBadge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function updateReviewFilterBadge(count) {
+    const badge = document.getElementById('reviewFilterBadge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function applyMyTasksFilters(resetPage = false) {
+    if (resetPage) currentMyTasksPage = 1;
+    
+    const query = document.getElementById('searchMyTasks').value.toLowerCase().trim();
+    const status = document.getElementById('filterMyTasksStatus').value;
+    const progressFilter = document.getElementById('filterMyTasksProgress').value;
+    
+    let activeFilterCount = 0;
+    if (status !== 'all') activeFilterCount++;
+    if (progressFilter !== 'all') activeFilterCount++;
+    updateMyTasksFilterBadge(activeFilterCount);
+    
+    const filtered = myTasks.filter(t => {
+        const sceneName = (t.scene_name || '').toLowerCase();
+        if (query && !sceneName.includes(query)) return false;
+        
+        if (status !== 'all') {
+            if (t.status !== status) return false;
+        }
+        
+        const progress = t.frame_count > 0 ? Math.round((t.annotated_frames / t.frame_count) * 100) : 0;
+        if (progressFilter === 'range_0_50') {
+            if (progress > 50) return false;
+        } else if (progressFilter === 'range_51_100') {
+            if (progress <= 50) return false;
+        }
+        
+        return true;
+    });
+    
+    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    if (currentMyTasksPage > totalPages) currentMyTasksPage = totalPages;
+    
+    const startIndex = (currentMyTasksPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+    
+    renderMyTasks(paginated, startIndex);
+    renderPagination('myTasksPagination', currentMyTasksPage, totalPages, (page) => {
+        currentMyTasksPage = page;
+        applyMyTasksFilters(false);
+    });
+    
+    const showingEl = document.getElementById('showingMyTasks');
+    if (showingEl) {
+        if (filtered.length > 0) {
+            const end = Math.min(startIndex + itemsPerPage, filtered.length);
+            showingEl.textContent = `Hiển thị ${startIndex + 1}-${end} trong số ${filtered.length} nhiệm vụ`;
+        } else {
+            showingEl.textContent = 'Không có nhiệm vụ nào';
+        }
+    }
+}
+
+function populateSubmitterFilter(tasks) {
+    const filterSelect = document.getElementById('filterReviewSubmitter');
+    if (!filterSelect) return;
+    
+    const currentSelection = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">Tất cả</option>';
+    
+    const usersMap = new Map();
+    tasks.forEach(t => {
+        if (t.assigned_user) {
+            const username = t.assigned_user.username;
+            const fullName = t.assigned_user.full_name;
+            const displayName = fullName ? `${username} (${fullName})` : username;
+            usersMap.set(t.assigned_user.id, displayName);
+        }
+    });
+    
+    usersMap.forEach((displayName, userId) => {
+        const option = document.createElement('option');
+        option.value = userId;
+        option.textContent = displayName;
+        filterSelect.appendChild(option);
+    });
+    
+    if (usersMap.has(Number(currentSelection))) {
+        filterSelect.value = currentSelection;
+    }
+}
+
+function applyReviewFilters(resetPage = false) {
+    if (resetPage) currentReviewPage = 1;
+    
+    const query = document.getElementById('searchReview').value.toLowerCase().trim();
+    const status = document.getElementById('filterReviewStatus').value;
+    const progressFilter = document.getElementById('filterReviewProgress').value;
+    const submitter = document.getElementById('filterReviewSubmitter').value;
+    
+    let activeFilterCount = 0;
+    if (status !== 'all') activeFilterCount++;
+    if (progressFilter !== 'all') activeFilterCount++;
+    if (submitter !== 'all') activeFilterCount++;
+    updateReviewFilterBadge(activeFilterCount);
+    
+    const filtered = reviewTasks.filter(t => {
+        const sceneName = (t.scene_name || '').toLowerCase();
+        if (query && !sceneName.includes(query)) return false;
+        
+        if (status !== 'all') {
+            if (t.status !== status) return false;
+        }
+        
+        const progress = t.frame_count > 0 ? Math.round((t.annotated_frames / t.frame_count) * 100) : 0;
+        if (progressFilter === 'range_0_50') {
+            if (progress > 50) return false;
+        } else if (progressFilter === 'range_51_100') {
+            if (progress <= 50) return false;
+        }
+        
+        if (submitter !== 'all') {
+            if (!t.assigned_user || String(t.assigned_user.id) !== String(submitter)) return false;
+        }
+        
+        return true;
+    });
+    
+    const totalPages = Math.ceil(filtered.length / reviewItemsPerPage) || 1;
+    if (currentReviewPage > totalPages) currentReviewPage = totalPages;
+    
+    const startIndex = (currentReviewPage - 1) * reviewItemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + reviewItemsPerPage);
+    
+    renderReviewTasks(paginated, startIndex);
+    renderPagination('reviewTasksPagination', currentReviewPage, totalPages, (page) => {
+        currentReviewPage = page;
+        applyReviewFilters(false);
+    });
+    
+    const showingEl = document.getElementById('showingReview');
+    if (showingEl) {
+        if (filtered.length > 0) {
+            const end = Math.min(startIndex + reviewItemsPerPage, filtered.length);
+            showingEl.textContent = `Hiển thị ${startIndex + 1}-${end} trong số ${filtered.length} bài cần kiểm tra`;
+        } else {
+            showingEl.textContent = 'Không có bài cần kiểm tra nào';
+        }
+    }
+}
+
+function renderPagination(containerId, currentPage, totalPages, onPageChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    html += `<button class="page-btn ${currentPage === 1 ? 'disabled' : ''}" ${currentPage === 1 ? 'disabled' : ''} onclick="window.${containerId}ChangePage(${currentPage - 1})">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>`;
+    
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="page-btn ${currentPage === i ? 'active' : ''}" onclick="window.${containerId}ChangePage(${i})">${i}</button>`;
+    }
+    
+    html += `<button class="page-btn ${currentPage === totalPages ? 'disabled' : ''}" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.${containerId}ChangePage(${currentPage + 1})">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>`;
+    
+    container.innerHTML = html;
+    window[`${containerId}ChangePage`] = onPageChange;
+}
 
 // ============= INIT =============
 loadSidebarProject();
