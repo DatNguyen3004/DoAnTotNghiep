@@ -294,16 +294,26 @@ def _enrich_task(task: Task, db: Session) -> dict:
     ai_missing_objs = None
 
     if task.status in ('approved', 'rejected', 'reviewed'):
-        try:
-            details = get_task_precision_details(db, task.id, task.scene_id)
-            precision = details["precision"]
-            matched_objs = details["matched_objs"]
-            missing_objs = details["missing_objs"]
-            user_objs = details["user_objs"]
-            ai_matched_objs = details["ai_matched_objs"]
-            ai_missing_objs = details["ai_missing_objs"]
-        except Exception as e:
-            print(f"Error calculating precision for task {task.id}: {e}")
+        # Nếu admin đã reject task → precision = 0 (penalty), không dùng IoU nữa
+        is_admin_rejected = (
+            db.query(TaskSubmission)
+            .filter(TaskSubmission.task_id == task.id, TaskSubmission.action == "admin_rejected")
+            .first()
+        ) is not None
+
+        if is_admin_rejected:
+            precision = 0
+        else:
+            try:
+                details = get_task_precision_details(db, task.id, task.scene_id)
+                precision = details["precision"]
+                matched_objs = details["matched_objs"]
+                missing_objs = details["missing_objs"]
+                user_objs = details["user_objs"]
+                ai_matched_objs = details["ai_matched_objs"]
+                ai_missing_objs = details["ai_missing_objs"]
+            except Exception as e:
+                print(f"Error calculating precision for task {task.id}: {e}")
 
     return TaskOut(
         id=task.id,
@@ -365,7 +375,17 @@ def list_tasks(
     elif role == "reviewer":
         query = query.filter(Task.reviewer_id == current_user.id, Task.is_deleted == False)
     else:
-        query = query.filter(Task.assigned_to == current_user.id)
+        # User thấy task được giao cho mình:
+        # - Task chưa bị xóa (bình thường)
+        # - Hoặc task bị xóa nhưng status = 'rejected' (hiển thị "Dã huỷ" để người dùng biết mình từng không đạt)
+        from sqlalchemy import or_, and_
+        query = query.filter(
+            Task.assigned_to == current_user.id,
+            or_(
+                Task.is_deleted == False,
+                and_(Task.is_deleted == True, Task.status == 'rejected')
+            )
+        )
 
     tasks = query.order_by(Task.created_at.desc()).all()
     return [_enrich_task(t, db) for t in tasks]

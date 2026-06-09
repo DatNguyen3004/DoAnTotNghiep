@@ -63,7 +63,8 @@ const STATUS_MAP = {
 };
 
 function getStatusBadge(status, adminModerated = false, isDeleted = false) {
-    if (isDeleted) {
+    // "Đã hủy" chỉ hiện khi task bị xóa VÀ status là rejected (Chưa đạt)
+    if (isDeleted && status === 'rejected') {
         return `<div class="status-badge" style="background:#F1F5F9;color:#475569;border-color:#E2E8F0"><div class="status-dot" style="background:#64748B"></div>Đã hủy</div>`;
     }
     if (status === 'rejected') {
@@ -274,11 +275,13 @@ function updateStats(tasks) {
     document.getElementById('statDone').textContent = done;
     document.getElementById('statDonePct').textContent = `${pct}%`;
     document.getElementById('statRejected').textContent = rejected;
+    const reviewPct = total > 0 ? Math.round((pendingReview / total) * 100) : 0;
     document.getElementById('statReview').textContent = pendingReview;
-    document.getElementById('statReviewText').textContent = pendingReview > 0 ? 'đang chờ' : '';
+    document.getElementById('statReviewText').textContent = `${reviewPct}%`;
 
-    // Độ tin cậy trung bình của các nhiệm vụ đã được đánh giá (approved, rejected hoặc reviewed), bao gồm cả những task đã hủy (soft-delete)
-    const evaluatedTasksList = tasks.filter(t => t.status === 'approved' || t.status === 'rejected' || t.status === 'reviewed');
+    // Chỉ tính từ task đã được admin ra quyết định (admin_moderated = true)
+    // Task chỉ "reviewed" bởi reviewer chưa được tính
+    const evaluatedTasksList = tasks.filter(t => t.admin_moderated === true && (!t.is_deleted || t.status === 'rejected'));
     let avgReliability = 0;
     let countEvaluatedWithPrecision = 0;
     let sumReliability = 0;
@@ -406,7 +409,13 @@ function applyMyTasksFilters(resetPage = false) {
         if (query && !sceneName.includes(query)) return false;
         
         if (status !== 'all') {
-            if (t.status !== status) return false;
+            if (status === 'cancelled') {
+                if (!t.is_deleted) return false;
+            } else if (status === 'rejected') {
+                if (t.status !== 'rejected' || t.is_deleted) return false;
+            } else {
+                if (t.status !== status || t.is_deleted) return false;
+            }
         }
         
         const progress = t.frame_count > 0 ? Math.round((t.annotated_frames / t.frame_count) * 100) : 0;

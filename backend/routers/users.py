@@ -119,7 +119,14 @@ def get_user_stats(
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
 
     # ── Thống kê gán nhãn (labeler) ──
-    query = db.query(Task).filter(Task.assigned_to == user_id)
+    from sqlalchemy import or_, and_
+    query = db.query(Task).filter(
+        Task.assigned_to == user_id,
+        or_(
+            Task.is_deleted == False,
+            and_(Task.is_deleted == True, Task.status == 'rejected')
+        )
+    )
     if project_id is not None:
         query = query.filter(Task.project_id == project_id)
     tasks = query.all()
@@ -144,16 +151,33 @@ def get_user_stats(
     avg_time = int(sum(completed_times) / len(completed_times)) if completed_times else 0
 
     from routers.tasks import calculate_task_user_precision
+    from models.task_submission import TaskSubmission
 
-    evaluated_tasks = [t for t in tasks if t.status in ('approved', 'rejected', 'reviewed')]
+    # Chỉ tính quality_rate từ task được admin ra quyết định cuối cùng
     precisions = []
-    for t in evaluated_tasks:
-        precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))
+    for t in tasks:
+        admin_sub = db.query(TaskSubmission).filter(
+            TaskSubmission.task_id == t.id,
+            TaskSubmission.action.in_(["admin_approved", "admin_rejected"])
+        ).first()
+        if admin_sub is None:
+            continue   # chưa có admin kết luận → bỏ qua
+        if admin_sub.action == "admin_rejected":
+            precisions.append(0)   # penalty
+        else:
+            precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))
 
     quality_rate = round(sum(precisions) / len(precisions)) if precisions else None
 
     # ── Thống kê kiểm thử (reviewer) ──
-    rev_query = db.query(Task).filter(Task.reviewer_id == user_id)
+    from sqlalchemy import or_, and_
+    rev_query = db.query(Task).filter(
+        Task.reviewer_id == user_id,
+        or_(
+            Task.is_deleted == False,
+            and_(Task.is_deleted == True, Task.status == 'rejected')
+        )
+    )
     if project_id is not None:
         rev_query = rev_query.filter(Task.project_id == project_id)
     reviewed_tasks = rev_query.all()
