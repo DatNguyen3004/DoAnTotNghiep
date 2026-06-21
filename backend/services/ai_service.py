@@ -49,7 +49,9 @@ def get_model():
         torch.load = _original_torch_load  # restore sau khi load xong
 
         # Warm-up trên GPU nếu có
-        _model.to('cuda' if torch.cuda.is_available() else 'cpu')
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        _model.to(device)
+        print(f"\n[AI SERVICE] YOLOv8m model is running on: {device.upper()}\n")
         _model_error = None
         return _model
     except Exception as e:

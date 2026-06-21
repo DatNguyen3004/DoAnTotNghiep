@@ -48,7 +48,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.571799,
-      "bbox_y": 0.515108,
+      "bbox_y": 0.515109,
       "bbox_w": 0.220357,
       "bbox_h": 0.138461,
       "confidence": 0.8757,
@@ -83,7 +83,7 @@
       "bbox_x": 0.418123,
       "bbox_y": 0.530739,
       "bbox_w": 0.016957,
-      "bbox_h": 0.034865,
+      "bbox_h": 0.034866,
       "confidence": 0.2567,
       "is_ai_generated": true,
       "needs_review": true
@@ -324,7 +324,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.547127,
       "bbox_y": 0.529189,
-      "bbox_w": 0.026711,
+      "bbox_w": 0.026712,
       "bbox_h": 0.065271,
       "confidence": 0.3313,
       "is_ai_generated": true,
@@ -334,7 +334,7 @@
   "165_CAM_BACK_LEFT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.26101,
+      "bbox_x": 0.261011,
       "bbox_y": 0.502113,
       "bbox_w": 0.161981,
       "bbox_h": 0.114153,
@@ -358,7 +358,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.478144,
-      "bbox_y": 0.499003,
+      "bbox_y": 0.499002,
       "bbox_w": 0.02574,
       "bbox_h": 0.038073,
       "confidence": 0.5533,
@@ -422,7 +422,7 @@
     {
       "category": "vehicle.truck",
       "bbox_x": 0.516966,
-      "bbox_y": 0.478587,
+      "bbox_y": 0.478586,
       "bbox_w": 0.057028,
       "bbox_h": 0.123514,
       "confidence": 0.5914,
@@ -437,7 +437,7 @@
       "bbox_y": 0.514416,
       "bbox_w": 0.127547,
       "bbox_h": 0.108697,
-      "confidence": 0.5842,
+      "confidence": 0.5843,
       "is_ai_generated": true,
       "needs_review": true
     },
@@ -663,7 +663,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.669324,
       "bbox_y": 0.536658,
-      "bbox_w": 0.015847,
+      "bbox_w": 0.015846,
       "bbox_h": 0.019844,
       "confidence": 0.3082,
       "is_ai_generated": true,
@@ -719,7 +719,7 @@
       "bbox_x": 0.486197,
       "bbox_y": 0.522363,
       "bbox_w": 0.014867,
-      "bbox_h": 0.017032,
+      "bbox_h": 0.017031,
       "confidence": 0.4078,
       "is_ai_generated": true,
       "needs_review": true
@@ -814,9 +814,9 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.002973,
-      "bbox_y": 0.550958,
+      "bbox_y": 0.550959,
       "bbox_w": 0.134911,
-      "bbox_h": 0.104864,
+      "bbox_h": 0.104863,
       "confidence": 0.6786,
       "is_ai_generated": true,
       "needs_review": true
@@ -1033,7 +1033,7 @@
       "bbox_x": 0.26648,
       "bbox_y": 0.532516,
       "bbox_w": 0.073143,
-      "bbox_h": 0.068663,
+      "bbox_h": 0.068664,
       "confidence": 0.6227,
       "is_ai_generated": true,
       "needs_review": true
@@ -1118,7 +1118,7 @@
       "bbox_x": 0.030239,
       "bbox_y": 0.066488,
       "bbox_w": 0.96854,
-      "bbox_h": 0.921728,
+      "bbox_h": 0.921729,
       "confidence": 0.6464,
       "is_ai_generated": true,
       "needs_review": true
@@ -1212,7 +1212,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.825158,
+      "bbox_x": 0.825159,
       "bbox_y": 0.546433,
       "bbox_w": 0.04749,
       "bbox_h": 0.056889,
@@ -1267,8 +1267,8 @@
       "category": "vehicle.truck",
       "bbox_x": 0.010922,
       "bbox_y": 0.2505,
-      "bbox_w": 0.98805,
-      "bbox_h": 0.677413,
+      "bbox_w": 0.988051,
+      "bbox_h": 0.677414,
       "confidence": 0.3966,
       "is_ai_generated": true,
       "needs_review": true
@@ -1433,7 +1433,7 @@
       "bbox_x": 0.428556,
       "bbox_y": 0.522942,
       "bbox_w": 0.15329,
-      "bbox_h": 0.240157,
+      "bbox_h": 0.240158,
       "confidence": 0.9284,
       "is_ai_generated": true,
       "needs_review": false
@@ -1528,7 +1528,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.0693,
-      "bbox_y": 0.507391,
+      "bbox_y": 0.50739,
       "bbox_w": 0.168123,
       "bbox_h": 0.098061,
       "confidence": 0.8971,
@@ -1634,7 +1634,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.845484,
-      "bbox_y": 0.498813,
+      "bbox_y": 0.498812,
       "bbox_w": 0.154135,
       "bbox_h": 0.10608,
       "confidence": 0.9044,
@@ -1735,7 +1735,7 @@
       "bbox_x": 0.662068,
       "bbox_y": 0.496931,
       "bbox_w": 0.268808,
-      "bbox_h": 0.143667,
+      "bbox_h": 0.143666,
       "confidence": 0.913,
       "is_ai_generated": true,
       "needs_review": false
@@ -1767,7 +1767,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.000114,
       "bbox_y": 0.523737,
-      "bbox_w": 0.026978,
+      "bbox_w": 0.026979,
       "bbox_h": 0.113916,
       "confidence": 0.7093,
       "is_ai_generated": true,
@@ -1948,7 +1948,7 @@
       "category": "vehicle.truck",
       "bbox_x": 0.164991,
       "bbox_y": 0.479642,
-      "bbox_w": 0.210315,
+      "bbox_w": 0.210314,
       "bbox_h": 0.225843,
       "confidence": 0.3365,
       "is_ai_generated": true,
@@ -2072,7 +2072,7 @@
       "bbox_x": 0.343089,
       "bbox_y": 0.4989,
       "bbox_w": 0.182485,
-      "bbox_h": 0.103601,
+      "bbox_h": 0.1036,
       "confidence": 0.8991,
       "is_ai_generated": true,
       "needs_review": false
@@ -2101,7 +2101,7 @@
       "category": "vehicle.truck",
       "bbox_x": 0.37586,
       "bbox_y": 0.405527,
-      "bbox_w": 0.066521,
+      "bbox_w": 0.066522,
       "bbox_h": 0.128296,
       "confidence": 0.684,
       "is_ai_generated": true,
@@ -2167,7 +2167,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.301865,
       "bbox_y": 0.50633,
-      "bbox_w": 0.274034,
+      "bbox_w": 0.274035,
       "bbox_h": 0.409951,
       "confidence": 0.9371,
       "is_ai_generated": true,
@@ -2296,7 +2296,7 @@
       "bbox_x": 0.505384,
       "bbox_y": 0.483998,
       "bbox_w": 0.102775,
-      "bbox_h": 0.078439,
+      "bbox_h": 0.078438,
       "confidence": 0.3269,
       "is_ai_generated": true,
       "needs_review": true
@@ -2316,7 +2316,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.278616,
-      "bbox_y": 0.503787,
+      "bbox_y": 0.503788,
       "bbox_w": 0.304826,
       "bbox_h": 0.424005,
       "confidence": 0.937,
@@ -2465,7 +2465,7 @@
     },
     {
       "category": "vehicle.truck",
-      "bbox_x": 0.513961,
+      "bbox_x": 0.51396,
       "bbox_y": 0.396841,
       "bbox_w": 0.232377,
       "bbox_h": 0.320027,
@@ -2510,7 +2510,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.313774,
-      "bbox_y": 0.489559,
+      "bbox_y": 0.48956,
       "bbox_w": 0.039727,
       "bbox_h": 0.056505,
       "confidence": 0.6525,
@@ -2542,9 +2542,9 @@
     {
       "category": "vehicle.truck",
       "bbox_x": 0.875486,
-      "bbox_y": 0.451211,
+      "bbox_y": 0.45121,
       "bbox_w": 0.123924,
-      "bbox_h": 0.1782,
+      "bbox_h": 0.178201,
       "confidence": 0.8726,
       "is_ai_generated": true,
       "needs_review": false
@@ -2564,7 +2564,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.590303,
-      "bbox_y": 0.489112,
+      "bbox_y": 0.489113,
       "bbox_w": 0.072326,
       "bbox_h": 0.042185,
       "confidence": 0.6659,
@@ -2648,7 +2648,7 @@
       "bbox_x": 0.545191,
       "bbox_y": 0.537431,
       "bbox_w": 0.015241,
-      "bbox_h": 0.040193,
+      "bbox_h": 0.040194,
       "confidence": 0.4196,
       "is_ai_generated": true,
       "needs_review": true
@@ -2756,7 +2756,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.240634,
-      "bbox_y": 0.4993,
+      "bbox_y": 0.499301,
       "bbox_w": 0.351319,
       "bbox_h": 0.431333,
       "confidence": 0.9394,
@@ -2856,7 +2856,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.504829,
       "bbox_y": 0.487908,
-      "bbox_w": 0.067874,
+      "bbox_w": 0.067873,
       "bbox_h": 0.046888,
       "confidence": 0.529,
       "is_ai_generated": true,
@@ -2952,7 +2952,7 @@
     {
       "category": "vehicle.truck",
       "bbox_x": 0.719987,
-      "bbox_y": 0.426238,
+      "bbox_y": 0.426237,
       "bbox_w": 0.279482,
       "bbox_h": 0.213425,
       "confidence": 0.8567,
@@ -2994,7 +2994,7 @@
     {
       "category": "vehicle.truck",
       "bbox_x": 0.001947,
-      "bbox_y": 0.006359,
+      "bbox_y": 0.006358,
       "bbox_w": 0.385661,
       "bbox_h": 0.97735,
       "confidence": 0.8693,
@@ -3018,7 +3018,7 @@
       "bbox_x": 0.000641,
       "bbox_y": 0.455712,
       "bbox_w": 0.165446,
-      "bbox_h": 0.141679,
+      "bbox_h": 0.141678,
       "confidence": 0.9075,
       "is_ai_generated": true,
       "needs_review": false
@@ -3057,7 +3057,7 @@
       "category": "human.pedestrian",
       "bbox_x": 0.651447,
       "bbox_y": 0.477994,
-      "bbox_w": 0.02123,
+      "bbox_w": 0.021231,
       "bbox_h": 0.119741,
       "confidence": 0.3891,
       "is_ai_generated": true,
@@ -3121,7 +3121,7 @@
       "category": "human.pedestrian",
       "bbox_x": 0.633743,
       "bbox_y": 0.242292,
-      "bbox_w": 0.197228,
+      "bbox_w": 0.197229,
       "bbox_h": 0.604464,
       "confidence": 0.8509,
       "is_ai_generated": true,
@@ -3155,7 +3155,7 @@
       "bbox_x": 0.776696,
       "bbox_y": 0.464447,
       "bbox_w": 0.057661,
-      "bbox_h": 0.118577,
+      "bbox_h": 0.118578,
       "confidence": 0.8097,
       "is_ai_generated": true,
       "needs_review": true
@@ -3386,7 +3386,7 @@
       "bbox_y": 0.449529,
       "bbox_w": 0.036517,
       "bbox_h": 0.077268,
-      "confidence": 0.565,
+      "confidence": 0.5651,
       "is_ai_generated": true,
       "needs_review": true
     }
@@ -3449,7 +3449,7 @@
       "bbox_x": 0.624079,
       "bbox_y": 0.477231,
       "bbox_w": 0.025968,
-      "bbox_h": 0.111341,
+      "bbox_h": 0.11134,
       "confidence": 0.4674,
       "is_ai_generated": true,
       "needs_review": true
@@ -3660,7 +3660,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.6249,
       "bbox_y": 0.550825,
-      "bbox_w": 0.041281,
+      "bbox_w": 0.041282,
       "bbox_h": 0.029546,
       "confidence": 0.2912,
       "is_ai_generated": true,
@@ -3797,7 +3797,7 @@
       "bbox_x": 0.004452,
       "bbox_y": 0.001559,
       "bbox_w": 0.910289,
-      "bbox_h": 0.984455,
+      "bbox_h": 0.984456,
       "confidence": 0.8238,
       "is_ai_generated": true,
       "needs_review": true
@@ -3871,7 +3871,7 @@
       "bbox_x": 0.737288,
       "bbox_y": 0.563211,
       "bbox_w": 0.038703,
-      "bbox_h": 0.047418,
+      "bbox_h": 0.047419,
       "confidence": 0.5689,
       "is_ai_generated": true,
       "needs_review": true
@@ -3965,7 +3965,7 @@
       "bbox_x": 0.501952,
       "bbox_y": 0.477533,
       "bbox_w": 0.052293,
-      "bbox_h": 0.110648,
+      "bbox_h": 0.110649,
       "confidence": 0.507,
       "is_ai_generated": true,
       "needs_review": true
@@ -4015,7 +4015,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.883792,
-      "bbox_y": 0.537022,
+      "bbox_y": 0.537023,
       "bbox_w": 0.048436,
       "bbox_h": 0.084321,
       "confidence": 0.8135,
@@ -4025,9 +4025,9 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.964179,
-      "bbox_y": 0.516748,
+      "bbox_y": 0.516747,
       "bbox_w": 0.035401,
-      "bbox_h": 0.086943,
+      "bbox_h": 0.086944,
       "confidence": 0.745,
       "is_ai_generated": true,
       "needs_review": true
@@ -4135,7 +4135,7 @@
       "bbox_x": 0.138786,
       "bbox_y": 0.517101,
       "bbox_w": 0.229693,
-      "bbox_h": 0.134795,
+      "bbox_h": 0.134796,
       "confidence": 0.9043,
       "is_ai_generated": true,
       "needs_review": false
@@ -4144,7 +4144,7 @@
       "category": "vehicle.car",
       "bbox_x": 8.9e-05,
       "bbox_y": 0.50041,
-      "bbox_w": 0.126571,
+      "bbox_w": 0.126572,
       "bbox_h": 0.11133,
       "confidence": 0.9024,
       "is_ai_generated": true,
@@ -4285,7 +4285,7 @@
       "bbox_x": 0.821926,
       "bbox_y": 0.477534,
       "bbox_w": 0.177837,
-      "bbox_h": 0.124019,
+      "bbox_h": 0.12402,
       "confidence": 0.9245,
       "is_ai_generated": true,
       "needs_review": false
@@ -4336,7 +4336,7 @@
   "193_CAM_FRONT_RIGHT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.000258,
+      "bbox_x": 0.000257,
       "bbox_y": 0.480788,
       "bbox_w": 0.118812,
       "bbox_h": 0.12175,
@@ -4627,7 +4627,7 @@
       "bbox_x": 0.004415,
       "bbox_y": 0.004572,
       "bbox_w": 0.936307,
-      "bbox_h": 0.983657,
+      "bbox_h": 0.983658,
       "confidence": 0.8485,
       "is_ai_generated": true,
       "needs_review": true
@@ -4706,7 +4706,7 @@
       "bbox_y": 0.497747,
       "bbox_w": 0.193786,
       "bbox_h": 0.108969,
-      "confidence": 0.8989,
+      "confidence": 0.8988,
       "is_ai_generated": true,
       "needs_review": false
     },
@@ -4724,7 +4724,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.313529,
       "bbox_y": 0.488988,
-      "bbox_w": 0.040134,
+      "bbox_w": 0.040133,
       "bbox_h": 0.058011,
       "confidence": 0.8073,
       "is_ai_generated": true,
@@ -4745,7 +4745,7 @@
       "bbox_x": 0.365671,
       "bbox_y": 0.497359,
       "bbox_w": 0.024061,
-      "bbox_h": 0.024919,
+      "bbox_h": 0.024918,
       "confidence": 0.3036,
       "is_ai_generated": true,
       "needs_review": true
@@ -4831,7 +4831,7 @@
       "bbox_x": 0.240304,
       "bbox_y": 0.499598,
       "bbox_w": 0.352874,
-      "bbox_h": 0.432006,
+      "bbox_h": 0.432007,
       "confidence": 0.9406,
       "is_ai_generated": true,
       "needs_review": false
@@ -4981,7 +4981,7 @@
       "bbox_x": 0.240724,
       "bbox_y": 0.49985,
       "bbox_w": 0.352547,
-      "bbox_h": 0.42998,
+      "bbox_h": 0.429979,
       "confidence": 0.9438,
       "is_ai_generated": true,
       "needs_review": false
@@ -5045,7 +5045,7 @@
       "bbox_x": 0.31361,
       "bbox_y": 0.489442,
       "bbox_w": 0.039553,
-      "bbox_h": 0.05682,
+      "bbox_h": 0.056819,
       "confidence": 0.7504,
       "is_ai_generated": true,
       "needs_review": true
@@ -5053,7 +5053,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.371024,
-      "bbox_y": 0.490895,
+      "bbox_y": 0.490896,
       "bbox_w": 0.022079,
       "bbox_h": 0.034266,
       "confidence": 0.586,
@@ -5345,7 +5345,7 @@
       "bbox_x": 0.679705,
       "bbox_y": 0.449909,
       "bbox_w": 0.263391,
-      "bbox_h": 0.152561,
+      "bbox_h": 0.152562,
       "confidence": 0.8817,
       "is_ai_generated": true,
       "needs_review": false
@@ -5504,7 +5504,7 @@
       "bbox_x": 0.035891,
       "bbox_y": 0.49534,
       "bbox_w": 0.021503,
-      "bbox_h": 0.085186,
+      "bbox_h": 0.085187,
       "confidence": 0.2748,
       "is_ai_generated": true,
       "needs_review": true

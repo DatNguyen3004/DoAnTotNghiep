@@ -1,66 +1,5 @@
 {
-  "203_CAM_FRONT": [
-    {
-      "category": "vehicle.car",
-      "bbox_x": 0.77089,
-      "bbox_y": 0.552013,
-      "bbox_w": 0.069797,
-      "bbox_h": 0.065889,
-      "confidence": 0.874,
-      "is_ai_generated": true,
-      "needs_review": false
-    },
-    {
-      "category": "human.pedestrian",
-      "bbox_x": 0.207045,
-      "bbox_y": 0.537119,
-      "bbox_w": 0.033344,
-      "bbox_h": 0.139836,
-      "confidence": 0.7896,
-      "is_ai_generated": true,
-      "needs_review": true
-    },
-    {
-      "category": "human.pedestrian",
-      "bbox_x": 0.020552,
-      "bbox_y": 0.535629,
-      "bbox_w": 0.056937,
-      "bbox_h": 0.243157,
-      "confidence": 0.7276,
-      "is_ai_generated": true,
-      "needs_review": true
-    },
-    {
-      "category": "vehicle.car",
-      "bbox_x": 0.566558,
-      "bbox_y": 0.539211,
-      "bbox_w": 0.031928,
-      "bbox_h": 0.046627,
-      "confidence": 0.6445,
-      "is_ai_generated": true,
-      "needs_review": true
-    },
-    {
-      "category": "vehicle.car",
-      "bbox_x": 0.532823,
-      "bbox_y": 0.525668,
-      "bbox_w": 0.018333,
-      "bbox_h": 0.029828,
-      "confidence": 0.4954,
-      "is_ai_generated": true,
-      "needs_review": true
-    },
-    {
-      "category": "vehicle.car",
-      "bbox_x": 0.555887,
-      "bbox_y": 0.526018,
-      "bbox_w": 0.017023,
-      "bbox_h": 0.033702,
-      "confidence": 0.4545,
-      "is_ai_generated": true,
-      "needs_review": true
-    }
-  ],
+  "203_CAM_FRONT": [],
   "203_CAM_FRONT_LEFT": [
     {
       "category": "human.pedestrian",
@@ -176,7 +115,7 @@
       "category": "human.pedestrian",
       "bbox_x": 0.036183,
       "bbox_y": 0.519008,
-      "bbox_w": 0.055365,
+      "bbox_w": 0.055366,
       "bbox_h": 0.226322,
       "confidence": 0.8815,
       "is_ai_generated": true,
@@ -204,7 +143,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.550411,
+      "bbox_x": 0.550412,
       "bbox_y": 0.514724,
       "bbox_w": 0.017029,
       "bbox_h": 0.032513,
@@ -214,7 +153,7 @@
     },
     {
       "category": "vehicle.truck",
-      "bbox_x": 0.7387,
+      "bbox_x": 0.738699,
       "bbox_y": 0.514814,
       "bbox_w": 0.055444,
       "bbox_h": 0.063462,
@@ -387,7 +326,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.580455,
-      "bbox_y": 0.512141,
+      "bbox_y": 0.512142,
       "bbox_w": 0.020448,
       "bbox_h": 0.030534,
       "confidence": 0.3626,
@@ -433,7 +372,7 @@
       "bbox_x": 0.361067,
       "bbox_y": 0.548308,
       "bbox_w": 0.233942,
-      "bbox_h": 0.161492,
+      "bbox_h": 0.161491,
       "confidence": 0.9312,
       "is_ai_generated": true,
       "needs_review": false
@@ -443,7 +382,7 @@
       "bbox_x": 3e-06,
       "bbox_y": 0.513643,
       "bbox_w": 0.01369,
-      "bbox_h": 0.088454,
+      "bbox_h": 0.088455,
       "confidence": 0.5575,
       "is_ai_generated": true,
       "needs_review": true
@@ -497,7 +436,7 @@
       "bbox_x": 0.477468,
       "bbox_y": 0.515954,
       "bbox_w": 0.073054,
-      "bbox_h": 0.444043,
+      "bbox_h": 0.444044,
       "confidence": 0.8182,
       "is_ai_generated": true,
       "needs_review": true
@@ -517,7 +456,7 @@
     {
       "category": "vehicle.bus",
       "bbox_x": 0.000847,
-      "bbox_y": 0.265324,
+      "bbox_y": 0.265323,
       "bbox_w": 0.592661,
       "bbox_h": 0.434319,
       "confidence": 0.9444,
@@ -730,7 +669,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.628147,
-      "bbox_y": 0.512017,
+      "bbox_y": 0.512016,
       "bbox_w": 0.019105,
       "bbox_h": 0.023461,
       "confidence": 0.4719,
@@ -987,7 +926,7 @@
       "bbox_x": 0.837658,
       "bbox_y": 0.551147,
       "bbox_w": 0.022813,
-      "bbox_h": 0.150011,
+      "bbox_h": 0.150012,
       "confidence": 0.2887,
       "is_ai_generated": true,
       "needs_review": true
@@ -1136,7 +1075,7 @@
       "bbox_x": 0.342494,
       "bbox_y": 0.553967,
       "bbox_w": 0.02559,
-      "bbox_h": 0.034634,
+      "bbox_h": 0.034635,
       "confidence": 0.5028,
       "is_ai_generated": true,
       "needs_review": true
@@ -1201,7 +1140,7 @@
       "bbox_x": 0.518506,
       "bbox_y": 0.493911,
       "bbox_w": 0.018829,
-      "bbox_h": 0.035006,
+      "bbox_h": 0.035005,
       "confidence": 0.5936,
       "is_ai_generated": true,
       "needs_review": true
@@ -1245,7 +1184,7 @@
       "bbox_x": 0.510511,
       "bbox_y": 0.549966,
       "bbox_w": 0.022985,
-      "bbox_h": 0.040162,
+      "bbox_h": 0.040163,
       "confidence": 0.5113,
       "is_ai_generated": true,
       "needs_review": true
@@ -1298,7 +1237,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.519276,
-      "bbox_y": 0.494884,
+      "bbox_y": 0.494885,
       "bbox_w": 0.019172,
       "bbox_h": 0.035308,
       "confidence": 0.6282,
@@ -1309,7 +1248,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.551974,
       "bbox_y": 0.505402,
-      "bbox_w": 0.031406,
+      "bbox_w": 0.031407,
       "bbox_h": 0.047824,
       "confidence": 0.5978,
       "is_ai_generated": true,
@@ -1398,7 +1337,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.839773,
       "bbox_y": 0.521745,
-      "bbox_w": 0.095073,
+      "bbox_w": 0.095072,
       "bbox_h": 0.08064,
       "confidence": 0.863,
       "is_ai_generated": true,
@@ -1548,7 +1487,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.905778,
       "bbox_y": 0.559177,
-      "bbox_w": 0.093769,
+      "bbox_w": 0.09377,
       "bbox_h": 0.122488,
       "confidence": 0.8431,
       "is_ai_generated": true,
@@ -1682,7 +1621,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.509669,
+      "bbox_x": 0.50967,
       "bbox_y": 0.532367,
       "bbox_w": 0.024312,
       "bbox_h": 0.040332,
@@ -1814,7 +1753,7 @@
       "bbox_x": 0.32203,
       "bbox_y": 0.552222,
       "bbox_w": 0.267186,
-      "bbox_h": 0.177763,
+      "bbox_h": 0.177764,
       "confidence": 0.8936,
       "is_ai_generated": true,
       "needs_review": false
@@ -1954,7 +1893,7 @@
       "bbox_x": 0.711306,
       "bbox_y": 0.524861,
       "bbox_w": 0.080102,
-      "bbox_h": 0.205957,
+      "bbox_h": 0.205958,
       "confidence": 0.6086,
       "is_ai_generated": true,
       "needs_review": true
@@ -1963,7 +1902,7 @@
   "215_CAM_FRONT_RIGHT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.596446,
+      "bbox_x": 0.596447,
       "bbox_y": 0.523148,
       "bbox_w": 0.403448,
       "bbox_h": 0.236881,
@@ -2252,7 +2191,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.739255,
-      "bbox_y": 0.501672,
+      "bbox_y": 0.501671,
       "bbox_w": 0.144739,
       "bbox_h": 0.134298,
       "confidence": 0.69,
@@ -2401,7 +2340,7 @@
   "217_CAM_BACK_LEFT": [
     {
       "category": "vehicle.motorcycle",
-      "bbox_x": 0.549357,
+      "bbox_x": 0.549358,
       "bbox_y": 0.463148,
       "bbox_w": 0.215096,
       "bbox_h": 0.318615,
@@ -2471,7 +2410,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.437631,
-      "bbox_y": 0.549405,
+      "bbox_y": 0.549406,
       "bbox_w": 0.050558,
       "bbox_h": 0.062368,
       "confidence": 0.8229,
@@ -2483,7 +2422,7 @@
       "bbox_x": 0.258667,
       "bbox_y": 0.550536,
       "bbox_w": 0.073706,
-      "bbox_h": 0.062874,
+      "bbox_h": 0.062873,
       "confidence": 0.7951,
       "is_ai_generated": true,
       "needs_review": true
@@ -2533,7 +2472,7 @@
     {
       "category": "vehicle.motorcycle",
       "bbox_x": 7.3e-05,
-      "bbox_y": 0.43886,
+      "bbox_y": 0.438861,
       "bbox_w": 0.087181,
       "bbox_h": 0.279995,
       "confidence": 0.7063,
@@ -2630,7 +2569,7 @@
   "219_CAM_FRONT_RIGHT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.499861,
+      "bbox_x": 0.49986,
       "bbox_y": 0.481245,
       "bbox_w": 0.401129,
       "bbox_h": 0.395895,
@@ -2883,7 +2822,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.476813,
+      "bbox_x": 0.476814,
       "bbox_y": 0.553297,
       "bbox_w": 0.018973,
       "bbox_h": 0.032497,
@@ -3026,7 +2965,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.415712,
       "bbox_y": 0.550192,
-      "bbox_w": 0.061819,
+      "bbox_w": 0.061818,
       "bbox_h": 0.078601,
       "confidence": 0.8127,
       "is_ai_generated": true,
@@ -3077,7 +3016,7 @@
       "bbox_x": 0.415082,
       "bbox_y": 0.547413,
       "bbox_w": 0.015965,
-      "bbox_h": 0.034651,
+      "bbox_h": 0.034652,
       "confidence": 0.2612,
       "is_ai_generated": true,
       "needs_review": true
@@ -3186,7 +3125,7 @@
       "bbox_x": 0.095548,
       "bbox_y": 0.532069,
       "bbox_w": 0.036405,
-      "bbox_h": 0.045125,
+      "bbox_h": 0.045126,
       "confidence": 0.5725,
       "is_ai_generated": true,
       "needs_review": true
@@ -3215,7 +3154,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.495442,
+      "bbox_x": 0.495443,
       "bbox_y": 0.53398,
       "bbox_w": 0.031684,
       "bbox_h": 0.04892,
@@ -3366,7 +3305,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.388177,
-      "bbox_y": 0.549759,
+      "bbox_y": 0.54976,
       "bbox_w": 0.076167,
       "bbox_h": 0.092095,
       "confidence": 0.7617,
@@ -3389,7 +3328,7 @@
   "224_CAM_FRONT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.701204,
+      "bbox_x": 0.701205,
       "bbox_y": 0.556484,
       "bbox_w": 0.093785,
       "bbox_h": 0.103069,
@@ -3635,7 +3574,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.500776,
-      "bbox_y": 0.539618,
+      "bbox_y": 0.539619,
       "bbox_w": 0.029051,
       "bbox_h": 0.049963,
       "confidence": 0.7678,
@@ -3723,7 +3662,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.0,
-      "bbox_y": 0.558332,
+      "bbox_y": 0.558331,
       "bbox_w": 0.267602,
       "bbox_h": 0.222431,
       "confidence": 0.9332,
@@ -3754,7 +3693,7 @@
   "226_CAM_BACK": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.34314,
+      "bbox_x": 0.343139,
       "bbox_y": 0.548104,
       "bbox_w": 0.10933,
       "bbox_h": 0.127977,
@@ -3808,7 +3747,7 @@
   "227_CAM_FRONT": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.854369,
+      "bbox_x": 0.854368,
       "bbox_y": 0.541697,
       "bbox_w": 0.102362,
       "bbox_h": 0.139953,
@@ -3969,7 +3908,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.860946,
       "bbox_y": 0.484636,
-      "bbox_w": 0.058455,
+      "bbox_w": 0.058456,
       "bbox_h": 0.028085,
       "confidence": 0.3568,
       "is_ai_generated": true,
@@ -4151,7 +4090,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.85781,
-      "bbox_y": 0.548469,
+      "bbox_y": 0.54847,
       "bbox_w": 0.031711,
       "bbox_h": 0.038336,
       "confidence": 0.464,
@@ -4183,7 +4122,7 @@
       "bbox_x": 0.10194,
       "bbox_y": 0.492695,
       "bbox_w": 0.038596,
-      "bbox_h": 0.030852,
+      "bbox_h": 0.030853,
       "confidence": 0.2745,
       "is_ai_generated": true,
       "needs_review": true
@@ -4235,7 +4174,7 @@
       "bbox_x": 0.495072,
       "bbox_y": 0.522202,
       "bbox_w": 0.016225,
-      "bbox_h": 0.020733,
+      "bbox_h": 0.020734,
       "confidence": 0.481,
       "is_ai_generated": true,
       "needs_review": true
@@ -4341,9 +4280,9 @@
     {
       "category": "human.pedestrian",
       "bbox_x": 0.104061,
-      "bbox_y": 0.550328,
+      "bbox_y": 0.550329,
       "bbox_w": 0.016705,
-      "bbox_h": 0.076061,
+      "bbox_h": 0.07606,
       "confidence": 0.3244,
       "is_ai_generated": true,
       "needs_review": true
@@ -4416,9 +4355,9 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.283828,
-      "bbox_y": 0.597553,
+      "bbox_y": 0.597552,
       "bbox_w": 0.154641,
-      "bbox_h": 0.124081,
+      "bbox_h": 0.124082,
       "confidence": 0.9176,
       "is_ai_generated": true,
       "needs_review": false
@@ -4522,7 +4461,7 @@
   "231_CAM_BACK": [
     {
       "category": "vehicle.car",
-      "bbox_x": 0.018291,
+      "bbox_x": 0.01829,
       "bbox_y": 0.563192,
       "bbox_w": 0.351099,
       "bbox_h": 0.32486,
@@ -4552,7 +4491,7 @@
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.50253,
+      "bbox_x": 0.502531,
       "bbox_y": 0.539653,
       "bbox_w": 0.030547,
       "bbox_h": 0.051279,
@@ -4705,7 +4644,7 @@
       "bbox_x": 0.501951,
       "bbox_y": 0.536226,
       "bbox_w": 0.031511,
-      "bbox_h": 0.052265,
+      "bbox_h": 0.052266,
       "confidence": 0.758,
       "is_ai_generated": true,
       "needs_review": true
@@ -4778,7 +4717,7 @@
       "bbox_x": 0.285679,
       "bbox_y": 0.548862,
       "bbox_w": 0.040022,
-      "bbox_h": 0.056998,
+      "bbox_h": 0.056997,
       "confidence": 0.7819,
       "is_ai_generated": true,
       "needs_review": true
@@ -4786,7 +4725,7 @@
     {
       "category": "vehicle.car",
       "bbox_x": 0.36255,
-      "bbox_y": 0.553001,
+      "bbox_y": 0.553002,
       "bbox_w": 0.05232,
       "bbox_h": 0.059196,
       "confidence": 0.7785,
@@ -4841,9 +4780,9 @@
     {
       "category": "human.pedestrian",
       "bbox_x": 0.487461,
-      "bbox_y": 0.556878,
+      "bbox_y": 0.556879,
       "bbox_w": 0.021902,
-      "bbox_h": 0.115943,
+      "bbox_h": 0.115942,
       "confidence": 0.6597,
       "is_ai_generated": true,
       "needs_review": true
@@ -4851,7 +4790,7 @@
     {
       "category": "human.pedestrian",
       "bbox_x": 0.510351,
-      "bbox_y": 0.622912,
+      "bbox_y": 0.622911,
       "bbox_w": 0.021655,
       "bbox_h": 0.050986,
       "confidence": 0.3788,
@@ -5118,7 +5057,7 @@
       "bbox_x": 0.52287,
       "bbox_y": 0.562195,
       "bbox_w": 0.06192,
-      "bbox_h": 0.057801,
+      "bbox_h": 0.057802,
       "confidence": 0.7329,
       "is_ai_generated": true,
       "needs_review": true
@@ -5269,7 +5208,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.545711,
       "bbox_y": 0.52975,
-      "bbox_w": 0.017184,
+      "bbox_w": 0.017183,
       "bbox_h": 0.027448,
       "confidence": 0.5199,
       "is_ai_generated": true,
@@ -5315,7 +5254,7 @@
       "bbox_x": 0.502357,
       "bbox_y": 0.54606,
       "bbox_w": 0.031758,
-      "bbox_h": 0.049442,
+      "bbox_h": 0.049441,
       "confidence": 0.7831,
       "is_ai_generated": true,
       "needs_review": true
@@ -5469,7 +5408,7 @@
       "bbox_y": 0.549147,
       "bbox_w": 0.039865,
       "bbox_h": 0.043904,
-      "confidence": 0.426,
+      "confidence": 0.4259,
       "is_ai_generated": true,
       "needs_review": true
     }
@@ -5767,7 +5706,7 @@
       "category": "vehicle.car",
       "bbox_x": 0.777182,
       "bbox_y": 0.550296,
-      "bbox_w": 0.222181,
+      "bbox_w": 0.222182,
       "bbox_h": 0.442433,
       "confidence": 0.9361,
       "is_ai_generated": true,
@@ -5910,7 +5849,7 @@
       "bbox_x": 0.00014,
       "bbox_y": 0.475435,
       "bbox_w": 0.054174,
-      "bbox_h": 0.069689,
+      "bbox_h": 0.069688,
       "confidence": 0.5166,
       "is_ai_generated": true,
       "needs_review": true
@@ -5922,14 +5861,14 @@
       "bbox_x": 0.202013,
       "bbox_y": 0.563725,
       "bbox_w": 0.211905,
-      "bbox_h": 0.212863,
+      "bbox_h": 0.212864,
       "confidence": 0.9221,
       "is_ai_generated": true,
       "needs_review": false
     },
     {
       "category": "vehicle.car",
-      "bbox_x": 0.500065,
+      "bbox_x": 0.500066,
       "bbox_y": 0.548017,
       "bbox_w": 0.031786,
       "bbox_h": 0.051616,

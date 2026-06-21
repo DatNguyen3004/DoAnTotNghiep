@@ -84,20 +84,33 @@ VALID_STATUSES = {"pending", "in_progress", "submitted", "under_review", "review
 
 from models.project import Project
 
-def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dict:
+def get_task_precision_details(db_session: Session, t_id: int, s_id: int, background_tasks: Optional[BackgroundTasks] = None) -> dict:
     """Tính toán chi tiết độ tin cậy và số lượng đối tượng khớp/sót so với AI dự đoán."""
     import os
     import json
     
     # Lấy dự đoán từ cache nếu có
     cache_path = os.path.join("static", "cache", "predictions", f"task_{t_id}.json")
+    
+    # Nếu chưa có cache, không chạy đồng bộ làm nghẽn request, chạy ngầm qua background task
+    if not os.path.exists(cache_path):
+        if background_tasks:
+            background_tasks.add_task(precache_ai_predictions, t_id)
+        return {
+            "precision": None,
+            "matched_objs": 0,
+            "missing_objs": 0,
+            "user_objs": 0,
+            "ai_matched_objs": 0,
+            "ai_missing_objs": 0,
+        }
+
     all_ai_preds = {}
-    if os.path.exists(cache_path):
-        try:
-            with open(cache_path, "r", encoding="utf-8") as f:
-                all_ai_preds = json.load(f)
-        except Exception:
-            pass
+    try:
+        with open(cache_path, "r", encoding="utf-8") as f:
+            all_ai_preds = json.load(f)
+    except Exception:
+        pass
 
     frames = db_session.query(Frame).filter(Frame.scene_id == s_id).all()
     user_annotations = db_session.query(Annotation).filter(Annotation.task_id == t_id).all()
@@ -179,6 +192,7 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
                 ai_list = all_ai_preds.get(key)
                 if ai_list is None:
                     ai_list = get_ai_predictions_for_frame_cam(db_session, f.id, cam)
+                    all_ai_preds[key] = ai_list
                 frame_ai_count += len(ai_list)
                 
                 available_ai = [dict(p) for p in ai_list]
@@ -251,6 +265,14 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
 
     precision = round(sum(frame_reliabilities) / len(frame_reliabilities)) if frame_reliabilities else 100
 
+    # Lưu lại vào cache để tránh phải chạy lại inference ở các request sau
+    if not os.path.exists(cache_path) and all_ai_preds:
+        try:
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(all_ai_preds, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error saving AI prediction cache in get_task_precision_details: {e}")
+
     return {
         "precision": precision,
         "matched_objs": total_matched_objs,
@@ -260,10 +282,10 @@ def get_task_precision_details(db_session: Session, t_id: int, s_id: int) -> dic
         "ai_missing_objs": total_ai_missing_objs,
     }
 
-def calculate_task_user_precision(db_session: Session, t_id: int, s_id: int) -> int:
-    return get_task_precision_details(db_session, t_id, s_id)["precision"]
+def calculate_task_user_precision(db_session: Session, t_id: int, s_id: int, background_tasks: Optional[BackgroundTasks] = None) -> Optional[int]:
+    return get_task_precision_details(db_session, t_id, s_id, background_tasks)["precision"]
 
-def _enrich_task(task: Task, db: Session) -> dict:
+def _enrich_task(task: Task, db: Session, background_tasks: Optional[BackgroundTasks] = None) -> dict:
     """Enrich task with scene info, user info, and annotation count."""
     scene = db.query(Scene).filter(Scene.id == task.scene_id).first()
     project = db.query(Project).filter(Project.id == task.project_id).first()
@@ -305,7 +327,7 @@ def _enrich_task(task: Task, db: Session) -> dict:
             precision = 0
         else:
             try:
-                details = get_task_precision_details(db, task.id, task.scene_id)
+                details = get_task_precision_details(db, task.id, task.scene_id, background_tasks)
                 precision = details["precision"]
                 matched_objs = details["matched_objs"]
                 missing_objs = details["missing_objs"]
@@ -353,6 +375,7 @@ def list_tasks(
     project_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     role: Optional[str] = Query(None),       # "reviewer" → tasks where current user is reviewer
+    background_tasks: BackgroundTasks = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -388,7 +411,7 @@ def list_tasks(
         )
 
     tasks = query.order_by(Task.created_at.desc()).all()
-    return [_enrich_task(t, db) for t in tasks]
+    return [_enrich_task(t, db, background_tasks) for t in tasks]
 
 
 # ───────────────────────────────────────────────
@@ -397,13 +420,14 @@ def list_tasks(
 @router.get("/{task_id}")
 def get_task(
     task_id: int,
+    background_tasks: BackgroundTasks = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Không tìm thấy task")
-    return _enrich_task(task, db)
+    return _enrich_task(task, db, background_tasks)
 
 
 # ───────────────────────────────────────────────

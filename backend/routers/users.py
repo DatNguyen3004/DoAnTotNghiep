@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -107,6 +107,7 @@ def update_user(
 def get_user_stats(
     user_id: int,
     project_id: Optional[int] = Query(None),
+    background_tasks: BackgroundTasks = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -165,9 +166,10 @@ def get_user_stats(
         if admin_sub.action == "admin_rejected":
             precisions.append(0)   # penalty
         else:
-            precisions.append(calculate_task_user_precision(db, t.id, t.scene_id))
+            precisions.append(calculate_task_user_precision(db, t.id, t.scene_id, background_tasks))
 
-    quality_rate = round(sum(precisions) / len(precisions)) if precisions else None
+    valid_precisions = [p for p in precisions if p is not None]
+    quality_rate = round(sum(valid_precisions) / len(valid_precisions)) if valid_precisions else None
 
     # ── Thống kê kiểm thử (reviewer) ──
     from sqlalchemy import or_, and_

@@ -86,7 +86,9 @@ htmlcov/
 # ── Electron build output ─────────────────────────────────────────────────────
 release/
 
-# ── Temporary / Local Documentation ──────────────────────────────────────────
+backend/static/cache/
+backend/static/uploads/video_cache/
 .kiro/
-Summary_DoAnTotNghiep.md
+
+# Luận văn tốt nghiệp (chỉ lưu local, không push lên Git)
 DATN/
