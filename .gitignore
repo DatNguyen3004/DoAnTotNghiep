@@ -92,3 +92,11 @@ backend/static/uploads/video_cache/
 
 # Luận văn tốt nghiệp (chỉ lưu local, không push lên Git)
 DATN/
+hai_slides.txt
+inspect_slide3.py
+nulabel_draft.txt
+nulabel_draft_2.txt
+nulabel_pdf.txt
+nulabel_slides.txt
+read_pdf.py
+read_pptx.py
