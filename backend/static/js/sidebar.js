@@ -1,34 +1,42 @@
-// sidebar.js — inject sidebar vào trang, tự detect role và active nav
+// sidebar.js — Inject sidebar tự động vào trang, tự động nhận diện vai trò (role) và làm nổi bật (active) liên kết điều hướng tương ứng.
 (function () {
+    // Đọc thông tin người dùng từ localStorage
     var cu = JSON.parse(localStorage.getItem('current_user') || '{}');
-    var isAdmin = cu.role === 'admin';
+    var isAdmin = cu.role === 'admin'; // Kiểm tra xem có phải là Admin hay không
     var path = window.location.pathname;
     var isInAdmin = path.includes('/Admin/');
     var isInUser  = path.includes('/User/');
 
+    // Thiết lập đường dẫn cơ sở dựa trên vị trí thư mục hiện tại để tránh lỗi đường dẫn tương đối
     var base = isInAdmin ? '' : (isInUser ? '../Admin/' : '');
     var userBase = isInUser ? '' : (isInAdmin ? '../User/' : 'User/');
-    var page = path.split('/').pop() || '';
+    var page = path.split('/').pop() || ''; // Tên trang hiện tại (ví dụ: dashboard.html)
 
+    // Khai báo các mục điều hướng dành cho Admin
     var adminItems = [
         { href: base + 'dashboard.html',    id: 'nav-dashboard', icon: 'fa-house',  label: 'Trang chủ',           match: 'dashboard.html' },
         { href: base + 'ManagerUser.html',  id: 'nav-users',     icon: 'fa-users',  label: 'Quản lý người dùng',  match: 'ManagerUser.html' },
         { href: base + 'setting.html',      id: 'nav-settings',  icon: 'fa-gear',   label: 'Cài đặt',             match: 'setting.html' },
     ];
+    
+    // Khai báo các mục điều hướng dành cho User (Labeler / Reviewer)
     var userItems = [
         { href: userBase + 'dashboard.html', id: 'nav-dashboard', icon: 'fa-house',  label: 'Trang chủ', match: 'dashboard.html' },
         { href: userBase + 'setting.html',   id: 'nav-settings',  icon: 'fa-gear',   label: 'Cài đặt',   match: 'setting.html' },
     ];
+    
+    // Chọn danh sách các mục hiển thị tương ứng với vai trò của người dùng hiện tại
     var items = isAdmin ? adminItems : userItems;
     var exitHref = isAdmin ? base + 'ManagerProject.html' : userBase + 'ManagerProject.html';
 
+    // Dựng mã HTML cho các mục menu
     var navHTML = items.map(function (item) {
         var active = page === item.match ? ' active' : '';
         return '<a href="' + item.href + '" class="nav-item' + active + '" id="' + item.id + '">' +
             '<i class="fa-solid ' + item.icon + '"></i><span>' + item.label + '</span></a>';
     }).join('');
 
-    // Nút hamburger sẽ được inject vào topnav-brand
+    // Dựng mã HTML cho nút hamburger dùng để thu gọn/mở rộng sidebar, chèn trực tiếp trên thanh điều hướng topnav
     var hamburgerBtn = '<button onclick="(function(){' +
         'var sb=document.getElementById(\'sidebar\');' +
         'var mw=document.getElementById(\'mainWrapper\');' +
@@ -44,12 +52,12 @@
         '<i class="fa-solid fa-bars"></i>' +
         '</button>';
 
-    // Load cache trước khi inject HTML
+    // Đọc mã ID dự án hiện tại từ sessionStorage
     var projectId = sessionStorage.getItem('projectId');
 
-    // Nếu không có projectId (chưa vào dự án) → không inject sidebar
+    // Nếu không tồn tại projectId (người dùng đang ở ngoài trang chọn dự án) -> không thực hiện tạo sidebar
     if (!projectId) {
-        // Reset margin-left để layout không bị lệch
+        // Hàm reset lại lề trái để nội dung trang dàn đều 100% màn hình
         function resetMargin() {
             var mw = document.getElementById('mainWrapper');
             if (mw) {
@@ -61,10 +69,12 @@
         else resetMargin();
         return;
     }
+    
     var projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
     var cachedProject = null;
     try { cachedProject = JSON.parse(sessionStorage.getItem('projectInfo_' + projectId) || 'null'); } catch(e) {}
 
+    // Dựng mã HTML logo hoặc chữ đại diện dự án trên đầu sidebar
     var badgeHTML = '';
     if (cachedProject && cachedProject.cover_image) {
         badgeHTML = '<img id="sideProjectLogo" src="' + cachedProject.cover_image + '" style="width:100%;height:100%;object-fit:cover">';
@@ -74,6 +84,7 @@
             '<img id="sideProjectLogo" src="" style="width:100%;height:100%;object-fit:cover;display:none">';
     }
 
+    // Dựng mã cấu trúc hoàn chỉnh của sidebar
     var sidebarHTML =
         '<aside class="sidebar" id="sidebar">' +
             '<div class="sidebar-top">' +
@@ -92,6 +103,7 @@
             '</div>' +
         '</aside>';
 
+    // Thực hiện inject HTML sidebar vào vùng chứa container tương ứng
     var container = document.getElementById('sidebar-container');
     if (container) container.outerHTML = sidebarHTML;
     else {
@@ -99,13 +111,13 @@
         if (wrapper) wrapper.insertAdjacentHTML('afterbegin', sidebarHTML);
     }
 
-    // Attach toggle ngay sau khi inject (không dùng DOMContentLoaded vì có thể đã fire)
+    // Hàm khởi tạo và bắt các sự kiện liên quan đến Sidebar
     function initSidebar() {
         var toggle = document.getElementById('toggleSidebar');
         var sidebar = document.getElementById('sidebar');
         var wrapper = document.getElementById('mainWrapper');
 
-        // Khôi phục trạng thái collapsed
+        // Khôi phục trạng thái thu gọn (collapsed) của sidebar từ cache sessionStorage
         if (sessionStorage.getItem('sidebarCollapsed') === '1') {
             if (sidebar) sidebar.classList.add('collapsed');
             if (wrapper) wrapper.classList.add('expanded');
@@ -122,7 +134,7 @@
             });
         }
 
-        // Fetch project info background
+        // Chạy ngầm việc fetch cập nhật thông tin dự án mới nhất từ backend
         if (projectId) {
             var token = localStorage.getItem('access_token');
             fetch('/api/projects/' + projectId, {
@@ -152,7 +164,7 @@
         initSidebar();
     }
 
-    // Khi nhấn nút Back/Forward của trình duyệt → kiểm tra nếu về ManagerProject thì clear project
+    // Xử lý sự kiện khi nhấn nút Back/Forward của trình duyệt, tự động dọn dẹp biến dự án nếu quay về trang ManagerProject
     window.addEventListener('popstate', function () {
         var dest = window.location.pathname;
         if (dest.includes('ManagerProject')) {
@@ -161,7 +173,7 @@
         }
     });
 
-    // Inject hamburger vào topnav-brand
+    // Tự động chèn thêm nút hamburger vào góc trái của thanh topnav
     function injectHamburger() {
         var brand = document.querySelector('.topnav-brand, .nav-brand-wrap');
         if (brand && !document.getElementById('btnToggleSidebar')) {

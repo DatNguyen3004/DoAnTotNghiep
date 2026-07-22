@@ -172,7 +172,7 @@
 </head>
 <body>
 
-<!-- Decorative background shapes -->
+<!-- Các hình nền trang trí -->
 <div class="bg-shapes">
     <div class="circle c1"></div>
     <div class="circle c2"></div>
@@ -201,14 +201,14 @@
     </div>
 </div>
 
-<!-- Centered signup card -->
+<!-- Thẻ đăng ký căn giữa -->
 <div class="signup-card">
 <div class="signup-box">
         <div class="signup-header">
             <h1 class="signup-title">ĐĂNG KÝ</h1>
         </div>
 
-        <!-- Avatar upload -->
+        <!-- Tải lên ảnh đại diện -->
         <div class="avatar-upload-section">
             <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()" title="Nhấn để chọn ảnh">
                 <i class="fa-regular fa-user avatar-placeholder" id="avatarPlaceholder"></i>
@@ -218,7 +218,7 @@
             <input type="file" id="avatarInput" accept="image/*">
         </div>
 
-        <!-- Alert -->
+        <!-- Thông báo cảnh báo -->
         <div class="alert error" id="alertError">
             <i class="fa-solid fa-circle-xmark"></i>
             <span id="alertErrorMsg"></span>
@@ -347,7 +347,7 @@
 <script>
     const API = '';
 
-    // ── Avatar upload ──────────────────────────────────────────────────────────
+    // ── Tải lên ảnh đại diện ──────────────────────────────────────────────────────────
     const avatarInput = document.getElementById('avatarInput');
     avatarInput.addEventListener('change', function () {
         const file = this.files[0];
@@ -363,7 +363,7 @@
         window._pendingAvatarFile = file;
     });
 
-    // ── Password toggle ────────────────────────────────────────────────────────
+    // ── Ẩn/hiện mật khẩu ────────────────────────────────────────────────────────
     function toggleVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon  = document.getElementById(iconId);
@@ -375,7 +375,7 @@
     document.getElementById('togglePwd').addEventListener('click', () => toggleVisibility('password', 'togglePwd'));
     document.getElementById('toggleConfirm').addEventListener('click', () => toggleVisibility('confirmPassword', 'toggleConfirm'));
 
-    // ── Password strength ──────────────────────────────────────────────────────
+    // ── Độ mạnh mật khẩu ──────────────────────────────────────────────────────
     document.getElementById('password').addEventListener('input', function () {
         const val = this.value;
         const bar = document.getElementById('pwdStrengthBar');
@@ -388,11 +388,11 @@
         const widths = ['0%', '25%', '50%', '75%', '100%'];
         bar.style.width  = widths[strength];
         bar.style.background = colors[strength];
-        // Clear error khi đang gõ
+        // Xóa thông báo lỗi khi đang gõ
         if (val.length >= 6) clearFieldError('password');
     });
 
-    // ── Inline field validation helpers ───────────────────────────────────────
+    // ── Các hàm hỗ trợ kiểm tra tính hợp lệ của trường thông tin ─────────────────
     function setFieldError(fieldId, errId, msg) {
         const input = document.getElementById(fieldId);
         const errEl = document.getElementById(errId);
@@ -412,7 +412,7 @@
         errEl.classList.remove('show');
     }
 
-    // Real-time validation khi blur (rời khỏi field)
+    // Kiểm tra tính hợp lệ thời gian thực khi blur (rời khỏi trường)
     document.getElementById('username').addEventListener('blur', function () {
         if (!this.value.trim()) setFieldError('username', 'err-username', 'Tên đăng nhập không được để trống');
         else if (this.value.trim().length < 3) setFieldError('username', 'err-username', 'Tên đăng nhập phải có ít nhất 3 ký tự');
@@ -450,7 +450,7 @@
         if (emailRegex.test(this.value.trim())) clearFieldError('email');
     });
 
-    // ── Alert helpers ──────────────────────────────────────────────────────────
+    // ── Các hàm hỗ trợ hiển thị cảnh báo ─────────────────────────────────────────
     function showError(msg) {
         const el = document.getElementById('alertError');
         document.getElementById('alertErrorMsg').textContent = msg;
@@ -464,7 +464,7 @@
         document.getElementById('alertSuccess').style.display = 'flex';
     }
 
-    // ── Form submit ────────────────────────────────────────────────────────────
+    // ── Gửi biểu mẫu (Submit) ────────────────────────────────────────────────────────────
     document.getElementById('signupForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 

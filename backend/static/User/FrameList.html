@@ -129,7 +129,7 @@ async function ensureSidebar() {
             }
         } catch(e) {}
     }
-    // Load sidebar.js dynamically sau khi projectId đã có
+    // Nạp động file sidebar.js sau khi đã có projectId
     if (!document.getElementById('_sidebarScript')) {
         const s = document.createElement('script');
         s.id = '_sidebarScript';
@@ -155,7 +155,7 @@ async function init() {
         const r2 = await fetch(BASE_URL + '/scenes/' + task.scene_id + '/frames', { headers: { Authorization: 'Bearer ' + getToken() } });
         if (!r2.ok) throw new Error();
         frames = await r2.json();
-        // Đánh dấu đang trong chế độ FrameList để disable nút tổng thể ở giao diện cũ
+        // Đánh dấu đang trong chế độ FrameList để vô hiệu hóa nút tổng thể ở giao diện cũ
         localStorage.setItem('framelist_mode_' + taskId, mode);
         checkReturnedFrame();
         renderPage();

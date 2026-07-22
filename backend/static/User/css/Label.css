@@ -30,7 +30,7 @@
             color: var(--text-main);
         }
 
-        /* Navbar */
+        /* Thanh điều hướng (Navbar) */
         .navbar {
             height: 72px;
             background: #ffffff;
@@ -80,7 +80,7 @@
             box-shadow: 0 0 0 1px var(--border-color);
         }
 
-        /* Toolbar */
+        /* Thanh công cụ (Toolbar) */
         .toolbar {
             height: 48px;
             background: var(--bg-toolbar);
@@ -185,14 +185,14 @@
             color: var(--text-main);
         }
 
-        /* Workspace Layout */
+        /* Bố cục không gian làm việc (Workspace Layout) */
         .workspace {
             display: flex;
             flex-grow: 1;
             overflow: hidden;
         }
 
-        /* Left Panel - CAMS VIEW */
+        /* Bảng điều khiển bên trái - Xem Camera (Left Panel - CAMS VIEW) */
         .panel-left {
             width: 220px;
             background: var(--bg-panel);
@@ -280,7 +280,7 @@
             border-width: 3px;
         }
 
-        /* Center Canvas */
+        /* Vùng Canvas trung tâm (Center Canvas) */
         .center-canvas {
             flex-grow: 1;
             background: #E2E8F0;
@@ -307,7 +307,7 @@
             vertical-align: top;
         }
 
-        /* Bounding Boxes on Canvas */
+        /* Các hộp giới hạn trên Canvas (Bounding Boxes on Canvas) */
         .bbox {
             position: absolute;
             border: 2px solid var(--accent-teal);
@@ -327,7 +327,7 @@
             padding: 2px 6px;
         }
 
-        /* Fake Bboxes positioned over the highway pillar and car matching the sample */
+        /* Các hộp giới hạn giả lập nằm đè trên cột xa lộ và xe hơi phù hợp với mẫu */
         .bbox-1 {
             top: 50%;
             left: 37%;
@@ -342,7 +342,7 @@
             height: 16%;
         }
 
-        /* Optional ghost bbox */
+        /* Hộp giới hạn bóng ma tùy chọn (Optional ghost bbox) */
         .bbox-ghost {
             position: absolute;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -353,7 +353,7 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-        /* Right Panel */
+        /* Bảng điều khiển bên phải (Right Panel) */
         .panel-right {
             width: 320px;
             background: var(--bg-panel);
@@ -456,7 +456,7 @@
             color: var(--primary-blue);
         }
 
-        /* AI Auto Label Button */
+        /* Nút tự động gán nhãn bằng AI (AI Auto Label Button) */
         .btn-ai-auto {
             width: 100%;
             margin-top: 16px;
@@ -495,7 +495,7 @@
             filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
         }
 
-        /* Tool Dropdown Styling */
+        /* Định dạng menu thả xuống cho công cụ (Tool Dropdown Styling) */
         .tool-item-with-dropdown {
             position: relative;
             flex: 1;
@@ -732,7 +732,7 @@
             text-decoration: underline;
         }
 
-/* ===== Results Tabs ===== */
+/* ===== Các Tab kết quả (Results Tabs) ===== */
         .results-tabs {
             display: flex;
             gap: 0;

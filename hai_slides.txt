@@ -1,0 +1,312 @@
+File: DATN\Slides_PhamDinhHai.pptx
+Total Slides: 24
+--- Slide 1 ---
+TRƯỜNG ĐẠI HỌC THỦY LỢI – KHOA CÔNG NGHỆ THÔNG TIN
+XÂY DỰNG ỨNG DỤNG DI ĐỘNG QUẢN LÝ BÁN HÀNG
+CHO CỬA HÀNG ĐỒ UỐNG MATCHA PEARL
+POS Tablet thông minh
+Giỏ hàng tách dòng tự động
+Flutter + Node.js + MySQL
+Sinh viên: Phạm Đình Hải   |   MSSV: 2251172334   |   Lớp: 64KTPM2
+GVHD: PGS.TS Nguyễn Văn Hạnh
+Hà Nội, 2026
+
+--- Slide 2 ---
+NỘI DUNG TRÌNH BÀY
+01
+Đặt vấn đề & Mục tiêu đề tài
+02
+Phân tích yêu cầu & Tác nhân
+03
+Kiến trúc 3 lớp & Công nghệ
+04
+Tính năng Smart Customization
+05
+Thuật toán giỏ hàng thông minh
+06
+Thiết kế cơ sở dữ liệu (14 bảng)
+07
+Giao diện 3 phân hệ
+08
+Kết quả & Hướng phát triển
+
+--- Slide 3 ---
+01
+Đặt vấn đề & Mục tiêu đề tài
+Bài toán POS chuyên biệt cho ngành F&B đồ uống pha chế
+
+--- Slide 4 ---
+01  ĐẶT VẤN ĐỀ
+Đặc thù ngành đồ uống
+Mỗi sản phẩm có nhiều tùy biến phức tạp (size, đường, đá, topping)
+Quy trình thủ công dễ gây sai sót khi ghi nhận tùy chọn
+Website thông thường không tối ưu thao tác chạm tốc độ cao
+Cần tính tiền tự động theo thời gian thực (real-time)
+Giải pháp Matcha Pearl POS
+Smart Customization: tùy biến món mượt mà, tính giá ngay lập tức
+Giỏ hàng thông minh: tự tách dòng sản phẩm cùng loại khác tùy chọn
+Thanh toán toàn diện: phím tắt mệnh giá, tự tính tiền thừa, VietQR động
+3 phân hệ đồng bộ: POS (Tablet) – Admin – App khách hàng
+
+--- Slide 5 ---
+01  BA PHÂN HỆ CHÍNH CỦA HỆ THỐNG
+Phân hệ Bán hàng (Tablet)
+Thu ngân chọn món, tùy biến topping, thanh toán, xử lý đơn
+Menu trực quan & tìm kiếm nhanh
+Popup tùy biến món (Smart Customization)
+Giỏ hàng thông minh tách dòng
+Thanh toán toàn diện + QR động
+Phân hệ Quản trị (Admin)
+Chủ quán quản lý menu, thuộc tính, đơn hàng, báo cáo
+Quản lý danh mục & sản phẩm
+Quản lý thuộc tính động (Size/Topping)
+Quản lý đơn hàng & lịch sử
+Báo cáo doanh thu trực quan
+Phân hệ Đặt hàng (Customer)
+Khách hàng đặt nước, theo dõi đơn, tích điểm
+Xem Menu & đặt hàng
+Tùy chỉnh cá nhân hóa
+Quản lý giỏ hàng & voucher
+Theo dõi điểm tích lũy
+
+--- Slide 6 ---
+02
+Phân tích yêu cầu & Tác nhân
+3 tác nhân · Đặc tả Use Case chi tiết với validation rules
+
+--- Slide 7 ---
+02  TÁC NHÂN HỆ THỐNG
+Nhân viên
+Trực tiếp dùng Tablet tại quầy để gọi món và phục vụ khách
+Quản lý
+Quản lý thực đơn, nhân sự, kho, tài khoản, theo dõi kinh doanh
+Khách hàng
+Đặt hàng trên App, theo dõi tiến độ đơn, đổi điểm thưởng
+Chức năng theo phân hệ
+Đăng nhập/Đăng xuất
+Quản lý giỏ hàng
+Xử lý đơn hàng
+Thanh toán (QR/Tiền mặt)
+Quản lý tài khoản
+Quản lý sản phẩm
+Quản lý kho & nguyên liệu
+Báo cáo thống kê
+
+--- Slide 8 ---
+02  VÍ DỤ ĐẶC TẢ USE CASE: THÊM SẢN PHẨM (VALIDATION)
+Tác nhân
+Quản lý
+Mô tả
+Người quản lý thêm mới sản phẩm vào hệ thống
+Luồng chính
+Truy cập Kho → Sản phẩm → Thêm mới → Nhập Tên/Giá/Danh mục/Mô tả/Hình ảnh → Lưu → Hệ thống kiểm tra → Thông báo thành công
+Quy tắc validation cụ thể (Ngoại lệ)
+Tên SP: 6–50 ký tự
+Mô tả: 20–500 ký tự
+Không chứa ký tự đặc biệt
+Không khoảng trắng thừa
+Tên SP không trùng lặp
+
+--- Slide 9 ---
+03
+Kiến trúc 3 lớp & Công nghệ
+Flutter · Node.js/Express · MySQL · Render Cloud
+
+--- Slide 10 ---
+03  KIẾN TRÚC HỆ THỐNG 3 LỚP
+Presentation Tier
+Flutter (Dart) + Provider State Management
+POS cho nhân viên + App đặt hàng khách. Giao tiếp Server qua RESTful API
+↓
+Application Tier
+Node.js + Express.js (mô hình MVC)
+Xử lý nghiệp vụ: giỏ hàng, trừ kho, tích điểm, thanh toán, phân quyền
+↓
+Data Tier
+MySQL (14 bảng quan hệ)
+Lưu trữ tài khoản, sản phẩm, đơn hàng, điểm thưởng, nhật ký kho
+🔒  Bảo mật: JWT (xác thực phân quyền) + Bcrypt (mã hóa mật khẩu)  |  Deploy: Render Cloud (SSL/TLS tự động, CI/CD từ GitHub)
+
+--- Slide 11 ---
+03  CÔNG NGHỆ SỬ DỤNG CHI TIẾT
+Frontend (Flutter)
+Dart language
+Provider (state management)
+HTTP client (RESTful API)
+Đa nền tảng: Android/iOS/Web
+Backend (Node.js)
+Express.js (routing & middleware)
+JWT (xác thực & phân quyền)
+Bcrypt (mã hóa mật khẩu)
+Mô hình MVC
+Database & Hosting
+MySQL (14 bảng quan hệ)
+Render (Cloud hosting + CI/CD)
+SSL/TLS tự động
+Dịch vụ tích hợp
+PayOS (VietQR động)
+Nodemailer (gửi OTP/email)
+Postman (test API)
+Mermaid (vẽ UML)
+
+--- Slide 12 ---
+04
+Tính năng Smart Customization
+Popup tùy biến món · Tính giá real-time
+
+--- Slide 13 ---
+04  QUY TRÌNH POPUP TÙY BIẾN MÓN
+1
+Chọn món
+Thu ngân chạm chọn món từ menu phân loại
+→
+2
+Chọn Size
+S / M / L với phụ phí tương ứng
+→
+3
+Đường & Đá
+Chọn mức % đường, % đá theo khẩu vị
+→
+4
+Thêm Topping
+Trân châu, thạch... cộng dồn giá ngay
+→
+5
+Thêm vào giỏ
+Giá tổng tự động cập nhật real-time
+💰  Thanh toán toàn diện: phím tắt mệnh giá tiền nhanh + tự tính tiền thừa + sinh mã VietQR động (PayOS)
+
+--- Slide 14 ---
+05
+Thuật toán giỏ hàng thông minh
+Tự động tách dòng sản phẩm cùng loại khác tùy chọn
+
+--- Slide 15 ---
+05  THUẬT TOÁN GIỎ HÀNG THÔNG MINH
+Vấn đề cần giải quyết
+1 ly trà sữa KHÔNG đá  +  1 ly trà sữa ĐẦY ĐỦ đá  →  phải tách thành 2 dòng riêng biệt để bộ phận pha chế (Barista) thực hiện đúng yêu cầu
+Composite Key xác định 'biến thể sản phẩm' duy nhất:
+(ProductID, SugarLevel, IceLevel, sorted[ToppingID])
+Quy trình quyết định: Gộp dòng hay Tách dòng?
+Thêm SP mới vào giỏ
+→
+So sánh Composite Key với giỏ hiện tại
+→
+Trùng khớp?
+✅ CÓ → Cộng dồn
+Quantity += 1
+❌ KHÔNG →
+Tạo dòng mới
+⚠️  Lưu ý kỹ thuật: tập hợp Topping PHẢI sắp xếp trước khi so sánh, tránh nhầm [Trân châu,Thạch] khác [Thạch,Trân châu]
+
+--- Slide 16 ---
+06
+Thiết kế cơ sở dữ liệu
+14 bảng MySQL · Bao gồm Recipe (BOM) & PointHistory
+
+--- Slide 17 ---
+06  THIẾT KẾ CƠ SỞ DỮ LIỆU – 14 BẢNG THEO NHÓM
+14
+Bảng dữ liệu
+3
+Tác nhân chính
+1
+Cổng thanh toán PayOS
+Người dùng
+Users (NV/QL), Customers (Khách + điểm + hạng thành viên)
+Sản phẩm
+Products, Categories, Toppings
+Đơn hàng
+Orders, OrderItems, OrderItemToppings (tách dòng topping)
+Khuyến mãi & Điểm
+Vouchers, CustomerVouchers, PointHistory (sổ cái điểm)
+Kho & Công thức
+Ingredients, InventoryLogs, Recipes (BOM – định mức nguyên liệu)
+⭐  Điểm nổi bật: bảng Recipes (BOM thực thụ) cho phép trừ kho tự động theo công thức pha chế khi đơn hàng được thanh toán
+
+--- Slide 18 ---
+06  ĐIỂM NỔI BẬT: BẢNG RECIPES (BOM) – TRỪ KHO TỰ ĐỘNG
+1
+Đơn hàng thanh toán
+Order chuyển trạng thái 'Đã thanh toán'
+↓
+2
+Tra cứu Recipes
+Theo ProductID/ToppingID → lấy định mức Amount
+↓
+3
+Tính lượng tiêu hao
+Amount × Quantity cho từng nguyên liệu
+↓
+4
+Trừ Ingredients
+CurrentStock -= lượng tiêu hao (trong Transaction)
+↓
+5
+Ghi InventoryLogs
+Lưu nhật ký xuất kho để truy vết sau này
+
+--- Slide 19 ---
+07
+Giao diện 3 phân hệ
+POS Nhân viên · Admin Quản trị · App Khách hàng
+
+--- Slide 20 ---
+07  GIAO DIỆN – QUẢN LÝ & NHÂN VIÊN
+[ Dashboard doanh thu ]
+Tổng quan báo cáo lợi nhuận, biểu đồ doanh số ngày/tuần/tháng.
+[ Quản lý mặt hàng ]
+CRUD sản phẩm, danh mục, cập nhật giá, hình ảnh, trạng thái.
+[ Trang bán hàng (POS) ]
+Menu phân loại, Smart Customization, giỏ hàng thông minh.
+[ Tiếp nhận & xử lý đơn ]
+Màn hình KDS hiển thị đơn chờ pha chế, cập nhật tiến độ.
+
+--- Slide 21 ---
+07  GIAO DIỆN – APP KHÁCH HÀNG
+[ Trang chủ & Sản phẩm ]
+Lướt xem danh mục, tìm kiếm, hình ảnh trực quan, giá chi tiết.
+[ Tùy chỉnh & Đặt hàng ]
+Chọn size/đường/đá/topping cá nhân hóa, áp dụng voucher.
+[ Theo dõi đơn hàng ]
+Cập nhật tiến độ đơn theo thời gian thực, lịch sử mua hàng.
+[ Ví Voucher & Điểm ]
+Quản lý điểm tích lũy, đổi điểm thành mã giảm giá.
+
+--- Slide 22 ---
+08
+Kết quả & Hướng phát triển
+Hoàn thành 3 phân hệ · 8 hướng phát triển cụ thể
+
+--- Slide 23 ---
+08  KẾT QUẢ ĐẠT ĐƯỢC & HẠN CHẾ
+✅  Đã đạt được
+3 phân hệ hoàn chỉnh: POS, Admin, App khách hàng đồng bộ
+Smart Customization: tùy biến món + tính giá real-time
+Giỏ hàng thông minh tự động tách dòng sản phẩm
+Thanh toán toàn diện: tiền mặt + VietQR động (PayOS)
+Trừ kho tự động theo công thức Recipes (BOM)
+Hệ thống điểm thưởng & voucher cho khách hàng thân thiết
+Deploy thành công trên Render Cloud
+⚠️  Hạn chế
+Chưa có mục Kiểm thử hệ thống (Test case)
+Công nghệ Ch.2 chưa nhất quán với Ch.4 thực tế
+Thuật toán tách dòng giỏ hàng chưa có pseudocode
+🚀  8 hướng phát triển
+AI gợi ý món theo thói quen, thời tiết
+Theo dõi giao hàng real-time (Maps)
+Đa dạng cổng thanh toán (Momo/ZaloPay)
+Nâng cấp KDS: vuốt/chạm + âm thanh
+Dự báo nhập kho bằng Machine Learning
+Chăm sóc khách hàng tự động (ưu đãi sinh nhật)
+
+--- Slide 24 ---
+KẾT LUẬN & TRÌNH DIỄN
+Xây dựng thành công hệ thống POS đa kênh chuyên biệt cho ngành đồ uống
+Smart Customization + Giỏ hàng thông minh giải quyết đúng pain point pha chế
+Kiến trúc 3 lớp chuẩn, tích hợp PayOS VietQR thực tế tại Việt Nam
+CSDL 14 bảng chuyên nghiệp với Recipes (BOM) trừ kho tự động
+Đăng nhập POS →  Smart Customization →  Giỏ hàng thông minh →  Thanh toán VietQR →  Admin Dashboard →  App khách hàng
+[ Chuyển sang trình diễn trực tiếp ]  •  Xin trân trọng cảm ơn Hội đồng!
+

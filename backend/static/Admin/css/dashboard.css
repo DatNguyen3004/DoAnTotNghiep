@@ -30,7 +30,7 @@ body {
     overflow-x: hidden;
 }
 
-/* ============= SIDEBAR ============= */
+/* ============= BẢNG ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) ============= */
 .sidebar {
     width: var(--sidebar-width);
     background: var(--bg-sidebar);
@@ -243,7 +243,7 @@ body {
     color: #DC2626 !important;
 }
 
-/* ============= MAIN WRAPPER ============= */
+/* ============= BỘ BỌC NỘI DUNG CHÍNH (MAIN WRAPPER) ============= */
 .main-wrapper {
     margin-left: var(--sidebar-width);
     flex-grow: 1;
@@ -259,7 +259,7 @@ body {
     margin-left: var(--sidebar-collapsed);
 }
 
-/* ============= TOPNAV ============= */
+/* ============= THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOPNAV) ============= */
 .topnav {
     height: 72px;
     background-color: #fff;
@@ -306,7 +306,7 @@ body {
     cursor: pointer;
 }
 
-/* ============= STATS GRID ============= */
+/* ============= LƯỚI THỐNG KÊ (STATS GRID) ============= */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -458,7 +458,7 @@ body {
     color: #7C3AED;
 }
 
-/* ============= TABS ============= */
+/* ============= CÁC TAB CHUYỂN ĐỔI (TABS) ============= */
 .tabs-section {
     padding: 32px 40px 0;
 }
@@ -543,7 +543,7 @@ body {
     }
 }
 
-/* ============= DATA SECTION ============= */
+/* ============= PHẦN DỮ LIỆU (DATA SECTION) ============= */
 .data-section {
     background: var(--bg-surface);
     border-radius: 16px;
@@ -637,7 +637,7 @@ body {
     box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
 }
 
-/* ============= TABLE ============= */
+/* ============= BẢNG DỮ LIỆU (TABLE) ============= */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -743,7 +743,7 @@ tbody tr:hover {
     font-style: italic;
 }
 
-/* Status Badges */
+/* Huy hiệu trạng thái */
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -816,7 +816,7 @@ tbody tr:hover {
     background: #DC2626;
 }
 
-/* Progress Bar */
+/* Thanh tiến trình */
 .progress-cell {
     display: flex;
     align-items: center;
@@ -858,7 +858,7 @@ tbody tr:hover {
     text-align: right;
 }
 
-/* Action Links */
+/* Các liên kết hành động */
 .action-link {
     color: var(--primary-navy);
     text-decoration: none;
@@ -910,7 +910,7 @@ tbody tr:hover {
     color: #fff;
 }
 
-/* Table Footer / Pagination */
+/* Chân bảng / Phân trang */
 .table-footer {
     display: flex;
     justify-content: space-between;
@@ -964,7 +964,7 @@ tbody tr:hover {
     pointer-events: none;
 }
 
-/* ============= MEMBER SECTION ============= */
+/* ============= PHẦN THÀNH VIÊN (MEMBER SECTION) ============= */
 .members-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1070,7 +1070,7 @@ tbody tr:hover {
     background: #F0F5FF;
 }
 
-/* ============= EMPTY STATE ============= */
+/* ============= TRẠNG THÁI RỖNG (EMPTY STATE) ============= */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -1097,7 +1097,7 @@ tbody tr:hover {
     line-height: 1.6;
 }
 
-/* ============= FLOATING BAR ============= */
+/* ============= THANH NỔI (FLOATING BAR) ============= */
 .floating-bar {
     position: fixed;
     bottom: 32px;
@@ -1161,7 +1161,7 @@ tbody tr:hover {
     }
 }
 
-/* ============= LOADING SKELETON ============= */
+/* ============= KHUNG XƯƠNG ĐANG TẢI (LOADING SKELETON) ============= */
 .skeleton {
     background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
     background-size: 200% 100%;
@@ -1179,7 +1179,7 @@ tbody tr:hover {
     }
 }
 
-/* ============= MODAL ============= */
+/* ============= HỘP THOẠI (MODAL) ============= */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -1412,7 +1412,7 @@ tbody tr:hover {
     }
 }
 
-/* ============= RESPONSIVE ============= */
+/* ============= TƯƠNG THÍCH THIẾT BỊ (RESPONSIVE) ============= */
 @media (max-width: 1200px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -1459,7 +1459,7 @@ tbody tr:hover {
     }
 }
 
-/* ============= FILTER BUTTON & PANEL FOR ALL TASKS ============= */
+/* ============= NÚT BẤM & BẢNG BỘ LỌC CHO TẤT CẢ NHIỆM VỤ ============= */
 .filter-panel {
     max-height: 0;
     overflow: hidden;
@@ -1549,7 +1549,7 @@ tbody tr:hover {
     background: #FEF2F2;
 }
 
-/* ============= CUSTOM MULTISELECT FOR ASSIGNEES ============= */
+/* ============= LỰA CHỌN NHIỀU NGƯỜI THỰC HIỆN TÙY CHỈNH ============= */
 .custom-multiselect {
     position: relative;
     width: 100%;
@@ -1626,7 +1626,7 @@ tbody tr:hover {
     margin: 0;
 }
 
-/* ============= CUSTOM SEARCHABLE SELECT ============= */
+/* ============= HỘP CHỌN TÌM KIẾM TÙY CHỈNH ============= */
 .custom-search-select {
     position: relative;
     width: 100%;
@@ -1757,13 +1757,13 @@ tbody tr:hover {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* Allow searchable select dropdowns to overflow the modal containers */
+/* Cho phép menu thả xuống tìm kiếm tràn ra ngoài hộp chứa modal */
 #assignModal .modal,
 #addMemberModal .modal {
     overflow: visible;
 }
 
-/* User Info and Avatar in Table */
+/* Thông tin người dùng và ảnh đại diện trong bảng */
 .user-info {
     display: flex;
     align-items: center;

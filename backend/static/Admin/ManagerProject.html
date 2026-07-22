@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="/static/image/NuLabel-removebg-preview.png">
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome icons -->
+    <!-- Biểu tượng FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/ManagerProject.css">
     <style>
@@ -23,7 +23,7 @@
 
 <body>
 
-    <!-- Navigation -->
+    <!-- Thanh điều hướng (Navigation) -->
     <nav class="navbar">
         <div class="nav-left">
             <a href="#" class="nav-brand">
@@ -51,7 +51,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- Nội dung chính (Main Content) -->
     <main class="main-content">
         <div class="page-header">
             <h1 class="page-title">Quản lý Dự án</h1>
@@ -71,7 +71,7 @@
         </div>
 
         <div class="project-grid" id="projectGrid">
-            <!-- Projects sẽ được load từ API -->
+            <!-- Các dự án sẽ được tải từ API -->
         </div>
     </main>
 
@@ -123,7 +123,7 @@
                         </div>
                     </div>
 
-                    <!-- Panel: Local Thư mục Ảnh (1 Camera) -->
+                    <!-- Bảng điều khiển: Thư mục Ảnh cục bộ (1 Camera) -->
                     <div id="panelImages" style="display:none">
                         <div class="form-group-modal">
                             <label>Đường dẫn thư mục ảnh trên máy</label>
@@ -142,7 +142,7 @@
                         </div>
                     </div>
 
-                    <!-- Panel: Local Tệp tin Video (1 Camera) -->
+                    <!-- Bảng điều khiển: Thư mục Video cục bộ (1 Camera) -->
                     <div id="panelVideo" style="display:none">
                         <div class="form-group-modal">
                             <label>Tần số lấy mẫu (khung hình/giây)</label>
@@ -170,7 +170,7 @@
                         </div>
                     </div>
 
-                    <!-- Progress bar (hiện khi đang import) -->
+                    <!-- Thanh tiến độ (Hiển thị khi đang nhập dữ liệu) -->
                     <div id="createImportProgress" style="display:none;margin-top:16px">
                         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                             <span style="font-size:13px;font-weight:600;color:#1E293B" id="createProgressMsg">Đang xử lý...</span>
@@ -625,7 +625,7 @@
 
     <script src="../js/avatar-sync.js"></script>
 
-    <!-- Modal Import Video -->
+    <!-- Modal Nhập Video (Modal Import Video) -->
     <div class="modal" id="importVideoModal">
         <div class="modal-backdrop" onclick="closeImportVideoModal()"></div>
         <div class="modal-content" style="max-width:560px;max-height:90vh;overflow-y:auto">
@@ -656,10 +656,10 @@
                     Video theo camera <span style="font-weight:400;color:#94A3B8">(ít nhất 1 camera)</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="cameraUploadGrid">
-                    <!-- Rendered by JS -->
+                    <!-- Được kết xuất bởi JS -->
                 </div>
 
-                <!-- Progress -->
+                <!-- Tiến độ (Progress) -->
                 <div id="importProgress" style="display:none;margin-top:16px">
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                         <span style="font-size:13px;font-weight:600;color:#1E293B" id="importProgressMsg">Đang xử lý...</span>

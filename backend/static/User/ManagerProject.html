@@ -42,7 +42,7 @@
         </div>
 
         <div class="project-grid" id="projectGrid">
-            <!-- Projects loaded from API -->
+            <!-- Danh sách dự án tải từ API -->
         </div>
     </main>
 
@@ -50,13 +50,13 @@
         const BASE_URL = '/api';
         function getToken() { return localStorage.getItem('access_token'); }
 
-        // Auth guard
+        // Kiểm tra quyền truy cập (Auth guard)
         const user = JSON.parse(localStorage.getItem('current_user') || '{}');
         if (!getToken() || user.role !== 'user') {
             window.location.href = '../login.html';
         }
 
-        // Avatar
+        // Ảnh đại diện
         (function() {
             var el = document.getElementById('navAvatar');
             if (!el) return;
@@ -72,7 +72,7 @@
             }
         })();
 
-        // Logout
+        // Đăng xuất
         document.getElementById('btnLogout').addEventListener('click', async () => {
             try { await fetch(`${BASE_URL}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` } }); } catch (e) { }
             localStorage.removeItem('access_token');
@@ -145,7 +145,7 @@
             }
         }
 
-        // Search
+        // Tìm kiếm
         document.querySelector('.search-box input').addEventListener('input', function () {
             const q = this.value.toLowerCase();
             document.querySelectorAll('.project-card').forEach(card => {

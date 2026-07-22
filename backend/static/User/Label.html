@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="/static/image/NuLabel-removebg-preview.png">
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome icons -->
+    <!-- Các biểu tượng FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/Label.css?v=3">
@@ -16,7 +16,7 @@
 
 <body>
 
-    <!-- Navbar -->
+    <!-- Thanh điều hướng (Navbar) -->
     <header class="navbar">
         <div class="nav-left">
             <div class="nav-brand" style="display: flex; align-items: center;">
@@ -29,7 +29,7 @@
         </div>
     </header>
 
-    <!-- Toolbar -->
+    <!-- Thanh công cụ (Toolbar) -->
     <div class="toolbar">
         <div class="toolbar-left-btn-container">
             <button class="btn-phe-duyet" id="btnNop" style="background:linear-gradient(90deg,#7C3AED,#2563EB)"><i
@@ -71,25 +71,25 @@
         </div>
     </div>
 
-    <!-- Workspace -->
+    <!-- Không gian làm việc (Workspace) -->
     <div class="workspace">
 
-        <!-- Left Panel: Cams View -->
+        <!-- Bảng điều khiển bên trái: Xem Camera -->
         <aside class="panel-left">
             <div class="panel-header">CAMERA</div>
             <div class="cam-list" id="camList">
-                <!-- Rendered by JS -->
+                <!-- Được kết xuất bởi JS -->
             </div>
         </aside>
 
-        <!-- Center Canvas -->
+        <!-- Khung Canvas trung tâm -->
         <main class="center-canvas">
             <div class="canvas-container">
                 <img src="" alt="Frame" id="mainImage" style="display:none">
             </div>
         </main>
 
-        <!-- Right Panel: Tools & Results -->
+        <!-- Bảng điều khiển bên phải: Công cụ & Kết quả -->
         <aside class="panel-right">
 
             <div class="tools-section">
@@ -124,7 +124,7 @@
                 </button>
             </div>
 
-            <!-- Tab switcher -->
+            <!-- Nút chuyển đổi Tab -->
             <div class="results-tabs" id="resultsTabs">
                 <button class="results-tab active" id="tabResults" onclick="switchResultTab('results')">Kết quả</button>
                 <button class="results-tab" id="tabAttention" onclick="switchResultTab('attention')">
@@ -137,7 +137,7 @@
                     <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
                 </div>
                 <div class="label-list" id="labelList">
-                    <!-- Rendered by JS -->
+                    <!-- Được kết xuất bởi JS -->
                 </div>
             </div>
 
@@ -146,7 +146,7 @@
                     <div class="labels-badge" style="background:#FEE2E2;color:#DC2626">CẦN KIỂM TRA</div>
                 </div>
                 <div class="label-list" id="attentionList">
-                    <!-- Rendered by JS -->
+                    <!-- Được kết xuất bởi JS -->
                 </div>
             </div>
 
@@ -223,7 +223,7 @@
             </div>
 
             <div style="display:flex;flex-direction:column;gap:16px">
-                <!-- Group 1 -->
+                <!-- Nhóm 1 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -244,7 +244,7 @@
                     </div>
                 </div>
 
-                <!-- Group 2 -->
+                <!-- Nhóm 2 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -271,7 +271,7 @@
                     </div>
                 </div>
 
-                <!-- Group 3 -->
+                <!-- Nhóm 3 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -301,7 +301,7 @@
                     </div>
                 </div>
 
-                <!-- Group 4 -->
+                <!-- Nhóm 4 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -319,7 +319,7 @@
                     </div>
                 </div>
 
-                <!-- Group 5 -->
+                <!-- Nhóm 5 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -430,7 +430,7 @@
     </div>
 
 
-    <!-- Change Category Modal -->
+    <!-- Modal thay đổi phân loại nhãn dán -->
     <div id="changeCatModal"
         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center">
         <div
@@ -462,7 +462,7 @@
     <script src="../js/avatar-sync.js"></script>
     <script src="../js/label.js?v=33"></script>
     <script>
-        // Set back link nếu đến từ FrameList
+        // Thiết lập liên kết quay lại nếu đến từ FrameList
         (function () {
             const p = new URLSearchParams(window.location.search);
             if (p.get('returnTo') === 'FrameList') {

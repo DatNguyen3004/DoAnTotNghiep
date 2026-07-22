@@ -28,7 +28,7 @@ body {
     flex-direction: column;
 }
 
-/* Navbar */
+/* Thanh điều hướng */
 .navbar {
     height: 64px;
     background-color: #fff;
@@ -60,7 +60,7 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    /* Smooth edges */
+    /* Bo góc mượt mà */
 }
 
 .brand-text {
@@ -146,7 +146,7 @@ body {
     color: #DC2626;
 }
 
-/* Main Content */
+/* Nội dung chính */
 .main-content {
     flex-grow: 1;
     max-width: 1200px;
@@ -234,7 +234,7 @@ body {
     font-size: 14px;
 }
 
-/* Project Grid */
+/* Lưới dự án */
 .project-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -259,7 +259,7 @@ body {
     box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
-/* Banner styles */
+/* Các định dạng Banner */
 .card-banner {
     height: 180px;
     width: 100%;
@@ -270,7 +270,7 @@ body {
     overflow: hidden;
 }
 
-/* Card 1 */
+/* Thẻ 1 */
 .card-banner.bg-dark {
     background: linear-gradient(145deg, #111827, #1f2937, #0f172a);
 }
@@ -313,7 +313,7 @@ body {
     text-transform: uppercase;
 }
 
-/* Card 2 */
+/* Thẻ 2 */
 .card-banner.bg-network {
     background: linear-gradient(135deg, #1e3a8a, #0f172a);
 }
@@ -327,7 +327,7 @@ body {
     z-index: 1;
 }
 
-/* Card 3 */
+/* Thẻ 3 */
 .card-banner.bg-teal {
     background: linear-gradient(120deg, #0d9488, #115e59);
 }
@@ -349,7 +349,7 @@ body {
     letter-spacing: 1px;
 }
 
-/* Card Content */
+/* Nội dung thẻ */
 .card-content {
     padding: 24px;
     display: flex;
@@ -382,7 +382,7 @@ body {
     font-weight: 600;
 }
 
-/* Responsive */
+/* Tương thích thiết bị (Responsive) */
 @media (max-width: 1024px) {
     .project-grid {
         grid-template-columns: repeat(2, 1fr);

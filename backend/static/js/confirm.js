@@ -1,8 +1,8 @@
 /**
- * showConfirm — thay thế confirm() mặc định của browser
- * @param {string} message - Nội dung xác nhận
- * @param {function} onConfirm - Callback khi nhấn Xác nhận
- * @param {object} options - { title, confirmText, cancelText, type: 'danger'|'warning'|'info' }
+ * showConfirm — Hộp thoại xác nhận thay thế cho hàm confirm() mặc định thô kệch của trình duyệt
+ * @param {string} message - Nội dung câu hỏi xác nhận hiển thị trong modal
+ * @param {function} onConfirm - Hàm callback được gọi khi người dùng nhấn nút Xác nhận
+ * @param {object} options - Cấu hình tùy biến { title, confirmText, cancelText, type: 'danger'|'warning'|'info' }
  */
 function showConfirm(message, onConfirm, options = {}) {
     const {
@@ -12,6 +12,7 @@ function showConfirm(message, onConfirm, options = {}) {
         type = 'danger'
     } = options;
 
+    // Định nghĩa bảng màu sắc và biểu tượng tương ứng với từng trạng thái (nguy hiểm, cảnh báo, thông tin)
     const colors = {
         danger:  { icon: 'fa-triangle-exclamation', iconBg: '#FEF2F2', iconColor: '#EF4444', btnBg: '#EF4444', btnHover: '#DC2626' },
         warning: { icon: 'fa-circle-exclamation',   iconBg: '#FFFBEB', iconColor: '#F59E0B', btnBg: '#F59E0B', btnHover: '#D97706' },
@@ -19,13 +20,16 @@ function showConfirm(message, onConfirm, options = {}) {
     };
     const c = colors[type] || colors.danger;
 
+    // Xóa modal cũ nếu đang hiển thị trên màn hình
     const existing = document.getElementById('_confirmModal');
     if (existing) existing.remove();
 
+    // Tạo phần tử div mới làm màn phủ mờ (backdrop)
     const modal = document.createElement('div');
     modal.id = '_confirmModal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)';
 
+    // Chèn mã HTML cấu trúc modal
     modal.innerHTML = `
         <div style="background:#fff;border-radius:16px;padding:28px 24px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.15);font-family:Inter,sans-serif;animation:_cfmIn 0.2s ease">
             <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">
@@ -54,16 +58,21 @@ function showConfirm(message, onConfirm, options = {}) {
 
     document.body.appendChild(modal);
 
-    const close = () => modal.remove();
+    const close = () => modal.remove(); // Hàm đóng modal giải phóng vùng nhớ
 
+    // Đăng ký sự kiện Click nút Hủy để đóng modal
     document.getElementById('_confirmCancel').addEventListener('click', close);
+    
+    // Đăng ký sự kiện Click nút Xác nhận để thực thi callback
     document.getElementById('_confirmOk').addEventListener('click', () => {
         close();
         onConfirm();
     });
-    // Click backdrop to cancel
+    
+    // Click vào màn hình nền mờ bên ngoài để đóng modal (Hủy hành động)
     modal.addEventListener('click', e => { if (e.target === modal) close(); });
-    // ESC to cancel
+    
+    // Nhấn phím Escape (ESC) để hủy hành động và đóng modal
     const onKey = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
     document.addEventListener('keydown', onKey);
 }

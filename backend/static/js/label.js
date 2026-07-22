@@ -1,19 +1,26 @@
-// ============= CONFIG =============
+// ==============================================================================
+// CẤU HÌNH & XÁC THỰC CƠ BẢN
+// ==============================================================================
 const BASE_URL = '/api';
+
+// Hàm lấy token JWT từ localStorage
 function getToken() { return localStorage.getItem('access_token'); }
 
-// Auth guard
+// KIỂM TRA QUYỀN TRUY CẬP (Auth guard)
+// Đọc thông tin người dùng từ localStorage. Nếu không phải User, chuyển hướng về login.html
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
 if (!getToken() || currentUser.role !== 'user') {
     window.location.href = '../login.html';
 }
 
-// Task ID from URL
+// Lấy taskId từ URL params
 const urlParams = new URLSearchParams(window.location.search);
 const taskId = urlParams.get('taskId');
 if (!taskId) window.location.href = 'dashboard.html';
 
-// ============= CLASSES =============
+// ==============================================================================
+// ĐỊNH NGHĨA CÁC LỚP ĐỐI TƯỢNG (CLASSES) & CAMERA TRÊN XE TỰ HÀNH (nuScenes)
+// ==============================================================================
 const CLASSES = [
     { id: 'vehicle.car', name: 'Xe con', icon: 'fa-car', color: '#3B82F6' },
     { id: 'vehicle.truck', name: 'Xe tải', icon: 'fa-truck', color: '#F59E0B' },
@@ -25,6 +32,7 @@ const CLASSES = [
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
 
+// Danh sách camera mặc định xung quanh xe tự hành
 let CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT'];
 
 const CAM_LABELS = {
@@ -36,23 +44,26 @@ const CAM_LABELS = {
     CAM_BACK_RIGHT: 'Cam phải sau',
 };
 
-// ============= STATE =============
+// ==============================================================================
+// KHỞI TẠO TRẠNG THÁI GIAO DIỆN (STATE)
+// ==============================================================================
 let task = null;
 let frames = [];
 let currentFrameIdx = 0;
 let currentCamera = 'CAM_FRONT';
 let selectedClass = CLASSES[0].id;
 let selectedAnnId = null;
-let currentTool = 'pointer'; // mặc định là con trỏ
+let currentTool = 'pointer'; // mặc định là con trỏ chuột chọn đối tượng
 let collapsedCategories = {};
 
-// annotations[frameId][camera] = [{id, category, bbox_x, bbox_y, bbox_w, bbox_h, confidence, is_ai_generated}]
+// Cấu trúc dữ liệu lưu nhãn: annotations[frameId][camera] = [{id, category, bbox_x, bbox_y, bbox_w, bbox_h, confidence, is_ai_generated}]
 let annotations = {};
 
-// Set lưu id các nhãn vừa được review trong session (chưa lưu) — vẫn hiển thị ở tab Cần chú ý
+// Tập hợp lưu ID các nhãn vừa được người dùng kiểm duyệt trong phiên (session) hiện tại
 const sessionReviewedIds = new Set();
 const hiddenCategories = new Set();
 
+// Ẩn/Hiện nhóm lớp đối tượng ở Sidebar
 function toggleCategoryHide(catId) {
     if (hiddenCategories.has(catId)) {
         hiddenCategories.delete(catId);
@@ -63,35 +74,37 @@ function toggleCategoryHide(catId) {
     renderLabelList();
 }
 
-// Drawing state
+// Trạng thái vẽ hộp giới hạn (Bounding Box)
 let isDrawing = false;
 let drawStart = null;
 let drawRect = null;
 
-// Canvas refs (created dynamically)
+// Biến điều khiển vẽ khung canvas lên ảnh camera (được tạo động)
 let annCanvas = null, drawCanvas = null;
 let annCtx = null, drawCtx = null;
 let imgDisplayW = 1, imgDisplayH = 1;
 let imgNaturalW = 1, imgNaturalH = 1;
 
-// Timer
+// Bộ đếm thời gian gán nhãn (Timer)
 let timerSeconds = 0;
 let timerInterval = null;
 
-// ============= INIT =============
+// ==============================================================================
+// KHỞI TẠO BẢN GÁN NHÃN (INIT)
+// ==============================================================================
 async function init() {
     startTimer();
     await loadTask();
     setupDropdownItems();
 }
 
-// ============= TIMER =============
+// Bắt đầu đếm thời gian thực hiện gán nhãn
 function startTimer() {
     // Khôi phục thời gian đã lưu cho task này
     const saved = parseInt(localStorage.getItem(`timer_${taskId}`) || '0');
     timerSeconds = saved;
 
-    // Hiển thị ngay
+    // Hiển thị ngay lên màn hình
     updateTimerDisplay();
 
     timerInterval = setInterval(() => {
@@ -101,6 +114,7 @@ function startTimer() {
     }, 1000);
 }
 
+// Định dạng và hiển thị thời gian gán nhãn (hh:mm:ss)
 function updateTimerDisplay() {
     const h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
     const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
@@ -109,13 +123,15 @@ function updateTimerDisplay() {
     if (el) el.innerHTML = `<i class="fa-regular fa-clock"></i> ${h}:${m}:${s}`;
 }
 
-// Tạm dừng khi rời trang (về menu, đóng tab, v.v.)
+// Tạm dừng bộ đếm và lưu lại thời gian khi người gán nhãn rời trang
 window.addEventListener('beforeunload', () => {
     clearInterval(timerInterval);
     localStorage.setItem(`timer_${taskId}`, timerSeconds);
 });
 
-// ============= LOAD TASK =============
+// ==============================================================================
+// TẢI DỮ LIỆU NHIỆM VỤ VÀ THÀNH VIÊN
+// ==============================================================================
 async function loadTask() {
     try {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
@@ -124,7 +140,7 @@ async function loadTask() {
         if (!res.ok) throw new Error();
         task = await res.json();
 
-        // Update user avatar — chỉ set initials nếu chưa có ảnh (avatar-sync.js đã xử lý ảnh)
+        // Cập nhật ảnh đại diện người dùng
         const avatarEl = document.getElementById('userAvatar');
         if (avatarEl && avatarEl.tagName === 'DIV' && !currentUser.avatar_url) {
             const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
@@ -133,7 +149,7 @@ async function loadTask() {
 
         await loadFrames(task.scene_id);
 
-        // Nếu task đang bị rejected (gán lại) → luôn disable nút Nộp, buộc dùng FrameList
+        // Nếu nhiệm vụ đang bị từ chối (status = rejected), vô hiệu hóa nút Nộp bài để bắt buộc sửa từng frame qua FrameList
         const returnTo = new URLSearchParams(window.location.search).get('returnTo');
         const framelistActive = localStorage.getItem(`framelist_mode_${taskId}`) === 'fix';
         if (task.status === 'rejected' || framelistActive) {
@@ -147,7 +163,7 @@ async function loadTask() {
             }
         }
 
-        // Cập nhật status sang in_progress nếu đang pending
+        // Tự động chuyển đổi trạng thái sang "in_progress" (đang làm) nếu trạng thái cũ là "pending" (chờ làm)
         if (task.status === 'pending') {
             await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
                 method: 'PUT',
@@ -160,7 +176,7 @@ async function loadTask() {
     }
 }
 
-// ============= LOAD FRAMES =============
+// Tải toàn bộ khung hình của phân đoạn
 async function loadFrames(sceneId) {
     try {
         const res = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
@@ -173,7 +189,7 @@ async function loadFrames(sceneId) {
         await loadAllAnnotations();
         initTrackCounters();
 
-        // Detect available cameras dynamically
+        // Tự động phát hiện các góc camera sẵn có trong frame đầu tiên
         const firstFrame = frames[0];
         const ALL_CAM_FIELDS = {
             'CAM_FRONT': 'cam_front',
@@ -204,11 +220,12 @@ async function loadFrames(sceneId) {
             if (panelHeader) panelHeader.textContent = 'KHUNG HÌNH';
         }
 
-        // Set default camera to first available camera if current is not available
+        // Thiết lập camera mặc định là camera đầu tiên nếu cam hiện tại không nằm trong danh sách phát hiện
         if (CAMERAS.length > 0 && !CAMERAS.includes(currentCamera)) {
             currentCamera = CAMERAS[0];
         }
-        // Khôi phục frame đã lưu gần nhất
+
+        // Khôi phục khung hình đã làm việc gần nhất
         const urlFrame = parseInt(new URLSearchParams(window.location.search).get('frame') || '-1');
         const savedFrame = parseInt(localStorage.getItem(`lastFrame_${taskId}`) || '0');
         const startFrame = urlFrame >= 0
@@ -220,6 +237,7 @@ async function loadFrames(sceneId) {
     }
 }
 
+// Tải toàn bộ nhãn dán (annotations) của nhiệm vụ
 async function loadAllAnnotations() {
     try {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}/annotations`, {
@@ -252,17 +270,19 @@ async function loadAllAnnotations() {
     } catch (e) { /* silent */ }
 }
 
-// ============= FRAME NAVIGATION =============
+// ==============================================================================
+// ĐIỀU HƯỚNG KHUNG HÌNH (FRAME NAVIGATION)
+// ==============================================================================
 async function goToFrame(idx) {
     if (idx < 0 || idx >= frames.length) return;
     try {
         const url = new URL(window.location.href);
         url.searchParams.set('frame', idx);
         window.history.replaceState(null, '', url.toString());
-    } catch (e) {}
+    } catch (e) { }
     const prevIdx = currentFrameIdx;
-    
-    // Tự động lưu frame cũ nếu có thay đổi chưa lưu
+
+    // Tự động lưu khung hình cũ nếu có thay đổi chưa lưu trước khi sang trang
     if (unsaved && prevIdx >= 0 && prevIdx < frames.length) {
         if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
         const saveBtn = document.querySelector('.btn-submit');
@@ -279,33 +299,32 @@ async function goToFrame(idx) {
     }
 
     currentFrameIdx = idx;
-    sessionReviewedIds.clear(); // Reset khi chuyển frame
+    sessionReviewedIds.clear(); // Reset các nhãn đã xem khi sang khung hình khác
     updatePageNumber();
-
-
 
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
     prefetchNextFrame(idx + 1);
 }
 
+// Cập nhật số trang hiển thị trên màn hình
 function updatePageNumber() {
     const el = document.querySelector('.page-number');
     if (el) el.textContent = currentFrameIdx + 1;
 }
 
-// Pagination buttons
+// Nút bấm phân trang
 document.querySelector('.fa-angles-left')?.addEventListener('click', () => goToFrame(0));
 document.querySelector('.fa-angle-left')?.addEventListener('click', () => goToFrame(currentFrameIdx - 1));
 document.querySelector('.fa-angle-right')?.addEventListener('click', () => goToFrame(currentFrameIdx + 1));
 document.querySelector('.fa-angles-right')?.addEventListener('click', () => goToFrame(frames.length - 1));
 
-// Keyboard Navigation & Shortcuts
+// Phím tắt điều hướng và công cụ vẽ nhanh
 document.addEventListener('keydown', e => {
-    // Không chạy phím tắt khi đang gõ văn bản
+    // Tránh phím tắt kích hoạt khi đang gõ văn bản
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-    // 1. ZOOM (Ctrl + Up/Down)
+    // 1. PHÓNG TO / THU NHỎ (Ctrl + ArrowUp/Down)
     if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         e.preventDefault();
         if (e.key === 'ArrowUp') zoomIn();
@@ -313,7 +332,7 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // 2. CHUYỂN CAMERA (W/S hoặc Mũi tên Lên/Xuống)
+    // 2. CHUYỂN NHANH CAMERA XUNG QUANH (Phím W/S hoặc ArrowUp/ArrowDown)
     if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
         e.preventDefault();
         const idx = CAMERAS.indexOf(currentCamera);
@@ -329,18 +348,18 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // 3. ĐIỀU HƯỚNG KHUNG HÌNH
+    // 3. DI CHUYỂN KHUNG HÌNH (ArrowRight/Left hoặc D/A)
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') goToFrame(currentFrameIdx + 1);
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') goToFrame(currentFrameIdx - 1);
     if (e.key === 'Home') goToFrame(0);
     if (e.key === 'End') goToFrame(frames.length - 1);
 
-    // 4. CAMERA (Phím số 1-6)
+    // 4. CHỌN CAMERA QUA SỐ (1-6)
     if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
         switchCamera(CAMERAS[parseInt(e.key) - 1]);
     }
 
-    // 5. CHỌN NHÃN NHANH (r, t, y, u, i, o)
+    // 5. CHỌN NHÃN GÁN NHANH QUA PHÍM (r, t, y, u, i, o)
     const categoryKeys = {
         'r': 'vehicle.car',
         't': 'vehicle.truck',
@@ -356,16 +375,16 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // 6. CÔNG CỤ
-    if (e.key === 'v' || e.key === 'V') setActiveTool('pointer');
-    if (e.key === 'b' || e.key === 'B') setActiveTool('box');
-    if (e.key === 'h' || e.key === 'H') setActiveTool('pan');
-    if (e.key === 'e' || e.key === 'E') setActiveTool('resize');
-    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); runAI(); }
-    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
-    if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); }
+    // 6. CHỌN CÔNG CỤ NHANH
+    if (e.key === 'v' || e.key === 'V') setActiveTool('pointer'); // Phím V: Con trỏ chuột
+    if (e.key === 'b' || e.key === 'B') setActiveTool('box');     // Phím B: Vẽ Bounding Box
+    if (e.key === 'h' || e.key === 'H') setActiveTool('pan');     // Phím H: Kéo thả màn hình
+    if (e.key === 'e' || e.key === 'E') setActiveTool('resize');  // Phím E: Co giãn hộp giới hạn
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); runAI(); } // Phím P: Chạy AI dự đoán
+    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected(); // Phím Delete/Backspace: Xóa nhãn
+    if (e.key === 'Escape') { selectedAnnId = null; redrawAnnotations(); renderLabelList(); } // Phím ESC: Bỏ chọn
 
-    // 7. ZOOM (Phím lẻ)
+    // 7. ZOOM
     if (e.key === '+' || e.key === '=') zoomIn();
     if (e.key === '-' || e.key === '_') zoomOut();
     if (e.key === '0') {
@@ -377,7 +396,7 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Ctrl + Lăn chuột để Zoom
+// Lăn chuột kết hợp phím Ctrl để thu phóng
 window.addEventListener('wheel', e => {
     if (e.ctrlKey) {
         e.preventDefault();
@@ -386,7 +405,9 @@ window.addEventListener('wheel', e => {
     }
 }, { passive: false });
 
-// ============= CAMERA =============
+// ==============================================================================
+// XỬ LÝ CHUYỂN ĐỔI CAMERA & ĐẢI PHIM (FILM STRIP)
+// ==============================================================================
 function renderCamList(frame) {
     if (window._isSingleCam) {
         renderFrameStrip(frame);
@@ -413,12 +434,12 @@ function renderCamList(frame) {
     CAMERAS.forEach(cam => loadThumb(frame, cam));
 }
 
-// Film strip cho chế độ 1 camera: hiển thị các frame lân cận
+// Hiển thị dải phim (các khung hình lân cận) khi nhiệm vụ chỉ có 1 camera duy nhất
 function renderFrameStrip(currentFrame) {
     const list = document.getElementById('camList');
     if (!list) return;
 
-    // Hiển thị tối đa 6 frame xung quanh frame hiện tại
+    // Hiển thị tối đa 6 khung hình xung quanh khung hình hiện tại
     const STRIP_COUNT = 6;
     const half = Math.floor(STRIP_COUNT / 2);
     let startIdx = Math.max(0, currentFrameIdx - half);
@@ -442,10 +463,11 @@ function renderFrameStrip(currentFrame) {
         </div>`;
     }).join('');
 
-    // Load thumbnails cho các frame trong strip
+    // Nạp các hình ảnh thu nhỏ cho dải phim lân cận
     frames.slice(startIdx, endIdx + 1).forEach(f => loadStripThumb(f));
 }
 
+// Nạp ảnh dải phim thu nhỏ của camera chính
 async function loadStripThumb(frame) {
     const img = document.getElementById(`strip_thumb_${frame.id}`);
     if (!img) return;
@@ -469,6 +491,7 @@ async function loadStripThumb(frame) {
     }
 }
 
+// Nạp ảnh nhỏ cho danh sách lựa chọn camera
 async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
@@ -492,15 +515,14 @@ async function loadThumb(frame, cam) {
     }
 }
 
-// Tải trước ảnh của các frame tiếp theo để chuyển mượt hơn
+// Tải trước (prefetch) hình ảnh camera ở khung hình kế tiếp giúp giảm thời gian chờ
 function prefetchNextFrame(currentIdx) {
-    // Tải trước camera hiện tại cho 3 frame kế tiếp và 1 frame trước
     const idxList = [currentIdx + 1, currentIdx + 2, currentIdx + 3, currentIdx - 1];
     idxList.forEach(idx => {
         if (idx < 0 || idx >= frames.length) return;
         const f = frames[idx];
         const key = _getCacheKey(f.id, currentCamera);
-        if (_imgCache.has(key)) return; // đã cache rồi
+        if (_imgCache.has(key)) return;
         fetch(`${BASE_URL}/frames/${f.id}/image/${currentCamera}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         }).then(res => res.blob()).then(blob => {
@@ -510,10 +532,11 @@ function prefetchNextFrame(currentIdx) {
     });
 }
 
+// Xử lý chuyển đổi góc camera xem
 async function switchCamera(cam) {
     if (!cam || !CAMERAS.includes(cam) || cam === currentCamera) return;
 
-    // Tự động lưu camera cũ nếu có thay đổi chưa lưu
+    // Tự động lưu tiến độ camera cũ trước khi chuyển
     if (unsaved) {
         if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
         const saveBtn = document.querySelector('.btn-submit');
@@ -534,7 +557,7 @@ async function switchCamera(cam) {
     await loadImage(frames[currentFrameIdx], cam);
 }
 
-// Cache ảnh đã load: key = "frameId_cam" → objectURL
+// Cache ảnh cục bộ trong trình duyệt
 const _imgCache = new Map();
 const _IMG_CACHE_MAX = 20;
 
@@ -542,7 +565,6 @@ function _getCacheKey(frameId, cam) { return `${frameId}_${cam}`; }
 
 function _cacheSet(key, url) {
     if (_imgCache.size >= _IMG_CACHE_MAX) {
-        // Xóa entry cũ nhất
         const firstKey = _imgCache.keys().next().value;
         URL.revokeObjectURL(_imgCache.get(firstKey));
         _imgCache.delete(firstKey);
@@ -550,20 +572,22 @@ function _cacheSet(key, url) {
     _imgCache.set(key, url);
 }
 
-// ============= IMAGE LOADING =============
+// ==============================================================================
+// TẢI ẢNH CHÍNH & THIẾT LẬP KHUNG VẼ CANVAS
+// ==============================================================================
 async function loadImage(frame, cam) {
     const container = document.querySelector('.canvas-container');
     let mainImg = document.getElementById('mainImage');
     if (!mainImg) return;
 
-    // Xóa placeholder cũ nếu có
+    // Dọn dẹp thông báo lỗi (nếu có) từ lần thử trước
     const oldPlaceholder = document.getElementById('mainNoData');
     if (oldPlaceholder) oldPlaceholder.remove();
 
     mainImg.style.display = 'block';
     selectedAnnId = null;
 
-    // Reset pan khi load ảnh mới
+    // Reset lại độ trượt góc nhìn khi đổi sang khung hình mới
     panOffset = { x: 0, y: 0 };
     if (container) container.style.transform = '';
 
@@ -572,7 +596,6 @@ async function loadImage(frame, cam) {
     try {
         let src;
         if (_imgCache.has(cacheKey)) {
-            // Dùng cache
             src = _imgCache.get(cacheKey);
         } else {
             const res = await fetch(`${BASE_URL}/frames/${frame.id}/image/${cam}`, {
@@ -590,7 +613,7 @@ async function loadImage(frame, cam) {
             mainImg.src = src;
         });
 
-        // Đợi browser render ảnh xong mới setup canvas
+        // Chờ hiệu ứng vẽ tiếp theo từ trình duyệt để setup Canvas đồng bộ
         requestAnimationFrame(() => {
             setupCanvas(container, mainImg);
             redrawAnnotations();
@@ -598,7 +621,7 @@ async function loadImage(frame, cam) {
             renderAttentionList();
         });
     } catch (e) {
-        // Hiện placeholder "Không có dữ liệu" trên màn hình chính
+        // Hiển thị biểu tượng cảnh báo "Không có dữ liệu camera"
         mainImg.style.display = 'none';
         if (container) {
             const placeholder = document.createElement('div');
@@ -613,8 +636,8 @@ async function loadImage(frame, cam) {
     }
 }
 
+// Tạo các lớp Canvas vẽ đè lên hình ảnh góc camera
 function setupCanvas(container, img) {
-    // Remove old canvases
     container.querySelectorAll('canvas').forEach(c => c.remove());
 
     imgDisplayW = img.offsetWidth || img.naturalWidth;
@@ -622,14 +645,14 @@ function setupCanvas(container, img) {
     imgNaturalW = img.naturalWidth || imgDisplayW;
     imgNaturalH = img.naturalHeight || imgDisplayH;
 
-    // Annotation canvas (display only)
+    // Canvas hiển thị hộp giới hạn (Chỉ hiển thị, không bắt sự kiện click)
     annCanvas = document.createElement('canvas');
     annCanvas.width = imgDisplayW;
     annCanvas.height = imgDisplayH;
     annCanvas.style.cssText = `position:absolute;top:0;left:0;pointer-events:none;`;
     annCtx = annCanvas.getContext('2d');
 
-    // Draw canvas (interaction)
+    // Canvas bắt sự kiện vẽ/tác động từ chuột của người gán nhãn
     drawCanvas = document.createElement('canvas');
     drawCanvas.width = imgDisplayW;
     drawCanvas.height = imgDisplayH;
@@ -639,18 +662,19 @@ function setupCanvas(container, img) {
     container.appendChild(annCanvas);
     container.appendChild(drawCanvas);
 
-    // Set cursor theo tool hiện tại
+    // Cài đặt hình dáng con trỏ tương ứng với công cụ đang chọn
     if (currentTool === 'box') drawCanvas.style.cursor = 'crosshair';
     else if (currentTool === 'pan') drawCanvas.style.cursor = 'grab';
     else drawCanvas.style.cursor = 'default';
 
-    // Events
+    // Ràng buộc các bộ bắt sự kiện chuột
     drawCanvas.addEventListener('mousedown', onMouseDown);
     drawCanvas.addEventListener('mousemove', onMouseMove);
     drawCanvas.addEventListener('mouseup', onMouseUp);
     drawCanvas.addEventListener('mouseleave', onMouseLeave);
 }
 
+// Cân đối lại khung canvas vẽ đè khi thay đổi kích thước cửa sổ trình duyệt
 window.addEventListener('resize', () => {
     const container = document.querySelector('.canvas-container');
     const img = container?.querySelector('img');
@@ -664,7 +688,9 @@ window.addEventListener('resize', () => {
     }
 });
 
-// ============= DRAWING =============
+// ==============================================================================
+// XỬ LÝ CÁC SỰ KIỆN CHUỘT TRÊN HỘP GIỚI HẠN (DRAGGING, DRAWING)
+// ==============================================================================
 let isDragging = false;
 let dragStart = null;
 let dragAnn = null;
@@ -843,11 +869,13 @@ function onMouseLeave() {
     }
 }
 
+// Lấy toạ độ chuột tương ứng với tỷ lệ thẻ canvas
 function getPos(e) {
     const rect = drawCanvas.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
+// Vẽ tạm khung viền nét đứt khi Labeler đang kéo thả giữ chuột để tạo hộp mới
 function renderDrawing() {
     if (!drawCtx) return;
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
@@ -863,6 +891,7 @@ function renderDrawing() {
     drawCtx.setLineDash([]);
 }
 
+// Vẽ đè các bounding boxes hoàn thiện lên Canvas hiển thị chính
 function redrawAnnotations() {
     if (!annCtx) return;
     annCtx.clearRect(0, 0, annCanvas.width, annCanvas.height);
@@ -875,12 +904,12 @@ function redrawAnnotations() {
 
         const needsFlag = ann.needs_review === true;
 
-        // Ở tab "Cần chú ý": chỉ vẽ nhãn có cờ đỏ hoặc nhãn vừa review trong session
+        // Nếu đang ở tab "Cần chú ý": chỉ hiển thị nhãn có cờ đỏ hoặc nhãn vừa review trong session
         if (attentionMode && !needsFlag && !sessionReviewedIds.has(ann.id)) return;
 
         const cls = CLASS_MAP[ann.category];
         const baseColor = cls ? cls.color : '#14B8A6';
-        // Nhãn có cờ đỏ → dùng màu đỏ; ngược lại màu gốc
+        // Nhãn cần xem xét (needs_review = true) -> dùng viền đỏ; ngược lại dùng màu lớp chuẩn
         const color = needsFlag ? '#EF4444' : baseColor;
 
         const x = ann.bbox_x * imgDisplayW;
@@ -899,17 +928,14 @@ function redrawAnnotations() {
         annCtx.strokeStyle = color;
         annCtx.lineWidth = sel ? 3.5 : 1.5;
         annCtx.strokeRect(x, y, w, h);
-        
+
         annCtx.fillStyle = color;
-        // Draw fill using globalAlpha multiplication
         const prevAlpha = annCtx.globalAlpha;
         annCtx.globalAlpha = sel ? 0.25 : (hasSelection ? 0.03 : 0.12);
         annCtx.fillRect(x, y, w, h);
         annCtx.globalAlpha = prevAlpha;
 
-
-
-        // Cờ đỏ
+        // Vẽ cờ đỏ biểu thị nhãn cần xem xét do độ tin cậy thấp từ AI
         if (needsFlag) {
             annCtx.fillStyle = '#EF4444';
             annCtx.beginPath();
@@ -925,6 +951,7 @@ function redrawAnnotations() {
     });
 }
 
+// Click chọn một hộp giới hạn từ toạ độ màn hình
 function selectAt(px, py) {
     const anns = currentAnns();
     const reviewThreshold = parseFloat(localStorage.getItem('ai_review_threshold') || '0.85');
@@ -950,6 +977,7 @@ function selectAt(px, py) {
     renderLabelList();
 }
 
+// Xóa hộp giới hạn đang được tích chọn
 function deleteSelected() {
     if (!selectedAnnId) return;
     const frame = frames[currentFrameIdx];
@@ -963,14 +991,16 @@ function deleteSelected() {
     markUnsaved();
 }
 
-// ============= TOOL SETUP =============
+// ==============================================================================
+// THIẾT LẬP CÁC PHÍM/NÚT ĐIỀU KHIỂN CÔNG CỤ (TOOL SETUP)
+// ==============================================================================
 function selectClassById(classId) {
     const found = CLASSES.find(c => c.id === classId);
     if (found) {
         selectedClass = found.id;
         showToast(`Nhãn: ${found.name}`, 'custom', found.color);
-        
-        // Cập nhật màu sắc công cụ Box
+
+        // Đổi màu viền nút vẽ hộp (btn-box) tương ứng với màu lớp đã chọn
         const btnBox = document.getElementById('btn-box');
         if (btnBox) {
             btnBox.style.color = found.color;
@@ -982,7 +1012,7 @@ function selectClassById(classId) {
 }
 
 function setupDropdownItems() {
-    // Dropdown label items → set selectedClass
+    // Click chọn lớp từ Dropdown list
     document.querySelectorAll('.dropdown-item').forEach(item => {
         item.addEventListener('click', e => {
             e.stopPropagation();
@@ -994,31 +1024,32 @@ function setupDropdownItems() {
         });
     });
 
-    // Pointer tool
+    // Công cụ con trỏ Pointer
     document.querySelector('.tool-btn[title="Pointer"]')?.addEventListener('click', () => setActiveTool('pointer'));
 
-    // Clone tool
+    // Công cụ nhân bản Clone
     document.getElementById('btn-clone')?.addEventListener('click', () => setActiveTool('clone'));
 
-    // Resize tool
+    // Công cụ co giãn hộp Resize
     document.getElementById('btn-resize')?.addEventListener('click', () => setActiveTool('resize'));
 
-    // Pan tool
+    // Công cụ kéo thả màn hình Pan
     document.querySelector('.tool-btn[title="Pan"]')?.addEventListener('click', () => setActiveTool('pan'));
 
-    // AI button
+    // Nút kích hoạt AI tự động gán nhãn
     document.querySelector('.btn-ai-auto')?.addEventListener('click', runAI);
 
-    // Save button
+    // Nút Lưu tiến trình thủ công
     document.querySelector('.btn-submit')?.addEventListener('click', () => saveAnnotations(true));
 
-    // Submit (Nộp) button
+    // Nút Nộp bài chuyển kiểm duyệt
     document.querySelector('.btn-phe-duyet')?.addEventListener('click', submitTask);
 
-    // Set tool pointer active by default
+    // Mặc định công cụ con trỏ được kích hoạt lúc ban đầu
     setActiveTool('pointer');
 }
 
+// Thay đổi công cụ vẽ hiện hành
 function setActiveTool(tool) {
     currentTool = tool;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
@@ -1041,14 +1072,16 @@ function setActiveTool(tool) {
         if (drawCanvas) drawCanvas.style.cursor = 'default';
         disablePan();
     } else {
-        // pointer
+        // Con trỏ pointer
         document.querySelector('.tool-btn[title="Pointer"]')?.classList.add('active');
         if (drawCanvas) drawCanvas.style.cursor = 'default';
         disablePan();
     }
 }
 
-// ============= ANNOTATIONS HELPERS =============
+// ==============================================================================
+// CÁC HÀM TIỆN ÍCH DỮ LIỆU NHÃN (ANNOTATIONS HELPERS)
+// ==============================================================================
 function genId() { return 'a' + Math.random().toString(36).substr(2, 8); }
 function getFrameAnns(fid, cam) { return annotations[fid]?.[cam] || []; }
 function setFrameAnns(fid, cam, anns) {
@@ -1060,12 +1093,15 @@ function currentAnns() {
     return f ? getFrameAnns(f.id, currentCamera) : [];
 }
 
-// ============= LABEL LIST =============
+// ==============================================================================
+// VẼ DANH SÁCH NHÃN (SIDEBAR LABEL LIST)
+// ==============================================================================
 function toggleCategoryCollapse(category) {
     collapsedCategories[category] = !collapsedCategories[category];
     renderLabelList();
 }
 
+// Kết xuất danh sách nhãn ở Sidebar bên phải
 function renderLabelList() {
     const list = document.getElementById('labelList');
     const badge = document.getElementById('labelsBadge');
@@ -1079,7 +1115,7 @@ function renderLabelList() {
         return;
     }
 
-    // Group annotations by category ID
+    // Phân nhóm nhãn theo mã lớp tương ứng
     const grouped = {};
     CLASSES.forEach(c => grouped[c.id] = []);
     anns.forEach(ann => {
@@ -1096,8 +1132,8 @@ function renderLabelList() {
 
         const isCollapsed = collapsedCategories[cls.id] || false;
         const isCatHidden = hiddenCategories.has(cls.id);
-        
-        // Render Group Header
+
+        // Vẽ header của nhóm đối tượng
         html += `
         <div class="category-group-header" onclick="toggleCategoryCollapse('${cls.id}')" 
              style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:8px 0 4px 0;cursor:pointer;background:#F1F5F9;border-radius:8px;user-select:none;transition:background 0.2s">
@@ -1117,12 +1153,12 @@ function renderLabelList() {
         <div class="category-group-content" style="${isCollapsed ? 'display:none' : ''}">
         `;
 
-        // Render Label Items in Group
+        // Vẽ từng nhãn đơn lẻ thuộc nhóm
         html += groupAnns.map((ann) => {
             const color = cls.color;
             const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
             const label = ann.custom_name ? `${trackNum} - ${ann.custom_name}` : `${trackNum}`;
-            
+
             const aiMark = ann.is_ai_generated ? ` <span style="font-size:10px;color:#9333EA">AI</span>` : '';
             const needsFlag = ann.needs_review === true;
             const flagMark = needsFlag ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px" title="Độ tin cậy thấp, cần kiểm tra"></i>' : '';
@@ -1134,8 +1170,8 @@ function renderLabelList() {
                     <div class="label-dot" style="background:${color};opacity:${hidden ? 0.3 : 1}"></div>
                     <div class="label-text">
                         <span class="label-name" style="opacity:${hidden ? 0.4 : 1};cursor:pointer${needsFlag ? ';border-left:3px solid #EF4444;padding-left:6px' : ''}"
-                              ondblclick="renameAnn('${ann.id}');event.stopPropagation()"
-                              title="Nhấp đúp để đổi tên">${label}${aiMark}${flagMark}</span>
+                               ondblclick="renameAnn('${ann.id}');event.stopPropagation()"
+                               title="Nhấp đúp để đổi tên">${label}${aiMark}${flagMark}</span>
                         <div class="label-actions">
                             <i class="${hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'}" 
                                title="${hidden ? 'Hiện nhãn' : 'Ẩn nhãn'}" 
@@ -1150,12 +1186,12 @@ function renderLabelList() {
             </div>`;
         }).join('');
 
-        html += `</div>`; // Close category-group-content
+        html += `</div>`; // Đóng category-group-content
     });
 
     list.innerHTML = html;
 
-    // Cập nhật attention list đồng thời
+    // Cập nhật danh sách cần chú ý (Attention list) đồng thời
     renderAttentionList();
 }
 
@@ -1163,7 +1199,6 @@ function selectAnn(id) {
     selectedAnnId = id;
     redrawAnnotations();
     renderLabelList();
-    // Scroll danh sách nhãn tới item được chọn
     setTimeout(() => {
         const el = document.querySelector(`.label-item.active`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1172,6 +1207,7 @@ function selectAnn(id) {
 
 let pendingAnn = null;
 
+// Hộp thoại đổi lớp đối tượng (Category) nhanh cho nhãn gán
 function changeAnnCategory(id) {
     const anns = currentAnns();
     const ann = anns.find(a => a.id === id);
@@ -1199,9 +1235,8 @@ function confirmChangeCategory(annId, newCategory) {
 
     document.getElementById('changeCatModal').style.display = 'none';
 
-    // Đổi category và gán track_id = null
     ann.category = newCategory;
-    ann.track_id = null;
+    ann.track_id = null; // reset track_id để tự sinh mới khi lưu
 
     setFrameAnns(frame.id, currentCamera, anns);
     redrawAnnotations();
@@ -1210,6 +1245,7 @@ function confirmChangeCategory(annId, newCategory) {
     showToast('Đã đổi loại đối tượng', 'success');
 }
 
+// Ẩn/Hiện một bounding box cụ thể
 function toggleAnnVisibility(id) {
     const frame = frames[currentFrameIdx];
     const anns = currentAnns();
@@ -1236,7 +1272,9 @@ function updateCamBadge() {
     renderCamList(frames[currentFrameIdx]);
 }
 
-// ============= SAVE =============
+// ==============================================================================
+// ĐỒNG BỘ & LƯU TIẾN ĐỘ TỰ ĐỘNG (AUTO-SAVE)
+// ==============================================================================
 let unsaved = false;
 let autoSaveTimeout = null;
 const modifiedFrameIds = new Set();
@@ -1248,13 +1286,13 @@ function markUnsaved(frameId) {
     }
     unsaved = true;
 
-    // Auto-save sau 1.5 giây không có thao tác mới
+    // Tự động lưu sau 1.5 giây nếu người dùng dừng thao tác
     if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
 
     const saveBtn = document.querySelector('.btn-submit');
     if (saveBtn) {
         saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Tự động lưu...';
-        saveBtn.style.background = '#F59E0B'; // Màu cam cảnh báo đang chờ lưu
+        saveBtn.style.background = '#F59E0B'; // Màu cam cảnh báo tiến độ chưa lưu
     }
 
     autoSaveTimeout = setTimeout(async () => {
@@ -1263,11 +1301,11 @@ function markUnsaved(frameId) {
             unsaved = false;
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Đã lưu';
-                saveBtn.style.background = '#10B981'; // Màu xanh lá biểu thị đã lưu
+                saveBtn.style.background = '#10B981'; // Màu xanh báo lưu thành công
                 setTimeout(() => {
                     if (!unsaved) {
                         saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Lưu';
-                        saveBtn.style.background = ''; // reset lại style mặc định
+                        saveBtn.style.background = ''; // khôi phục style mặc định
                     }
                 }, 1500);
             }
@@ -1275,6 +1313,7 @@ function markUnsaved(frameId) {
     }, 1500);
 }
 
+// Lưu tiến độ của khung hình hiện hành lên backend
 async function saveCurrentFrame(showMsg) {
     const fids = Array.from(modifiedFrameIds);
     modifiedFrameIds.clear();
@@ -1316,15 +1355,16 @@ async function saveCurrentFrame(showMsg) {
             });
         } catch (e) {
             hasError = true;
-            modifiedFrameIds.add(fid); // Trả lại để lưu lại lần sau
+            modifiedFrameIds.add(fid); // Trả lại hàng đợi để thực hiện lưu lại sau
         }
     }
     if (showMsg) {
-        if (hasError) showToast('Lỗi lưu', 'error');
-        else showToast('Đã lưu', 'success');
+        if (hasError) showToast('Lỗi lưu tiến trình', 'error');
+        else showToast('Đã lưu tiến trình', 'success');
     }
 }
 
+// Lưu toàn bộ tất cả nhãn đã gán trên các khung hình
 async function saveAnnotations(showMsg = true) {
     modifiedFrameIds.clear();
     const frameIds = Object.keys(annotations);
@@ -1334,7 +1374,6 @@ async function saveAnnotations(showMsg = true) {
         const allAnns = [];
         CAMERAS.forEach(cam => {
             getFrameAnns(frame.id, cam).forEach(ann => {
-                // needs_review đã được cập nhật trực tiếp khi kéo/resize/markReviewed
                 allAnns.push({
                     camera: cam,
                     category: ann.category,
@@ -1362,7 +1401,8 @@ async function saveAnnotations(showMsg = true) {
     }
     unsaved = false;
     localStorage.setItem(`lastFrame_${taskId}`, currentFrameIdx);
-    // Nếu đến từ FrameList → đánh dấu frame này đã lưu
+
+    // Đồng bộ nếu chuyển đến từ FrameList
     const returnTo = new URLSearchParams(window.location.search).get('returnTo');
     if (returnTo === 'FrameList') {
         const frameNum = currentFrameIdx + 1;
@@ -1371,15 +1411,16 @@ async function saveAnnotations(showMsg = true) {
     if (showMsg) showToast('Đã lưu tất cả nhãn', 'success');
 }
 
-// ============= SUBMIT =============
+// ==============================================================================
+// GỬI NHIỆM VỤ ĐÃ GÁN NHÃN (SUBMIT TASK)
+// ==============================================================================
 async function submitTask() {
-    // Nếu task đang ở chế độ gán lại (rejected), không cho nộp tổng thể — phải dùng FrameList
     if (task && task.status === 'rejected') {
         showToast('Vui lòng sửa từng khung hình qua danh sách khung hình rồi nộp lại', 'info');
         return;
     }
 
-    // Kiểm tra có nhãn nào được gán chưa (Frontend check)
+    // Đếm tổng số nhãn đã gán trên toàn bộ nhiệm vụ
     let totalAnns = 0;
     Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => totalAnns += ca.length));
 
@@ -1417,7 +1458,9 @@ async function submitTask() {
     }, { title: 'Nộp bài', confirmText: 'Nộp', type: 'info' });
 }
 
-// ============= AI =============
+// ==============================================================================
+// TỰ ĐỘNG PHÁT HIỆN ĐỐI TƯỢNG QUA AI (AI ASSISTANCE)
+// ==============================================================================
 async function runAI() {
     const frame = frames[currentFrameIdx];
     if (!frame) return;
@@ -1438,11 +1481,11 @@ async function runAI() {
         const preds = result.predictions || [];
         if (!preds.length) { showToast('AI không phát hiện đối tượng', 'info'); return; }
 
-        // Xóa các nhãn AI cũ của frame/camera hiện tại trước khi thêm mới
+        // Phân tách nhãn thủ công và nhãn do AI tự sinh trước đó
         const existingManualAnns = currentAnns().filter(a => !a.is_ai_generated);
         const existingAiAnns = currentAnns().filter(a => a.is_ai_generated);
 
-        // Tính max track_id hiện có trong toàn task
+        // Tính chỉ số track_id lớn nhất hiện tại để tiếp tục tăng tuần tự
         const classMaxId = {};
         Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
             if (a.track_id && a.category) {
@@ -1474,7 +1517,7 @@ async function runAI() {
                 ai_bbox_y: p.bbox_y,
                 ai_bbox_w: p.bbox_w,
                 ai_bbox_h: p.bbox_h,
-                needs_review: p.confidence < reviewThreshold,
+                needs_review: p.confidence < reviewThreshold, // Gắn cờ đỏ nếu độ tin cậy thấp hơn mức yêu cầu
                 hidden: false,
                 custom_name: null,
             });
@@ -1492,7 +1535,9 @@ async function runAI() {
     }
 }
 
-// ============= ZOOM =============
+// ==============================================================================
+// PHÓNG TO / THU NHỎ MÀN HÌNH (ZOOM)
+// ==============================================================================
 let zoomLevel = 100;
 const ZOOM_STEP = 10;
 const ZOOM_MIN = 30;
@@ -1526,7 +1571,7 @@ function applyZoom() {
     }, 50);
 }
 
-// Ctrl+scroll to zoom
+// Lăn chuột phóng to/thu nhỏ
 document.querySelector('.center-canvas')?.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
     e.preventDefault();
@@ -1534,7 +1579,9 @@ document.querySelector('.center-canvas')?.addEventListener('wheel', e => {
     else zoomOut();
 }, { passive: false });
 
-// ============= PAN (kéo ảnh) =============
+// ==============================================================================
+// KÉO THẢ DI CHUYỂN GÓC NHÌN (PAN)
+// ==============================================================================
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
 let panOffset = { x: 0, y: 0 };
@@ -1578,7 +1625,9 @@ function onPanEnd(e) {
     if (currentTool === 'pan') e.currentTarget.style.cursor = 'grab';
 }
 
-// ============= CLONE =============
+// ==============================================================================
+// SAO CHÉP NHANH HỘP GIỚI HẠN (CLONE)
+// ==============================================================================
 function cloneSelected() {
     if (!selectedAnnId) {
         showToast('Chọn một nhãn trước khi sao chép', 'info');
@@ -1590,7 +1639,7 @@ function cloneSelected() {
     const src = anns.find(a => a.id === selectedAnnId);
     if (!src) return;
 
-    const offset = 0.02; // lệch 2% để thấy rõ
+    const offset = 0.02; // Dịch nhẹ 2% so với trục cũ để tránh đè lấp
     const clone = {
         ...src,
         id: genId(),
@@ -1610,13 +1659,16 @@ function cloneSelected() {
     setActiveTool('pointer');
 }
 
-// ============= RESIZE =============
-// Resize handles: 8 điểm (4 góc + 4 cạnh)
+// ==============================================================================
+// CO GIÃN HỘP GIỚI HẠN (RESIZE HANDLES)
+// ==============================================================================
+// Điểm neo co giãn: 8 điểm (4 góc + 4 trung điểm cạnh)
 let resizeHandle = null; // 'tl','tc','tr','ml','mr','bl','bc','br'
 let resizeAnn = null;
 let resizeStart = null;
 const HANDLE_SIZE = 8;
 
+// Trả về toạ độ pixel của 8 điểm neo quanh hộp
 function getHandles(ann) {
     const x = ann.bbox_x * imgDisplayW;
     const y = ann.bbox_y * imgDisplayH;
@@ -1634,6 +1686,7 @@ function getHandles(ann) {
     };
 }
 
+// Kiểm tra xem người dùng có click trúng điểm neo nào hay không
 function hitHandle(px, py, ann) {
     const handles = getHandles(ann);
     for (const [key, pt] of Object.entries(handles)) {
@@ -1642,6 +1695,7 @@ function hitHandle(px, py, ann) {
     return null;
 }
 
+// Vẽ điểm neo hình vuông nhỏ màu trắng viền xanh tại các góc
 function drawHandles(ann) {
     if (!annCtx || currentTool !== 'resize') return;
     const handles = getHandles(ann);
@@ -1656,7 +1710,6 @@ function drawHandles(ann) {
     }
 }
 
-// Vẽ handles khi redraw nếu đang ở resize mode — gọi sau redrawAnnotations()
 function redrawWithHandles() {
     redrawAnnotations();
     if (currentTool === 'resize' && selectedAnnId) {
@@ -1665,7 +1718,9 @@ function redrawWithHandles() {
     }
 }
 
-// ============= TRACK NAMES MAP =============
+// ==============================================================================
+// QUẢN LÝ TÊN VẾT THEO DÕI (TRACK NAMES MAP & COUNTERS)
+// ==============================================================================
 const trackNames = {};
 
 function getTrackName(category, trackId) {
@@ -1677,11 +1732,10 @@ function setTrackName(category, trackId, name) {
     else delete trackNames[`${category}_${trackId}`];
 }
 
-// Track ID counter per class
 const trackCounters = {};
 
+// Tìm số ID theo vết (Track ID) tiếp theo chưa sử dụng cho nhóm
 function getNextTrackId(category) {
-    // Tìm max track_id hiện có trong toàn task cho class này
     let maxId = 0;
     Object.values(annotations).forEach(fa => Object.values(fa).forEach(ca => ca.forEach(a => {
         if (a.category === category && a.track_id && a.track_id > maxId) maxId = a.track_id;
@@ -1696,7 +1750,9 @@ function initTrackCounters() {
 
 const recalcTrackCounters = initTrackCounters;
 
-// ============= RENAME ANNOTATION =============
+// ==============================================================================
+// ĐỔI TÊN ĐỐI TƯỢNG (RENAME ANNOTATION)
+// ==============================================================================
 function renameAnn(id) {
     const anns = currentAnns();
     const ann = anns.find(a => a.id === id);
@@ -1714,7 +1770,9 @@ function renameAnn(id) {
     markUnsaved();
 }
 
-// ============= ATTENTION LIST =============
+// ==============================================================================
+// KẾT XUẤT DANH SÁCH CẦN CHÚ Ý (ATTENTION LIST)
+// ==============================================================================
 function renderAttentionList() {
     const list = document.getElementById('attentionList');
     const countEl = document.getElementById('attentionCount');
@@ -1722,7 +1780,7 @@ function renderAttentionList() {
 
     const flagged = currentAnns().filter(ann => ann.needs_review === true);
 
-    // Cập nhật badge số lượng
+    // Cập nhật số nhãn cần chú ý lên badge
     if (countEl) {
         if (flagged.length > 0) {
             countEl.textContent = flagged.length;
@@ -1764,6 +1822,7 @@ function renderAttentionList() {
     }).join('');
 }
 
+// Xác nhận đã kiểm tra nhãn cảnh báo (needs_review = false)
 function markReviewed(id) {
     const ann = currentAnns().find(a => a.id === id);
     if (!ann) return;
@@ -1775,6 +1834,7 @@ function markReviewed(id) {
     markUnsaved();
 }
 
+// Chuyển đổi tab hiển thị ở Sidebar (Tất cả nhãn vs Cần chú ý)
 function switchResultTab(tab) {
     window._currentResultTab = tab;
     const panelResults = document.getElementById('panelResults');
@@ -1796,7 +1856,9 @@ function switchResultTab(tab) {
     redrawAnnotations();
 }
 
-// ============= TASK INFO MODAL =============
+// ==============================================================================
+// HIỂN THỊ HỘP THOẠI CHI TIẾT NHIỆM VỤ (TASK INFO MODAL)
+// ==============================================================================
 function openTaskInfo() {
     const modal = document.getElementById('modalTaskInfo');
     if (!modal || !task) return;
@@ -1811,7 +1873,9 @@ function openTaskInfo() {
     modal.style.display = 'flex';
 }
 
-// ============= IMAGE FILTER =============
+// ==============================================================================
+// BỘ LỌC HÌNH ẢNH (IMAGE FILTER)
+// ==============================================================================
 function applyImageFilter() {
     const brightness = document.getElementById('brightnessSlider')?.value || 100;
     const contrast = document.getElementById('contrastSlider')?.value || 100;
@@ -1829,7 +1893,9 @@ function resetImageFilter() {
     applyImageFilter();
 }
 
-// ============= TOAST =============
+// ==============================================================================
+// THÔNG BÁO TOAST & CSS DỰ PHÒNG
+// ==============================================================================
 function showToast(msg, type = 'info', customColor = null) {
     const colors = { success: '#10B981', error: '#EF4444', info: '#2563EB', custom: customColor };
     const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info', custom: 'fa-tag' };
@@ -1841,7 +1907,6 @@ function showToast(msg, type = 'info', customColor = null) {
     setTimeout(() => t.remove(), 2500);
 }
 
-// CSS animation for toast
 const style = document.createElement('style');
 style.textContent = `
 @keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -1850,8 +1915,10 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ============= START =============
-// Đóng modal khi click ra ngoài (backdrop)
+// ==============================================================================
+// ĐĂNG KÝ SỰ KIỆN KHỞI CHẠY (DOMContentLoaded & BACKDROP CLICK)
+// ==============================================================================
+// Tự động đóng các modal popup khi click chuột vào vùng nền (backdrop) trống xung quanh
 ['modalTaskInfo', 'modalShortcuts', 'modalSettings'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function (e) {
         if (e.target === this) this.style.display = 'none';

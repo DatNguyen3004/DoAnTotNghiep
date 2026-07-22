@@ -27,7 +27,7 @@
             overflow-x: hidden;
         }
 
-        /* Sidebar Styling */
+        /* Định dạng Sidebar */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--bg-sidebar);
@@ -207,7 +207,7 @@
             color: #EF4444 !important;
         }
 
-        /* Main Content Wrapper */
+        /* Vùng bao nội dung chính */
         .main-wrapper {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
@@ -220,7 +220,7 @@
             margin-left: var(--sidebar-collapsed);
         }
 
-        /* Navbar */
+        /* Thanh điều hướng */
         .navbar {
             height: 72px;
             padding: 0 40px;
@@ -254,7 +254,7 @@
             cursor: pointer;
         }
 
-        /* Profile Content */
+        /* Nội dung hồ sơ */
         .main-container {
             max-width: 1000px;
             margin: 40px auto;

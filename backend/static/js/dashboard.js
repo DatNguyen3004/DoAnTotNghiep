@@ -1,33 +1,42 @@
-// ============= CONFIG =============
+// ==============================================================================
+// CẤU HÌNH & XÁC THỰC CƠ BẢN
+// ==============================================================================
 const BASE_URL = '/api';
+
+// Hàm lấy token JWT từ localStorage
 function getToken() { return localStorage.getItem('access_token'); }
 
-// Auth guard
+// KIỂM TRA QUYỀN TRUY CẬP (Auth guard)
+// Đọc thông tin người dùng từ localStorage. Nếu không phải Admin, chuyển hướng về login.html
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
 if (!getToken() || currentUser.role !== 'admin') {
     window.location.href = '../login.html';
 }
 
-// Project context
+// BỐI CẢNH DỰ ÁN (Project context)
+// Lấy ID dự án và tên dự án từ sessionStorage.
+// Nếu chưa có dự án được chọn, buộc quay về trang quản lý dự án ManagerProject.html
 const projectId = sessionStorage.getItem('projectId');
 const projectName = sessionStorage.getItem('projectName') || 'Trang chủ';
 if (!projectId) {
     window.location.href = 'ManagerProject.html';
 }
 
-// Set project name in sidebar
+// Thiết lập tên dự án lên thanh menu bên trái (Sidebar)
 const sideProjectNameEl = document.getElementById('sideProjectName');
 if (sideProjectNameEl) {
     sideProjectNameEl.textContent = projectName;
 }
 
-// Load topnav avatar from localStorage
+// Tải ảnh đại diện của Admin lên Topnav từ localStorage
 const topnavAvatarEl = document.getElementById('topnavAvatar');
 if (topnavAvatarEl && currentUser.avatar_url) {
     topnavAvatarEl.src = currentUser.avatar_url;
 }
 
-// ============= SIDEBAR TOGGLE =============
+// ==============================================================================
+// ĐỒNG BỘ GIAO DIỆN & TƯƠNG TÁC SIDEBAR
+// ==============================================================================
 const sidebar = document.getElementById('sidebar');
 const mainWrapper = document.getElementById('mainWrapper');
 const toggleBtn = document.getElementById('toggleSidebar');
@@ -41,19 +50,23 @@ if (toggleBtn) {
     });
 }
 
-// ============= TABS =============
+// ==============================================================================
+// CHUYỂN ĐỔI GIỮA CÁC TAB CHỨC NĂNG
+// ==============================================================================
 function switchTab(evt, tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     evt.currentTarget.classList.add('active');
     if (tabId === 'tab-all-tasks') {
-        console.log('Loading all tasks...');
+        console.log('Đang tải danh sách tất cả các phân đoạn...');
         loadAllTasks();
     }
 }
 
-// ============= STATUS HELPERS =============
+// ==============================================================================
+// TIỆN ÍCH HIỂN THỊ TRẠNG THÁI NHIỆM VỤ
+// ==============================================================================
 const STATUS_MAP = {
     pending: { label: 'Chờ xử lý', class: 'st-pending' },
     in_progress: { label: 'Đang làm', class: 'st-in_progress' },
@@ -64,15 +77,18 @@ const STATUS_MAP = {
     rejected: { label: 'Chưa đạt', class: 'st-rejected' }
 };
 
+// Tạo badge HTML hiển thị trạng thái nhiệm vụ
 function getStatusBadge(status) {
     const info = STATUS_MAP[status] || { label: status, class: 'st-pending' };
     return `<div class="status-badge ${info.class}"><div class="status-dot"></div>${info.label}</div>`;
 }
 
+// Chuyển sang trang chấm điểm đánh giá (Evaluation) cho nhiệm vụ
 function startEvaluation(btn, taskId) {
     window.location.href = `Evaluation.html?taskId=${taskId}`;
 }
 
+// Tạo nút thao tác tương ứng với từng trạng thái nhiệm vụ trong bảng
 function getActionLink(task) {
     const s = task.status;
     let mainLink = '';
@@ -95,6 +111,7 @@ function getActionLink(task) {
     return mainLink + deleteBtn;
 }
 
+// Tạo ô giao diện người được giao (Assignee cell) trong bảng
 function getUserCell(user) {
     if (!user) {
         return `<div class="user-cell"><div class="user-cell-initials">?</div><span class="user-cell-name unassigned">Chưa giao</span></div>`;
@@ -104,11 +121,14 @@ function getUserCell(user) {
     return `<div class="user-cell"><div class="user-cell-initials" style="background:#EEF2FF;color:#4F46E5">${initials}</div><span class="user-cell-name">${name}</span></div>`;
 }
 
-// ============= LOAD TASKS =============
+// ==============================================================================
+// TẢI VÀ QUẢN LÝ NHIỆM VỤ ĐÃ GIAO (ASSIGNED TASKS)
+// ==============================================================================
 let allTasks = [];
 let currentAssignedPage = 1;
 const assignedItemsPerPage = 5;
 
+// Gọi API lấy danh sách toàn bộ nhiệm vụ của dự án hiện hành
 async function loadTasks() {
     const tbody = document.getElementById('tasksBody');
     tbody.innerHTML = `
@@ -128,14 +148,14 @@ async function loadTasks() {
         }
 
         allTasks = await tasksRes.json();
-        console.log("DEBUG - Dữ liệu nhiệm vụ nhận được:", allTasks); // Dòng này để soi lỗi
+        console.log("DEBUG - Dữ liệu nhiệm vụ nhận được:", allTasks);
         applyAssignedPagination(true);
         updateStats(allTasks);
         if (allProjectMembers.length > 0) {
             applyMembersPagination(true);
         }
     } catch (e) {
-        console.warn('Tasks API not available, showing demo data:', e);
+        console.warn('Không thể gọi API nhiệm vụ, chuyển sang dữ liệu demo:', e);
         showDemoTasks();
     }
 }
@@ -149,6 +169,7 @@ function showDemoTasks() {
     }
 }
 
+// Bật/tắt bảng lọc nâng cao của phần Nhiệm vụ đã giao
 function toggleTaskFilterPanel() {
     const panel = document.getElementById('taskFilterPanel');
     const btn = document.getElementById('btnTaskFilterToggle');
@@ -157,6 +178,7 @@ function toggleTaskFilterPanel() {
     btn.classList.toggle('active');
 }
 
+// Bật/tắt trình thả xuống lựa chọn người thực hiện
 function toggleAssigneeDropdown(event) {
     event.stopPropagation();
     const dropdown = document.getElementById('assigneeDropdownMenu');
@@ -165,7 +187,7 @@ function toggleAssigneeDropdown(event) {
     }
 }
 
-// Close assignee dropdown when clicking outside
+// Lắng nghe sự kiện click ngoài để đóng dropdown lọc người thực hiện
 document.addEventListener('click', function (event) {
     const customSelect = document.getElementById('customAssigneeSelect');
     const dropdown = document.getElementById('assigneeDropdownMenu');
@@ -174,6 +196,7 @@ document.addEventListener('click', function (event) {
     }
 });
 
+// Cập nhật dòng chữ hiển thị (placeholder) cho dropdown chọn nhiều người thực hiện
 function updateMultiselectPlaceholder() {
     const container = document.getElementById('assigneeDropdownMenu');
     const placeholder = document.getElementById('multiselectPlaceholder');
@@ -190,6 +213,7 @@ function updateMultiselectPlaceholder() {
     }
 }
 
+// Xóa sạch các tiêu chí lọc nhiệm vụ và vẽ lại bảng
 function resetTaskFilters() {
     if (document.getElementById('filterTaskStatus')) document.getElementById('filterTaskStatus').value = 'all';
     if (document.getElementById('filterTaskProgress')) document.getElementById('filterTaskProgress').value = 'all';
@@ -207,6 +231,7 @@ function resetTaskFilters() {
     applyAssignedPagination(true);
 }
 
+// Áp dụng bộ lọc tìm kiếm và phân trang cho bảng Nhiệm vụ đã giao
 function applyAssignedPagination(resetPage = false) {
     if (resetPage) {
         currentAssignedPage = 1;
@@ -216,7 +241,7 @@ function applyAssignedPagination(resetPage = false) {
     const filterStatus = document.getElementById('filterTaskStatus')?.value || 'all';
     const filterProgress = document.getElementById('filterTaskProgress')?.value || 'all';
 
-    // Get checked assignee IDs
+    // Lấy danh sách ID người thực hiện được tích chọn
     const checkedAssigneeIds = [];
     const container = document.getElementById('assigneeDropdownMenu');
     if (container) {
@@ -226,7 +251,7 @@ function applyAssignedPagination(resetPage = false) {
     }
 
     let filtered = allTasks.filter(t => {
-        // Search by name and description and username
+        // Tìm kiếm theo tên phân đoạn, mô tả và tên người thực hiện
         const name = (t.scene_name || '').toLowerCase();
         const desc = (t.scene_description || '').toLowerCase();
         const user = (t.assigned_user?.username || '').toLowerCase();
@@ -234,12 +259,12 @@ function applyAssignedPagination(resetPage = false) {
         const matchesSearch = name.includes(q) || desc.includes(q) || user.includes(q);
         if (!matchesSearch) return false;
 
-        // Filter by status
+        // Lọc theo trạng thái nhiệm vụ
         if (filterStatus !== 'all') {
             if (t.status !== filterStatus) return false;
         }
 
-        // Filter by progress
+        // Lọc theo tiến độ hoàn thành (dựa trên số frame đã làm / tổng số frame)
         if (filterProgress !== 'all') {
             const progress = t.frame_count > 0
                 ? Math.round((t.annotated_frames / t.frame_count) * 100)
@@ -251,7 +276,7 @@ function applyAssignedPagination(resetPage = false) {
             }
         }
 
-        // Filter by assignee
+        // Lọc theo người thực hiện
         if (checkedAssigneeIds.length > 0) {
             if (!t.assigned_user || !checkedAssigneeIds.includes(t.assigned_user.id)) return false;
         }
@@ -259,7 +284,7 @@ function applyAssignedPagination(resetPage = false) {
         return true;
     });
 
-    // Update filter badge count
+    // Cập nhật số bộ lọc đang kích hoạt hiển thị lên badge
     let activeCount = 0;
     if (filterStatus !== 'all') activeCount++;
     if (filterProgress !== 'all') activeCount++;
@@ -287,6 +312,7 @@ function applyAssignedPagination(resetPage = false) {
     renderAssignedPaginationControls(totalPages);
 }
 
+// Vẽ danh sách nhiệm vụ ra bảng HTML
 function renderTasks(tasks, startIndex = 0, totalItems = 0) {
     const tbody = document.getElementById('tasksBody');
 
@@ -347,6 +373,7 @@ function renderTasks(tasks, startIndex = 0, totalItems = 0) {
     document.getElementById('tabBadgeTasks').textContent = totalItems;
 }
 
+// Vẽ cụm nút bấm phân trang cho danh sách nhiệm vụ đã giao
 function renderAssignedPaginationControls(totalPages) {
     const container = document.getElementById('pagination');
     if (!container) return;
@@ -374,21 +401,20 @@ function changeAssignedPage(page) {
     applyAssignedPagination(false);
 }
 
+// Cập nhật các khối thông tin thống kê nhanh ở đầu bảng điều khiển
 function updateStats(tasks) {
     const totalFrames = tasks.reduce((s, t) => s + (t.frame_count || 0), 0);
     const completedTasks = tasks.filter(t => t.status === 'approved').length;
     const needAttention = tasks.filter(t => t.status === 'rejected' || t.status === 'under_review' || t.status === 'reviewed').length;
 
-    // Hiệu suất: tính trên các task đã hoàn thành (approved hoặc reviewed)
+    // Tính thời gian làm việc trung bình (Avg Time) trên các task đã hoàn thiện
     const doneTasks = tasks.filter(t => (t.status === 'approved' || t.status === 'reviewed'));
     let avgTimeDisplay = 0;
     if (doneTasks.length > 0) {
-        // Tổng thời gian = labeler time + reviewer time
         const totalTimeSeconds = doneTasks.reduce((s, t) => s + (t.time_spent || 0) + (t.reviewer_time_spent || 0), 0);
         if (totalTimeSeconds > 0) {
-            // Tính trung bình Phút / Nhiệm vụ
             const avgMinutes = (totalTimeSeconds / doneTasks.length) / 60;
-            avgTimeDisplay = Math.max(1, Math.round(avgMinutes)); // Tối thiểu 1 phút nếu có thời gian
+            avgTimeDisplay = Math.max(1, Math.round(avgMinutes));
         }
     }
 
@@ -403,7 +429,7 @@ function updateStats(tasks) {
     document.getElementById('statNeedAttentionText').style.color = needAttention > 0 ? '#D97706' : '#16A34A';
     document.getElementById('statAvgTime').textContent = avgTimeDisplay;
 
-    // AI Accuracy calculation for approved tasks
+    // Tính toán độ tin cậy/chính xác trung bình của trợ lý AI (AI Accuracy) dựa trên các nhiệm vụ đã đạt
     const approvedTasksList = tasks.filter(t => t.status === 'approved');
     let avgAIAccuracy = 0;
     if (approvedTasksList.length > 0) {
@@ -442,17 +468,20 @@ function updateStats(tasks) {
     if (fp) fp.textContent = `${completedPct}% hoàn thành`;
 }
 
-// ============= SEARCH =============
+// Bắt sự kiện gõ ô tìm kiếm phân đoạn đã giao
 document.getElementById('searchTasks').addEventListener('input', function () {
     applyAssignedPagination(true);
 });
 
-// ============= LOAD MEMBERS =============
+// ==============================================================================
+// TẢI VÀ QUẢN LÝ THÀNH VIÊN DỰ ÁN (PROJECT MEMBERS)
+// ==============================================================================
 let allProjectMembers = [];
 let allSystemUsers = [];
 let currentMembersPage = 1;
 const membersPerPage = 5;
 
+// Bật/tắt thanh lọc thành viên dự án
 function toggleMembersFilterPanel() {
     const panel = document.getElementById('membersFilterPanel');
     const btn = document.getElementById('btnMembersFilterToggle');
@@ -461,6 +490,7 @@ function toggleMembersFilterPanel() {
     btn.classList.toggle('active');
 }
 
+// Reset các thông số lọc thành viên dự án
 function resetMembersFilters() {
     if (document.getElementById('sortMembersAssigned')) document.getElementById('sortMembersAssigned').value = 'none';
     if (document.getElementById('sortMembersReviewed')) document.getElementById('sortMembersReviewed').value = 'none';
@@ -470,6 +500,7 @@ function resetMembersFilters() {
     applyMembersPagination(true);
 }
 
+// Phân trang, tìm kiếm và sắp xếp danh sách thành viên dự án
 function applyMembersPagination(resetPage = false) {
     if (resetPage) {
         currentMembersPage = 1;
@@ -481,7 +512,7 @@ function applyMembersPagination(resetPage = false) {
     const sortEvaluated = document.getElementById('sortMembersEvaluated')?.value || 'none';
     const filterProgress = document.getElementById('filterMembersProgress')?.value || 'all';
 
-    // Compute stats for all members in the context of the current project tasks
+    // Tính toán số liệu thống kê công việc của thành viên trong bối cảnh các task hiện tại
     const membersWithStats = allProjectMembers.map(m => {
         const userTasks = allTasks.filter(t => t.assigned_to === m.id || t.assigned_user?.id === m.id);
         const totalAssigned = userTasks.length;
@@ -506,7 +537,7 @@ function applyMembersPagination(resetPage = false) {
         };
     });
 
-    // Filter
+    // Thực hiện lọc theo họ tên, tên tài khoản hoặc tiến độ trung bình
     let filtered = membersWithStats.filter(m => {
         const fullName = (m.full_name || '').toLowerCase();
         const username = (m.username || '').toLowerCase();
@@ -525,7 +556,7 @@ function applyMembersPagination(resetPage = false) {
         return true;
     });
 
-    // Sort
+    // Thực hiện sắp xếp
     if (sortAssigned !== 'none') {
         filtered.sort((a, b) => sortAssigned === 'desc' ? b.total_assigned - a.total_assigned : a.total_assigned - b.total_assigned);
     } else if (sortReviewed !== 'none') {
@@ -534,7 +565,7 @@ function applyMembersPagination(resetPage = false) {
         filtered.sort((a, b) => sortEvaluated === 'desc' ? b.total_evaluated - a.total_evaluated : a.total_evaluated - b.total_evaluated);
     }
 
-    // Update filter badge count
+    // Cập nhật số lượng tiêu chí lọc đang hoạt động
     let activeCount = 0;
     if (sortAssigned !== 'none') activeCount++;
     if (sortReviewed !== 'none') activeCount++;
@@ -551,7 +582,7 @@ function applyMembersPagination(resetPage = false) {
         }
     }
 
-    // Set tab badge
+    // Cập nhật số lượng hiển thị trên tab thành viên
     const tabBadge = document.getElementById('tabBadgeMembers');
     if (tabBadge) {
         tabBadge.textContent = allProjectMembers.length;
@@ -569,6 +600,7 @@ function applyMembersPagination(resetPage = false) {
     renderMembersPaginationControls(totalPages);
 }
 
+// Vẽ danh sách thành viên ra bảng
 function renderMembersTable(members, startIndex = 0, totalItems = 0) {
     const tbody = document.getElementById('membersBody');
     if (!tbody) return;
@@ -602,7 +634,7 @@ function renderMembersTable(members, startIndex = 0, totalItems = 0) {
                </button>`
             : `<span style="color:#94A3B8;font-size:12px">-</span>`;
 
-        // Quality column value
+        // Định dạng cột chất lượng/độ tin cậy của thành viên
         let qualityHtml = `<span style="color:#94A3B8;font-size:12px">—</span>`;
         if (m.role !== 'admin') {
             if (m.total_assigned === 0 || m.quality_rate === null || m.quality_rate === undefined) {
@@ -651,6 +683,7 @@ function renderMembersTable(members, startIndex = 0, totalItems = 0) {
     document.getElementById('showingMembers').textContent = `Hiển thị ${startIndex + 1} - ${startIndex + members.length} trên tổng số ${totalItems} thành viên`;
 }
 
+// Vẽ các nút phân trang cho bảng thành viên
 function renderMembersPaginationControls(totalPages) {
     const container = document.getElementById('membersPagination');
     if (!container) return;
@@ -678,7 +711,7 @@ function changeMembersPage(page) {
     applyMembersPagination(false);
 }
 
-// Hook searchMembers input event listener
+// Đăng ký bộ lắng nghe sự kiện nhập tìm kiếm thành viên
 setTimeout(() => {
     const searchMembersEl = document.getElementById('searchMembers');
     if (searchMembersEl) {
@@ -688,6 +721,7 @@ setTimeout(() => {
     }
 }, 100);
 
+// Nạp danh sách thành viên dự án từ backend
 async function loadMembers() {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}/members`, {
@@ -701,7 +735,7 @@ async function loadMembers() {
         }
         const rawMembers = await res.json();
 
-        // Parallel pre-fetching of stats/quality for all members in the current project
+        // Tải thông tin thống kê chất lượng gán nhãn của từng thành viên song song
         const memberPromises = rawMembers.map(async (m) => {
             if (m.role === 'admin') {
                 m.quality_rate = null;
@@ -733,11 +767,12 @@ async function loadMembers() {
     }
 }
 
+// Sinh danh sách checkboxes lọc người thực hiện trong bộ lọc Nhiệm vụ
 function populateAssigneeFilterCheckboxes(members) {
     const container = document.getElementById('assigneeDropdownMenu');
     if (!container) return;
     
-    // Remember currently checked user IDs to restore them
+    // Ghi nhớ các ID đang được check để giữ trạng thái sau khi cập nhật
     const checkedIds = new Set();
     container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
         checkedIds.add(parseInt(cb.value));
@@ -762,7 +797,9 @@ function populateAssigneeFilterCheckboxes(members) {
     updateMultiselectPlaceholder();
 }
 
-// ============= LOAD SIDEBAR PROJECT =============
+// ==============================================================================
+// ĐỒNG BỘ THÔNG TIN DỰ ÁN TRÊN SIDEBAR
+// ==============================================================================
 async function loadSidebarProject() {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}`, {
@@ -781,7 +818,9 @@ async function loadSidebarProject() {
     } catch (e) { /* silent */ }
 }
 
-// ============= ASSIGN MODAL =============
+// ==============================================================================
+// MODAL PHÂN CÔNG NHIỆM VỤ (ASSIGN MODAL)
+// ==============================================================================
 let availableScenes = [];
 let availableLabelers = [];
 
@@ -799,7 +838,7 @@ document.getElementById('assignModal').addEventListener('click', function (e) {
     if (e.target === this) closeAssignModal();
 });
 
-/* ============= CUSTOM SEARCHABLE SELECT FUNCTIONS ============= */
+/* ── CÁC HÀM XỬ LÝ Ô CHỌN TÌM KIẾM TÙY BIẾN (CUSTOM SEARCHABLE SELECT) ── */
 function toggleSearchSelect(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -873,7 +912,7 @@ function selectSearchOption(containerId, value, labelText) {
     container.classList.remove('active');
 }
 
-// Close searchable select dropdowns when clicking outside
+// Đóng các dropdown select custom khi bấm ra ngoài
 document.addEventListener('click', function (e) {
     document.querySelectorAll('.custom-search-select').forEach(el => {
         if (!el.contains(e.target)) {
@@ -882,8 +921,9 @@ document.addEventListener('click', function (e) {
     });
 });
 
+// Tải thông tin nhiệm vụ và người dùng phục vụ cho popup phân công
 async function loadAssignData() {
-    // Load scenes chưa có task
+    // 1. Tải danh sách phân đoạn (scenes) chưa được gán nhiệm vụ
     try {
         const sceneRes = await fetch(`${BASE_URL}/projects/${projectId}/scenes`, {
             headers: { Authorization: `Bearer ${getToken()}` }
@@ -931,7 +971,7 @@ async function loadAssignData() {
         document.getElementById('sceneHelper').textContent = 'Lỗi tải nhiệm vụ';
     }
 
-    // Load labelers — members của project có role=user
+    // 2. Tải danh sách Labelers (thành viên có vai trò 'user') để gán việc
     try {
         const memberRes = await fetch(`${BASE_URL}/projects/${projectId}/members`, {
             headers: { Authorization: `Bearer ${getToken()}` }
@@ -964,6 +1004,7 @@ async function loadAssignData() {
     } catch (e) { console.error('Load members failed:', e); }
 }
 
+// Gửi yêu cầu gán việc lên server
 async function submitAssign() {
     const sceneId = document.getElementById('selectScene').value;
     const labelerId = document.getElementById('selectLabeler').value;
@@ -1007,7 +1048,9 @@ async function submitAssign() {
     }
 }
 
-// ============= ADD MEMBER MODAL =============
+// ==============================================================================
+// MODAL THÊM THÀNH VIÊN VÀO DỰ ÁN (ADD MEMBER MODAL)
+// ==============================================================================
 async function openAddMemberModal() {
     document.getElementById('addMemberModal').classList.add('active');
     document.getElementById('memberSearchInput').value = '';
@@ -1030,6 +1073,7 @@ document.getElementById('addMemberModal').addEventListener('click', function (e)
     if (e.target === this) closeAddMemberModal();
 });
 
+// Lọc người dùng hệ thống theo từ khóa tìm kiếm
 function filterUserList(q) {
     const filtered = allSystemUsers.filter(u => {
         const name = (u.full_name || '').toLowerCase();
@@ -1039,6 +1083,7 @@ function filterUserList(q) {
     renderUserPickerList(filtered);
 }
 
+// Dựng danh sách người dùng để Admin tích chọn thêm vào dự án
 function renderUserPickerList(users) {
     const list = document.getElementById('userPickerList');
     const memberIds = new Set(allProjectMembers.map(m => m.id));
@@ -1076,6 +1121,7 @@ function renderUserPickerList(users) {
     }).join('');
 }
 
+// Thêm một thành viên vào dự án
 async function addMember(userId, name) {
     try {
         const res = await fetch(`${BASE_URL}/projects/${projectId}/members`, {
@@ -1100,6 +1146,7 @@ async function addMember(userId, name) {
     }
 }
 
+// Xóa thành viên khỏi dự án
 async function removeMember(userId, username) {
     showConfirm(`Xóa "${username}" khỏi dự án?`, async () => {
         try {
@@ -1120,7 +1167,9 @@ async function removeMember(userId, username) {
     }, { title: 'Xóa thành viên', confirmText: 'Xóa', type: 'danger' });
 }
 
-// ============= DELETE TASK =============
+// ==============================================================================
+// XÓA NHIỆM VỤ ĐÃ GIAO (DELETE TASK)
+// ==============================================================================
 async function deleteTask(taskId) {
     showConfirm('Xóa nhiệm vụ này? Toàn bộ file nhãn sẽ bị xóa theo.', async () => {
         try {
@@ -1141,11 +1190,14 @@ async function deleteTask(taskId) {
     }, { title: 'Xóa nhiệm vụ', confirmText: 'Xóa', type: 'danger' });
 }
 
-// ============= ALL TASKS TAB =============
+// ==============================================================================
+// QUẢN LÝ TAB TẤT CẢ PHÂN ĐOẠN (ALL SCENES TAB)
+// ==============================================================================
 let allScenes = [];
 let currentAllScenesPage = 1;
 const allScenesItemsPerPage = 5;
 
+// Tải toàn bộ phân đoạn (scenes) thuộc dự án
 async function loadAllTasks() {
     const tbody = document.getElementById('allTasksBody');
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#94A3B8">
@@ -1165,6 +1217,7 @@ async function loadAllTasks() {
     }
 }
 
+// Bật/tắt thanh lọc của tab Tất cả phân đoạn
 function toggleAllTasksFilterPanel() {
     const panel = document.getElementById('allTasksFilterPanel');
     const btn = document.getElementById('btnAllTasksFilterToggle');
@@ -1173,6 +1226,7 @@ function toggleAllTasksFilterPanel() {
     btn.classList.toggle('active');
 }
 
+// Reset các bộ lọc trong tab Tất cả phân đoạn
 function resetAllTasksFilters() {
     if (document.getElementById('filterAllTasksTime')) document.getElementById('filterAllTasksTime').value = 'all';
     if (document.getElementById('filterAllTasksFrames')) document.getElementById('filterAllTasksFrames').value = 'all';
@@ -1182,6 +1236,7 @@ function resetAllTasksFilters() {
     applyAllScenesPagination(true);
 }
 
+// Phân trang, tìm kiếm và áp dụng lọc cho danh sách phân đoạn
 function applyAllScenesPagination(resetPage = false) {
     if (resetPage) {
         currentAllScenesPage = 1;
@@ -1196,14 +1251,14 @@ function applyAllScenesPagination(resetPage = false) {
     const assignedSceneIds = new Set((allTasks || []).map(t => t.scene_id));
 
     let filtered = allScenes.filter(s => {
-        // Search by name and description
+        // Tìm kiếm theo tên hoặc mô tả phân đoạn
         const name = (s.name || s.scene_token || '').toLowerCase();
         const desc = (s.description || '').toLowerCase();
         
         const matchesSearch = name.includes(q) || desc.includes(q);
         if (!matchesSearch) return false;
 
-        // Filter by first frame's timestamp (nuScenes timestamp is in microseconds)
+        // Lọc theo khung giờ ghi hình của phân đoạn (sử dụng nuScenes timestamp hệ micro-giây)
         if (filterTime !== 'all' && s.first_frame_timestamp) {
             const date = new Date(s.first_frame_timestamp / 1000);
             const hour = date.getHours();
@@ -1211,18 +1266,15 @@ function applyAllScenesPagination(resetPage = false) {
             const timeInMins = hour * 60 + minute;
             
             if (filterTime === 'morning') {
-                // Morning: 1h -> 11h59 (60 mins to 719 mins)
                 if (timeInMins < 60 || timeInMins >= 720) return false;
             } else if (filterTime === 'afternoon') {
-                // Afternoon: 12h -> 17h59 (720 mins to 1079 mins)
                 if (timeInMins < 720 || timeInMins >= 1080) return false;
             } else if (filterTime === 'evening') {
-                // Evening: 18h -> 0h59 (1080 mins to 1439 mins OR 0 mins to 59 mins)
                 if (timeInMins >= 60 && timeInMins < 1080) return false;
             }
         }
 
-        // Filter by frame count
+        // Lọc theo số lượng khung hình (frame count)
         if (filterFrames !== 'all') {
             const fc = s.frame_count || 0;
             if (filterFrames === 'range_1_50') {
@@ -1234,7 +1286,7 @@ function applyAllScenesPagination(resetPage = false) {
             }
         }
 
-        // Filter by status
+        // Lọc theo trạng thái đã giao việc hay chưa
         if (filterStatus !== 'all') {
             const isAssigned = assignedSceneIds.has(s.id);
             if (filterStatus === 'assigned' && !isAssigned) return false;
@@ -1244,7 +1296,7 @@ function applyAllScenesPagination(resetPage = false) {
         return true;
     });
 
-    // Sort by frame count
+    // Sắp xếp phân đoạn theo số khung hình
     if (sortFrames !== 'none') {
         filtered.sort((a, b) => {
             const aFc = a.frame_count || 0;
@@ -1257,7 +1309,7 @@ function applyAllScenesPagination(resetPage = false) {
         });
     }
 
-    // Update filter badge count
+    // Cập nhật số bộ lọc hoạt động lên tab Tất cả phân đoạn
     let activeCount = 0;
     if (filterTime !== 'all') activeCount++;
     if (filterFrames !== 'all') activeCount++;
@@ -1286,7 +1338,7 @@ function applyAllScenesPagination(resetPage = false) {
     renderAllScenesPaginationControls(totalPages);
 }
 
-// Hook search input event listener
+// Bắt sự kiện gõ tìm kiếm nhanh phân đoạn
 setTimeout(() => {
     const searchAllTasksEl = document.getElementById('searchAllTasks');
     if (searchAllTasksEl) {
@@ -1296,6 +1348,7 @@ setTimeout(() => {
     }
 }, 100);
 
+// Vẽ dữ liệu tất cả phân đoạn ra bảng HTML
 function renderAllScenesTable(scenes, startIndex = 0, totalItems = 0) {
     const tbody = document.getElementById('allTasksBody');
     if (!totalItems) {
@@ -1339,6 +1392,7 @@ function renderAllScenesTable(scenes, startIndex = 0, totalItems = 0) {
     document.getElementById('showingAllTasks').textContent = `Hiển thị ${startIndex + 1} - ${startIndex + scenes.length} trên tổng số ${totalItems} nhiệm vụ`;
 }
 
+// Vẽ phân trang cho bảng tất cả phân đoạn
 function renderAllScenesPaginationControls(totalPages) {
     const container = document.getElementById('allTasksPagination');
     if (!container) return;
@@ -1366,12 +1420,14 @@ function changeAllScenesPage(page) {
     applyAllScenesPagination(false);
 }
 
-// ============= SCENE EDIT MODAL =============
+// ==============================================================================
+// XỬ LÝ LƯỚI PHÂN ĐOẠN (SCENES GRID - TRANG CHỦ)
+// ==============================================================================
 let allScenesData = [];
 
 async function loadAllScenes() {
     const grid = document.getElementById('scenesGrid');
-    console.log('loadAllScenes called, grid:', grid, 'projectId:', projectId);
+    console.log('loadAllScenes đã được gọi, grid:', grid, 'projectId:', projectId);
     if (!grid) return;
     if (!projectId) {
         grid.innerHTML = `<div style="grid-column:1/-1;color:#EF4444;padding:24px">Không có projectId</div>`;
@@ -1393,6 +1449,7 @@ async function loadAllScenes() {
     }
 }
 
+// Vẽ danh sách phân đoạn dạng lưới thẻ (Grid Cards) kèm ảnh thumb
 function renderScenesGrid(scenes) {
     const grid = document.getElementById('scenesGrid');
     if (!scenes.length) {
@@ -1404,7 +1461,7 @@ function renderScenesGrid(scenes) {
              onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
             <div style="height:140px;background:#0F172A;position:relative;cursor:pointer" onclick="openSceneEditModal({scene_id:${scene.id},scene_name:'${(scene.name || '').replace(/'/g, "\\'")}',scene_description:'${(scene.description || '').replace(/'/g, "\\'")}',_previewSceneId:${scene.id}})">
                 <img id="sceneThumb_${scene.id}" src="" alt="${scene.name}"
-                    style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s">
+                     style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s">
                 <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#475569;font-size:12px" id="sceneThumbLoading_${scene.id}">
                     <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
@@ -1420,10 +1477,11 @@ function renderScenesGrid(scenes) {
             </div>
         </div>`).join('');
 
-    // Load thumbnails
+    // Nạp ngầm ảnh thumbnail (khung hình đầu tiên) của từng phân đoạn
     scenes.forEach(scene => loadSceneThumb(scene.id));
 }
 
+// Hàm tải ảnh thumb camera trước (CAM_FRONT) của phân đoạn
 async function loadSceneThumb(sceneId) {
     try {
         const framesRes = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
@@ -1445,7 +1503,9 @@ async function loadSceneThumb(sceneId) {
     } catch (e) { /* silent */ }
 }
 
-// ============= SCENE EDIT MODAL =============
+// ==============================================================================
+// MODAL CHỈNH SỬA PHÂN ĐOẠN & XEM TRƯỚC HÌNH ẢNH (SCENE EDIT & PREVIEW)
+// ==============================================================================
 let _previewFrames = [];
 let _previewFrameIdx = 0;
 
@@ -1455,7 +1515,7 @@ async function openSceneEditModal(task) {
     document.getElementById('sceneEditName').value = task.scene_name || '';
     document.getElementById('sceneEditDesc').value = task.scene_description || '';
 
-    // Reset preview state
+    // Reset giao diện xem trước ảnh
     _previewFrames = [];
     _previewFrameIdx = 0;
     document.getElementById('scenePreviewImg').src = '';
@@ -1463,7 +1523,7 @@ async function openSceneEditModal(task) {
 
     document.getElementById('sceneEditModal').classList.add('active');
 
-    // Load all frames
+    // Tải toàn bộ khung hình phục vụ trình xem trước slide
     try {
         const framesRes = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
             headers: { Authorization: `Bearer ${getToken()}` }
@@ -1477,6 +1537,7 @@ async function openSceneEditModal(task) {
     } catch (e) { /* silent */ }
 }
 
+// Nạp khung hình xem trước theo chỉ mục (index)
 async function _loadPreviewFrame(idx) {
     if (!_previewFrames.length) return;
     idx = Math.max(0, Math.min(_previewFrames.length - 1, idx));
@@ -1503,6 +1564,7 @@ async function _loadPreviewFrame(idx) {
     }
 }
 
+// Chuyển đổi khung hình (Tới / Lui) trong khung xem trước
 async function previewNavFrame(dir) {
     await _loadPreviewFrame(_previewFrameIdx + dir);
 }
@@ -1515,6 +1577,7 @@ document.getElementById('sceneEditModal').addEventListener('click', function (e)
     if (e.target === this) closeSceneEditModal();
 });
 
+// Lưu thông tin chỉnh sửa phân đoạn (tên, mô tả) lên server
 async function saveSceneEdit() {
     const sceneId = document.getElementById('sceneEditId').value;
     const name = document.getElementById('sceneEditName').value.trim();
@@ -1532,8 +1595,7 @@ async function saveSceneEdit() {
             showToast('Đã cập nhật tên nhiệm vụ', 'success');
             closeSceneEditModal();
             loadTasks();
-            loadAllTasks(); // Tải lại bảng dữ liệu trong tab Tất cả các nhiệm vụ
-            // Reload scenes grid nếu đang ở tab đó
+            loadAllTasks();
             if (allScenesData.length > 0) loadAllScenes();
         } else {
             showToast('Lỗi cập nhật', 'error');
@@ -1543,9 +1605,9 @@ async function saveSceneEdit() {
     }
 }
 
-
-
-// ============= TOAST =============
+// ==============================================================================
+// TOAST & MODAL XÁC NHẬN TÙY BIẾN (CUSTOM CONFIRM MODAL)
+// ==============================================================================
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -1554,6 +1616,7 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 3000);
 }
 
+// Hộp thoại xác nhận tùy chỉnh hỗ trợ các luồng phê duyệt của Admin
 function showConfirmModal(options) {
     const { title, message, confirmText, confirmColor, icon, onConfirm } = options;
     const overlay = document.createElement('div');
@@ -1594,6 +1657,7 @@ function showConfirmModal(options) {
     };
 }
 
+// Phê duyệt nhanh nhiệm vụ là Đạt yêu cầu (Approved) bằng quyền ghi đè của Admin
 function adminApproveTask(taskId) {
     showConfirmModal({
         title: 'Đạt yêu cầu',
@@ -1628,6 +1692,7 @@ function adminApproveTask(taskId) {
     });
 }
 
+// Phê duyệt nhanh nhiệm vụ là Chưa đạt yêu cầu (Rejected) bằng quyền ghi đè của Admin
 function adminRejectTask(taskId) {
     showConfirmModal({
         title: 'Chưa đạt yêu cầu',
@@ -1657,10 +1722,9 @@ function adminRejectTask(taskId) {
     });
 }
 
-
-
-// ============= INIT =============
+// ==============================================================================
+// KHỞI CHẠY TẢI DỮ LIỆU BAN ĐẦU
+// ==============================================================================
 loadSidebarProject();
 loadTasks();
 loadMembers();
-

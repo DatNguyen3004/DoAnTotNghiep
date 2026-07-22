@@ -218,7 +218,7 @@
 
 <body>
 
-    <!-- Navbar -->
+    <!-- Thanh điều hướng (Navbar) -->
     <header class="navbar">
         <div class="nav-left">
             <img src="../image/NuLabel-removebg-preview.png" width="40" height="30">
@@ -231,7 +231,7 @@
         </div>
     </header>
 
-    <!-- Toolbar -->
+    <!-- Thanh công cụ (Toolbar) -->
     <div class="toolbar">
         <div class="toolbar-left-btn-container">
             <button class="btn-phe-duyet" id="btnDaKiemTra" style="background:linear-gradient(90deg,#7C3AED,#2563EB)">
@@ -270,26 +270,26 @@
         </div>
     </div>
 
-    <!-- Workspace -->
+    <!-- Không gian làm việc (Workspace) -->
     <div class="workspace">
 
-        <!-- Left Panel: Cams -->
+        <!-- Bảng điều khiển bên trái: Danh sách Camera -->
         <aside class="panel-left">
             <div class="panel-header">CAMERA</div>
             <div class="cam-list" id="camList"></div>
         </aside>
 
-        <!-- Center Canvas (read-only) -->
+        <!-- Khung Canvas trung tâm (Chỉ đọc) -->
         <main class="center-canvas">
             <div class="canvas-container">
                 <img src="" alt="Khung hình" id="mainImage" style="display:none">
             </div>
         </main>
 
-        <!-- Right Panel: Review -->
+        <!-- Bảng điều khiển bên phải: Kiểm duyệt (Review) -->
         <aside class="panel-right review-panel">
 
-            <!-- Progress -->
+            <!-- Tiến độ (Progress) -->
             <div class="review-progress">
                 <span id="progressText">0 / 0</span>
                 <div class="progress-bar-wrap">
@@ -298,7 +298,7 @@
                 <span id="frameStatusBadge" class="frame-status pending">Chưa đánh giá</span>
             </div>
 
-            <!-- Tools Section -->
+            <!-- Phần công cụ (Tools Section) -->
             <div class="tools-section" id="section-container-tools" style="padding: 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0;">
                 <div class="section-header" style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleSectionCollapse('tools')">
                     <div class="section-title">Công cụ</div>
@@ -314,7 +314,7 @@
                 </div>
             </div>
 
-            <!-- Label list (read-only) -->
+            <!-- Danh sách nhãn dán (Chỉ đọc) -->
             <div class="results-section" id="section-container-results" style="flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;">
                 <div class="section-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;flex-shrink:0;" onclick="toggleSectionCollapse('results')">
                     <div class="labels-badge" id="labelsBadge">0 NHÃN</div>
@@ -325,14 +325,14 @@
                 </div>
             </div>
 
-            <!-- Feedback -->
+            <!-- Phản hồi nhận xét (Feedback) -->
             <div class="feedback-section">
                 <div class="feedback-label"><i class="fa-solid fa-comment-dots"></i> Mô tả / Nhận xét</div>
                 <textarea class="feedback-textarea" id="frameFeedback"
                     placeholder="Nhập nhận xét cho khung hình này (không bắt buộc)..."></textarea>
             </div>
 
-            <!-- Đúng / Sai buttons -->
+            <!-- Các nút bấm Đạt / Không đạt -->
             <div class="review-actions">
                 <button class="btn-correct" id="btnCorrect" onclick="markFrame('correct')">
                     <i class="fa-solid fa-check"></i> Đúng
@@ -342,7 +342,7 @@
                 </button>
             </div>
 
-            <!-- Footer -->
+            <!-- Chân trang (Footer) -->
             <div class="panel-footer">
                 <a id="backLinkReview" href="dashboard.html" class="link-home">
                     <i class="fa-solid fa-house"></i> Trở về trang chủ
@@ -388,7 +388,7 @@
             </div>
 
             <div style="display:flex;flex-direction:column;gap:16px">
-                <!-- Group 1 -->
+                <!-- Nhóm 1 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -409,7 +409,7 @@
                     </div>
                 </div>
 
-                <!-- Group 2 -->
+                <!-- Nhóm 2 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -436,7 +436,7 @@
                     </div>
                 </div>
 
-                <!-- Group 3 -->
+                <!-- Nhóm 3 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
@@ -454,7 +454,7 @@
                     </div>
                 </div>
 
-                <!-- Group 4 -->
+                <!-- Nhóm 4 -->
                 <div>
                     <div
                         style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">

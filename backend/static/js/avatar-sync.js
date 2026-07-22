@@ -1,18 +1,25 @@
-// avatar-sync.js — load avatar từ localStorage vào topnav
+// ==============================================================================
+// AVATAR SYNC & GLOBAL CHAT WIDGET
+// Tệp xử lý đồng bộ ảnh đại diện người dùng trên các thanh điều hướng
+// và tích hợp cửa sổ chat toàn cục (Global Chat Widget) kết nối hệ thống.
+// ==============================================================================
+
 (function() {
     var BASE_URL = '';
     var cu = JSON.parse(localStorage.getItem('current_user') || '{}');
 
-    // Tự detect đường dẫn Profile dựa vào vị trí file hiện tại
+    // Tự động nhận diện đường dẫn trang cá nhân (Profile) dựa trên vị trí tệp hiện tại
     var path = window.location.pathname;
     var profileHref = path.includes('/Admin/') ? 'Profile.html' : 'Profile.html';
 
+    // Hàm chuyển đổi đường dẫn ảnh đại diện về dạng tuyệt đối (nếu là đường dẫn tương đối)
     function resolveAvatarUrl(url) {
         if (!url) return null;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
         return BASE_URL + (url.startsWith('/') ? '' : '/') + url;
     }
 
+    // Hàm tạo thẻ hình tròn chứa 2 chữ cái đầu của tên người dùng (initials) làm ảnh đại diện tạm thời
     function makeInitialsEl(username, onclick) {
         var d = document.createElement('div');
         d.style.cssText = 'width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-family:Inter,sans-serif';
@@ -21,11 +28,12 @@
         return d;
     }
 
+    // Hàm đồng bộ ảnh đại diện lên các vị trí tương ứng trên giao diện hiện tại
     function applyAvatar() {
         var avatarUrl = resolveAvatarUrl(cu.avatar_url);
         var goProfile = function() { window.location.href = profileHref; };
 
-        // ── Xử lý img avatar (topnav-right .avatar, #topnavAvatar) ──
+        // ── Nhóm 1: Đồng bộ ảnh đại diện trên thanh Menu trên cùng (Topnav) ──
         var avatarImgs = document.querySelectorAll(
             '.topnav-right .avatar, .topnav-right .avatar-nav, #topnavAvatar, .nav-right img.avatar, .nav-right img.user-avatar'
         );
@@ -44,7 +52,7 @@
             }
         });
 
-        // ── Xử lý div#userAvatar (Label.html, Label_Review.html) ──
+        // ── Nhóm 2: Đồng bộ thẻ div hiển thị Avatar ở góc trang Label.html & Label_Review.html ──
         var divAvatar = document.getElementById('userAvatar');
         if (divAvatar && divAvatar.tagName === 'DIV') {
             divAvatar.style.cursor = 'pointer';
@@ -68,6 +76,7 @@
         }
     }
 
+    // Khởi chạy khi tài liệu HTML đã tải xong
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAvatar);
     } else {
@@ -75,20 +84,22 @@
     }
 })();
 
-// ==================== GLOBAL CHAT WIDGET ====================
+// ==============================================================================
+// KHỞI TẠO WIDGET CHAT TOÀN CỤC (GLOBAL CHAT WIDGET)
+// ==============================================================================
 (function() {
-    // Disable on label, label_review and evaluation pages
+    // Vô hiệu hóa widget chat trên các trang gán nhãn, kiểm duyệt và chấm điểm (để tối ưu hiệu năng vẽ Canvas)
     var path = window.location.pathname.toLowerCase();
     if (path.includes('label.html') || path.includes('label_review.html') || path.includes('evaluation.html')) {
         return;
     }
 
-    // Only run if user is logged in
+    // Chỉ hoạt động khi người dùng đã đăng nhập thành công
     var token = localStorage.getItem('access_token');
     var currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
     if (!token || !currentUser.id) return;
 
-    // Inject FontAwesome stylesheet to ensure icons render on all pages
+    // Chèn stylesheet FontAwesome nếu trang chưa tích hợp biểu tượng
     if (!document.querySelector('link[href*="font-awesome"]')) {
         var faLink = document.createElement('link');
         faLink.rel = 'stylesheet';
@@ -96,6 +107,7 @@
         document.head.appendChild(faLink);
     }
 
+    // Hộp thoại xác nhận tùy biến dành riêng cho ô Chat Widget
     function showChatConfirm(message, onConfirm, options = {}) {
         if (typeof showConfirm === 'function') {
             showConfirm(message, onConfirm, options);
@@ -161,7 +173,7 @@
         document.addEventListener('keydown', onKey);
     }
 
-    // Inject CSS
+    // Chèn mã CSS tùy biến cho Widget Chat góc phải màn hình
     var chatStyles = `
         .global-chat-widget {
             position: fixed;
@@ -500,7 +512,7 @@
             display: block;
             cursor: zoom-in;
             transition: transform 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8 rgba(0,0,0,0.1);
         }
         .global-chat-img:hover {
             transform: scale(1.02);
@@ -588,7 +600,7 @@
     styleEl.innerHTML = chatStyles;
     document.head.appendChild(styleEl);
 
-    // Inject HTML
+    // Chèn cấu trúc HTML của widget chat vào chân trang
     var htmlString = `
         <div class="global-chat-widget" id="globalChatWidget">
             <button class="global-chat-toggle-btn" id="globalChatToggleBtn">
@@ -610,7 +622,7 @@
                     </div>
                 </div>
                 <div class="global-chat-body" id="globalChatBody">
-                    <!-- Dynamic view goes here -->
+                    <!-- Khung kết xuất danh sách hoặc hội thoại sẽ được nạp động -->
                 </div>
                 <form class="global-chat-input-area" id="globalChatForm" style="display: none;">
                     <input type="file" id="globalChatFileInput" accept="image/*" style="display: none;">
@@ -630,16 +642,16 @@
     chatDiv.innerHTML = htmlString;
     document.body.appendChild(chatDiv);
 
-    // State Variables
-    var currentMode = 'list'; // 'list', 'general', 'private'
+    // Các biến quản trị trạng thái (State variables)
+    var currentMode = 'list'; // Bao gồm: 'list' (danh sách), 'general' (nhóm chung), 'private' (nhắn tin riêng)
     var currentRecipientId = null;
     var currentRecipientName = '';
     var allowedUsers = [];
     var pollInterval = null;
-    var cachedMessages = {}; // roomId -> messages
-    var unreads = {}; // roomId -> count
+    var cachedMessages = {}; // Lưu trữ tin nhắn theo khóa phòng: roomId -> danh sách tin nhắn
+    var unreads = {}; // Lưu số lượng tin nhắn chưa đọc: roomId -> số tin
 
-    // DOM Elements
+    // Các phần tử giao diện DOM
     var toggleBtn = document.getElementById('globalChatToggleBtn');
     var chatWindow = document.getElementById('globalChatWindow');
     var chatBody = document.getElementById('globalChatBody');
@@ -652,7 +664,7 @@
     var deleteConvBtn = document.getElementById('globalChatDeleteConvBtn');
     var mainBadge = document.getElementById('globalChatBadge');
 
-    // Setup Listeners
+    // Đăng ký bộ lắng nghe sự kiện (Listeners)
     toggleBtn.onclick = function() {
         if (chatWindow.style.display === 'none') {
             chatWindow.style.display = 'flex';
@@ -661,7 +673,7 @@
                 renderView();
             });
             if (!pollInterval) {
-                pollInterval = setInterval(fetchUpdates, 5000);
+                pollInterval = setInterval(fetchUpdates, 5000); // Lấy tin nhắn mới mỗi 5 giây khi mở hộp chat
             }
         } else {
             closeChatWindow();
@@ -670,7 +682,7 @@
 
     closeBtn.onclick = closeChatWindow;
 
-    // Delete conversation handler
+    // Xử lý sự kiện nhấn nút Xóa toàn bộ cuộc trò chuyện
     deleteConvBtn.onclick = function() {
         showChatConfirm("Bạn có chắc chắn muốn xóa toàn bộ cuộc trò chuyện này?", async function() {
             try {
@@ -695,7 +707,7 @@
         }, { title: 'Xóa cuộc trò chuyện', confirmText: 'Xóa', type: 'danger' });
     };
 
-    // Handle text messages
+    // Xử lý gửi tin nhắn văn bản
     chatForm.onsubmit = async function(e) {
         e.preventDefault();
         var msg = chatInput.value.trim();
@@ -723,7 +735,7 @@
                 if (!cachedMessages[roomId]) cachedMessages[roomId] = [];
                 cachedMessages[roomId].push(newMsg);
                 
-                // Save last read
+                // Lưu ID tin nhắn đã đọc gần nhất vào localStorage để theo dõi trạng thái chưa đọc
                 localStorage.setItem('chat_last_read_' + roomId + '_' + currentUser.id, String(newMsg.id));
                 
                 renderMessagesView(cachedMessages[roomId]);
@@ -736,11 +748,12 @@
         }
     };
 
-    // Handle file upload
+    // Kích hoạt hộp chọn tệp hình ảnh khi nhấn nút đính kèm
     uploadBtn.onclick = function() {
         fileInput.click();
     };
 
+    // Xử lý tải hình ảnh lên hệ thống và gửi dưới dạng tin nhắn
     fileInput.onchange = async function() {
         var file = fileInput.files[0];
         if (!file) return;
@@ -797,7 +810,7 @@
         }
     };
 
-    // Delete message logic
+    // Định nghĩa hàm thu hồi (xóa) tin nhắn trên giao diện toàn cục
     window.deleteChatMessage = function(msgId) {
         showChatConfirm("Bạn có chắc chắn muốn thu hồi tin nhắn này?", async function() {
             try {
@@ -818,6 +831,7 @@
         }, { title: 'Thu hồi tin nhắn', confirmText: 'Thu hồi', type: 'warning' });
     };
 
+    // Hàm đóng cửa sổ chat
     function closeChatWindow() {
         chatWindow.style.display = 'none';
         if (pollInterval) {
@@ -827,6 +841,7 @@
         updateMainBadge();
     }
 
+    // Tải danh bạ người dùng có thể trò chuyện từ backend
     async function loadAllowedUsers() {
         try {
             var res = await fetch('/api/chat/users', {
@@ -840,6 +855,7 @@
         }
     }
 
+    // Kết xuất giao diện tương ứng với chế độ xem hiện hành
     function renderView() {
         if (currentMode === 'list') {
             headerTitle.innerHTML = '<i class="fa-solid fa-comments"></i> Trò chuyện hệ thống';
@@ -847,7 +863,7 @@
             if (deleteConvBtn) deleteConvBtn.style.display = 'none';
             renderListView();
         } else {
-            // Mode is general or private
+            // Đang mở phòng chát Nhóm chung hoặc chat riêng 1-1
             var backBtn = '<button class="global-chat-back-btn" id="globalChatBackBtn"><i class="fa-solid fa-arrow-left"></i></button>';
             var displayName = currentMode === 'general' ? 'Nhóm chung' : currentRecipientName;
             headerTitle.innerHTML = backBtn + '<span>' + displayName + '</span>';
@@ -879,10 +895,11 @@
         }
     }
 
+    // Kết xuất màn hình danh sách các phòng chat
     function renderListView() {
         var html = '<div class="global-chat-list-section">';
         
-        // 1. General Group
+        // 1. Dựng dòng nhóm chát chung (General Room)
         var genUnread = unreads['general'] || 0;
         var genUnreadBadge = genUnread > 0 ? '<span class="global-chat-item-badge">' + genUnread + '</span>' : '';
         html += `
@@ -896,10 +913,10 @@
             </div>
         `;
 
-        // 2. Direct Messages Title
+        // 2. Tiêu đề danh sách hội thoại cá nhân
         html += '<div class="global-chat-section-title">Tin nhắn riêng</div>';
 
-        // 3. Allowed Users List
+        // 3. Quét danh sách liên lạc khả dụng để hiển thị
         if (allowedUsers.length === 0) {
             html += '<div style="text-align:center;padding:16px;font-size:12px;color:#94A3B8">Không có danh bạ khả dụng</div>';
         } else {
@@ -932,13 +949,14 @@
         html += '</div>';
         chatBody.innerHTML = html;
 
-        // Add item click handlers
+        // Bắt sự kiện chuyển hướng khi click vào Nhóm chung
         document.getElementById('item_general').onclick = function() {
             currentMode = 'general';
             currentRecipientId = null;
             renderView();
         };
 
+        // Bắt sự kiện chuyển hướng khi click vào một người dùng cụ thể
         allowedUsers.forEach(function(u) {
             var item = document.getElementById('item_' + u.id);
             if (item) {
@@ -952,6 +970,7 @@
         });
     }
 
+    // Hiển thị vòng xoay spinner khi đang tải tin nhắn
     function renderMessagesLoader() {
         chatBody.innerHTML = `
             <div class="global-chat-empty">
@@ -961,6 +980,7 @@
         `;
     }
 
+    // Hàm gọi API tải danh sách lịch sử tin nhắn của một phòng hội thoại
     async function loadMessages(recipientId) {
         var roomId = recipientId === null ? 'general' : String(recipientId);
         try {
@@ -982,6 +1002,7 @@
         return cachedMessages[roomId] || [];
     }
 
+    // Hàm dựng HTML và đổ tin nhắn ra giao diện hội thoại
     function renderMessagesView(msgs) {
         if (msgs.length === 0) {
             chatBody.innerHTML = `
@@ -1006,12 +1027,13 @@
                 : '<span class="global-chat-sender-role role-user">User</span>';
             var senderName = m.sender_full_name || m.sender_username;
             
-            // Build bubble content
+            // Xử lý nội dung bong bóng tin nhắn (bubble)
             var bubbleContent = '';
             var bubbleClass = '';
             if (m.is_deleted) {
                 bubbleClass = 'deleted';
                 if (currentUser.role === 'admin') {
+                    // Nếu là Admin, vẫn xem được nội dung tin nhắn cũ bị thu hồi để tránh quấy rối hệ thống
                     var adminLabel = '<span style="display:block; font-size:10px; color:#EF4444; margin-bottom:4px; font-weight:600;"><i class="fa-solid fa-eye"></i> Tin nhắn đã bị user xóa:</span>';
                     bubbleContent += adminLabel;
                     if (m.message) {
@@ -1032,7 +1054,7 @@
                 }
             }
             
-            // Render delete button if active and isMine
+            // Hiện nút thu hồi nếu tin nhắn chưa bị xóa và người gửi chính là bản thân
             var deleteBtnHtml = '';
             if (!m.is_deleted && isMine) {
                 deleteBtnHtml = '<button class="global-chat-delete-btn" onclick="deleteChatMessage(' + m.id + ')" title="Thu hồi tin nhắn"><i class="fa-solid fa-trash"></i></button>';
@@ -1056,12 +1078,14 @@
 
         chatBody.innerHTML = listHtml;
         
+        // Tự động cuộn khung chat xuống dưới cùng để hiển thị tin nhắn mới nhất
         var container = document.getElementById('globalChatMsgsContainer');
         if (container) {
             container.scrollTop = container.scrollHeight;
         }
     }
 
+    // Hàm chuyển đổi các ký tự HTML đặc biệt để chống tấn công XSS
     function escapeHtml(text) {
         return text
             .replace(/&/g, "&amp;")
@@ -1071,12 +1095,11 @@
             .replace(/'/g, "&#039;");
     }
 
-    // Routine polling for new messages & calculating unread counts
+    // Tiến trình định kỳ gọi ngầm (polling) kiểm tra tin nhắn mới và tính toán thông báo chưa đọc
     async function fetchUpdates() {
-        // Only run polling if logged in
         if (!token) return;
 
-        // 1. Fetch general room messages to compute unreads
+        // 1. Kiểm tra tin nhắn mới của Nhóm chung
         try {
             var resGen = await fetch('/api/chat/messages', {
                 headers: { 'Authorization': 'Bearer ' + token }
@@ -1090,7 +1113,7 @@
             }
         } catch(e) {}
 
-        // 2. Fetch direct messages for each contact
+        // 2. Kiểm tra tin nhắn mới của từng liên hệ trong danh bạ
         for (var i = 0; i < allowedUsers.length; i++) {
             var u = allowedUsers[i];
             try {
@@ -1107,7 +1130,7 @@
             } catch(e) {}
         }
 
-        // If open, redraw current view
+        // Nếu cửa sổ chat đang mở, cập nhật giao diện tin nhắn ngay lập tức
         if (chatWindow.style.display === 'flex') {
             if (currentMode === 'list') {
                 renderListView();
@@ -1125,6 +1148,7 @@
         updateMainBadge();
     }
 
+    // Cập nhật thẻ đếm tổng số lượng tin nhắn chưa đọc lên quả cầu chat
     function updateMainBadge() {
         var totalUnread = 0;
         for (var k in unreads) {
@@ -1138,11 +1162,11 @@
         }
     }
 
-    // Run first unread scan
+    // Chạy lượt quét tin nhắn chưa đọc đầu tiên sau khi tải trang 1.5 giây
     setTimeout(function() {
         loadAllowedUsers().then(function() {
             fetchUpdates();
-            // Regular update interval for unreads even if closed
+            // Thiết lập chu kỳ chạy ngầm kiểm tra tin nhắn mới mỗi 8 giây khi đóng cửa sổ chat
             setInterval(fetchUpdates, 8000);
         });
     }, 1500);

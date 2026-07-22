@@ -30,7 +30,7 @@ body {
     overflow-x: hidden;
 }
 
-/* ============= SIDEBAR ============= */
+/* ============= BẢNG ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) ============= */
 .sidebar {
     width: var(--sidebar-width);
     background: var(--bg-sidebar);
@@ -243,7 +243,7 @@ body {
     color: #DC2626 !important;
 }
 
-/* ============= MAIN WRAPPER ============= */
+/* ============= BỘ BỌC NỘI DUNG CHÍNH (MAIN WRAPPER) ============= */
 .main-wrapper {
     margin-left: var(--sidebar-width);
     flex-grow: 1;
@@ -259,7 +259,7 @@ body {
     margin-left: var(--sidebar-collapsed);
 }
 
-/* ============= TOPNAV ============= */
+/* ============= THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOPNAV) ============= */
 .topnav {
     height: 72px;
     background-color: #fff;
@@ -306,7 +306,7 @@ body {
     cursor: pointer;
 }
 
-/* Main Container */
+/* Vùng chứa chính */
 .main-container {
     max-width: 1200px;
     margin: 40px auto;
@@ -317,7 +317,7 @@ body {
     flex-direction: column;
 }
 
-/* Header */
+/* Đầu trang */
 .page-header {
     margin-bottom: 40px;
 }
@@ -335,7 +335,7 @@ body {
     color: var(--text-muted);
 }
 
-/* Tool Bar */
+/* Thanh công cụ */
 .toolbar {
     display: flex;
     justify-content: space-between;
@@ -398,7 +398,7 @@ body {
     box-shadow: 0 4px 12px rgba(75, 99, 138, 0.25);
 }
 
-/* Table Area */
+/* Khu vực bảng dữ liệu */
 .table-container {
     background: var(--bg-surface);
     border-radius: 12px;
@@ -448,14 +448,14 @@ tr:last-child td {
     border-bottom: none;
 }
 
-/* STT style */
+/* Định dạng số thứ tự (STT) */
 .stt-text {
     font-weight: 600;
     color: #94A3B8;
     font-size: 14px;
 }
 
-/* User Info Cell */
+/* Ô thông tin người dùng */
 .user-info {
     display: flex;
     align-items: center;
@@ -495,7 +495,7 @@ tr:last-child td {
     color: var(--text-muted);
 }
 
-/* Role Badge */
+/* Huy hiệu vai trò */
 .role-badge {
     display: inline-flex;
     align-items: center;
@@ -508,7 +508,7 @@ tr:last-child td {
     letter-spacing: 0.5px;
 }
 
-/* Action Text */
+/* Chữ hành động */
 .action-delete {
     display: inline-flex;
     align-items: center;
@@ -525,7 +525,7 @@ tr:last-child td {
     opacity: 1;
 }
 
-/* Table Footer */
+/* Chân bảng dữ liệu */
 .table-footer {
     padding: 16px 24px;
     display: flex;
@@ -607,7 +607,7 @@ tr:last-child td {
     text-align: center;
 }
 
-/* Floating Status */
+/* Trạng thái nổi */
 .system-status {
     margin: auto auto 40px;
     background: var(--bg-surface);
@@ -636,7 +636,7 @@ tr:last-child td {
     text-transform: uppercase;
 }
 
-/* Action View Text */
+/* Chữ nút Xem */
 .action-view {
     display: inline-flex;
     align-items: center;
@@ -697,7 +697,7 @@ tr:last-child td {
     color: #dc2626;
 }
 
-/* ============= MODAL ============= */
+/* ============= HỘP THOẠI (MODAL) ============= */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -875,7 +875,7 @@ tr:last-child td {
     box-shadow: none;
 }
 
-/* ============= TOAST ============= */
+/* ============= THÔNG BÁO NỔI (TOAST) ============= */
 .toast {
     position: fixed;
     top: 24px;
@@ -920,7 +920,7 @@ tr:last-child td {
     }
 }
 
-/* ============= FILTER BUTTON & PANEL ============= */
+/* ============= NÚT BẤM & BẢNG BỘ LỌC ============= */
 .toolbar-right {
     display: flex;
     gap: 12px;

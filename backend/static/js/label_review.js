@@ -1,7 +1,13 @@
-// ============= CONFIG =============
+// ==============================================================================
+// CẤU HÌNH & XÁC THỰC CƠ BẢN
+// ==============================================================================
 const BASE_URL = '/api';
+
+// Hàm lấy token JWT từ localStorage
 function getToken() { return localStorage.getItem('access_token'); }
 
+// KIỂM TRA QUYỀN TRUY CẬP (Auth guard)
+// Đọc thông tin người dùng từ localStorage. Nếu không phải User hoặc Admin, chuyển hướng về login.html
 const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
 if (!getToken() || (currentUser.role !== 'user' && currentUser.role !== 'admin')) {
     window.location.href = '../login.html';
@@ -9,10 +15,12 @@ if (!getToken() || (currentUser.role !== 'user' && currentUser.role !== 'admin')
 
 const urlParams = new URLSearchParams(window.location.search);
 const taskId = urlParams.get('taskId');
-const reviewMode = urlParams.get('mode') === 'review'; // true = reviewer đang kiểm duyệt
+const reviewMode = urlParams.get('mode') === 'review'; // true = reviewer đang thực hiện kiểm duyệt
 if (!taskId) window.location.href = 'dashboard.html';
 
-// ============= CLASSES =============
+// ==============================================================================
+// ĐỊNH NGHĨA CÁC LỚP ĐỐI TƯỢNG (CLASSES) & CAMERA TRÊN XE TỰ HÀNH (nuScenes)
+// ==============================================================================
 const CLASSES = [
     { id: 'vehicle.car',        name: 'Xe con',       icon: 'fa-car',              color: '#3B82F6' },
     { id: 'vehicle.truck',      name: 'Xe tải',       icon: 'fa-truck',            color: '#F59E0B' },
@@ -23,13 +31,17 @@ const CLASSES = [
 ];
 const CLASS_MAP = {};
 CLASSES.forEach(c => CLASS_MAP[c.id] = c);
+
+// Danh sách camera xung quanh xe tự hành
 let CAMERAS = ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT'];
 const CAM_LABELS = {
     CAM_FRONT:'Cam trước', CAM_FRONT_LEFT:'Cam trái trước', CAM_FRONT_RIGHT:'Cam phải trước',
     CAM_BACK:'Cam sau', CAM_BACK_LEFT:'Cam trái sau', CAM_BACK_RIGHT:'Cam phải sau',
 };
 
-// ============= STATE =============
+// ==============================================================================
+// KHỞI TẠO TRẠNG THÁI GIAO DIỆN (STATE)
+// ==============================================================================
 let task = null;
 let frames = [];
 let currentFrameIdx = 0;
@@ -40,10 +52,12 @@ const hiddenCategories = new Set();
 let selectedAnnId = null;
 let collapsedCategories = {};
 
-// Per-frame review state: { [frameId]: { status: 'correct'|'wrong'|null, feedback: '' } }
+// Trạng thái kiểm duyệt của từng khung hình: { [frameId]: { status: 'correct'|'wrong'|null, feedback: '' } }
 let frameReviews = {};
 
-// ============= TASK INFO & IMAGE FILTER CONTROLS =============
+// ==============================================================================
+// ĐỒNG BỘ THÔNG TIN NHIỆM VỤ & BỘ LỌC ẢNH
+// ==============================================================================
 function openTaskInfo() {
     const modal = document.getElementById('modalTaskInfo');
     if (!modal || !task) return;
@@ -58,6 +72,7 @@ function openTaskInfo() {
     modal.style.display = 'flex';
 }
 
+// Áp dụng bộ lọc ảnh (độ sáng & độ tương phản)
 function applyImageFilter() {
     const brightness = document.getElementById('brightnessSlider')?.value || 100;
     const contrast = document.getElementById('contrastSlider')?.value || 100;
@@ -67,6 +82,7 @@ function applyImageFilter() {
     if (img) img.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
 }
 
+// Đặt lại (reset) bộ lọc ảnh về mặc định (100%)
 function resetImageFilter() {
     const bs = document.getElementById('brightnessSlider');
     const cs = document.getElementById('contrastSlider');
@@ -75,6 +91,7 @@ function resetImageFilter() {
     applyImageFilter();
 }
 
+// Ẩn/hiển thị nhanh các nhãn thuộc cùng một lớp đối tượng (category)
 function toggleCategoryHide(catId) {
     if (hiddenCategories.has(catId)) {
         hiddenCategories.delete(catId);
@@ -85,10 +102,12 @@ function toggleCategoryHide(catId) {
     renderLabelList();
 }
 
+// Lưu thông tin đánh giá khung hình xuống localStorage của trình duyệt
 function saveReviewsToStorage() {
     localStorage.setItem(`review_${taskId}`, JSON.stringify(frameReviews));
 }
 
+// Khôi phục thông tin đánh giá đã lưu từ localStorage
 function loadReviewsFromStorage() {
     try {
         const saved = localStorage.getItem(`review_${taskId}`);
@@ -96,14 +115,15 @@ function loadReviewsFromStorage() {
     } catch (e) { frameReviews = {}; }
 }
 
-// Canvas
+// Biến điều khiển vẽ khung canvas lên ảnh camera
 let annCanvas = null, annCtx = null;
 let imgDisplayW = 1, imgDisplayH = 1;
 
-// Zoom & Tools
+// Mức độ phóng to (Zoom) và Công cụ đang chọn (Tools)
 let zoomScale = 1;
-let currentTool = 'pointer'; // 'pointer' or 'pan'
+let currentTool = 'pointer'; // 'pointer' (chọn/click) hoặc 'pan' (kéo thả góc nhìn)
 
+// Thiết lập công cụ vẽ/tác vụ hiện hành trên màn hình
 function setActiveTool(tool) {
     currentTool = tool;
     document.querySelectorAll('.tools-section .tool-btn').forEach(btn => {
@@ -122,20 +142,23 @@ function setActiveTool(tool) {
     }
 }
 
-// Timer
+// Bộ đếm thời gian kiểm duyệt (Timer)
 let timerSeconds = 0, timerInterval = null;
 
-// ============= INIT =============
+// ==============================================================================
+// KHỞI TẠO BẢN KIỂM DUYỆT (INIT)
+// ==============================================================================
 async function init() {
     startTimer();
     await loadTask();
     setupNav();
     document.getElementById('btnDaKiemTra').addEventListener('click', submitReview);
     document.getElementById('frameFeedback').addEventListener('input', saveFeedbackToState);
-    // Lưu feedback vào framelist_review khi blur (reviewer nhập xong rồi chuyển trang)
+    
+    // Lưu ý kiến đóng góp (feedback) cho khung hình khi reviewer ngừng gõ
     document.getElementById('frameFeedback').addEventListener('blur', function() {
         saveFeedbackToState();
-        // Sync vào framelist_review nếu đến từ FrameList
+        // Đồng bộ vào framelist_review nếu đến từ danh sách FrameList
         const returnTo = new URLSearchParams(window.location.search).get('returnTo');
         if (returnTo === 'FrameList') {
             try {
@@ -150,6 +173,7 @@ async function init() {
     });
 }
 
+// Bắt đầu đếm thời gian thực hiện kiểm duyệt
 function startTimer() {
     const saved = parseInt(localStorage.getItem(`review_timer_${taskId}`) || '0');
     timerSeconds = saved;
@@ -161,6 +185,7 @@ function startTimer() {
     }, 1000);
 }
 
+// Định dạng và hiển thị thời gian kiểm duyệt (hh:mm:ss)
 function updateTimerDisplay() {
     const h = String(Math.floor(timerSeconds / 3600)).padStart(2,'0');
     const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2,'0');
@@ -169,12 +194,15 @@ function updateTimerDisplay() {
     if (el) el.innerHTML = `<i class="fa-regular fa-clock"></i> ${h}:${m}:${s}`;
 }
 
+// Ngắt bộ đếm thời gian khi reviewer đóng hoặc chuyển trang
 window.addEventListener('beforeunload', () => {
     clearInterval(timerInterval);
     localStorage.setItem(`review_timer_${taskId}`, timerSeconds);
 });
 
-// ============= LOAD =============
+// ==============================================================================
+// TẢI DỮ LIỆU NHIỆM VỤ VÀ THÀNH VIÊN
+// ==============================================================================
 async function loadTask() {
     try {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
@@ -183,7 +211,7 @@ async function loadTask() {
         if (!res.ok) throw new Error();
         task = await res.json();
 
-        // Check permission
+        // Kiểm tra quyền kiểm duyệt nhiệm vụ
         const isReviewer = task.reviewer_id === currentUser.id;
         const isLabeler = task.assigned_to === currentUser.id;
         const isAdmin = currentUser.role === 'admin';
@@ -195,13 +223,13 @@ async function loadTask() {
             return;
         }
 
-        // Ẩn nút "Đã kiểm tra" nếu không phải reviewer
+        // Ẩn nút "Đã kiểm tra" nếu không phải reviewer hay admin
         if (!isReviewer && !isAdmin) {
             const btn = document.getElementById('btnDaKiemTra');
             if (btn) btn.style.display = 'none';
         }
 
-        // Admin: đổi label nút thành "Xác nhận kết quả" và sửa link trở về
+        // Admin: thay đổi dòng chữ nút thành "Xác nhận kết quả" và điều hướng đường dẫn trở về
         if (isAdmin) {
             const btn = document.getElementById('btnDaKiemTra');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-shield-check"></i> Xác nhận kết quả';
@@ -209,7 +237,7 @@ async function loadTask() {
             if (backLink) backLink.href = '../Admin/dashboard.html';
         }
 
-        // Update user avatar — chỉ set initials nếu chưa có ảnh
+        // Cập nhật ảnh đại diện người dùng
         const avatarEl = document.getElementById('userAvatar');
         if (avatarEl && avatarEl.tagName === 'DIV' && !currentUser.avatar_url) {
             const initials = (currentUser.username || 'NL').substring(0, 2).toUpperCase();
@@ -218,8 +246,8 @@ async function loadTask() {
 
         await loadFrames(task.scene_id);
 
-        // Nếu đang ở chế độ kiểm tra từng frame (returnTo=FrameList)
-        // → disable nút "Đã kiểm tra" tổng thể để buộc dùng FrameList
+        // Nếu chế độ xem danh sách FrameList đang kích hoạt
+        // Vô hiệu hóa nút "Đã kiểm tra" tổng thể để bắt buộc kiểm tra từng frame
         const returnTo = new URLSearchParams(window.location.search).get('returnTo');
         const framelistActive = localStorage.getItem(`framelist_mode_${taskId}`) === 'review';
         if (returnTo === 'FrameList' || framelistActive) {
@@ -236,6 +264,7 @@ async function loadTask() {
     }
 }
 
+// Tải toàn bộ khung hình của phân đoạn
 async function loadFrames(sceneId) {
     try {
         const res = await fetch(`${BASE_URL}/scenes/${sceneId}/frames`, {
@@ -247,7 +276,7 @@ async function loadFrames(sceneId) {
 
         await loadAllAnnotations();
 
-        // Detect available cameras dynamically
+        // Tự động phát hiện các góc camera sẵn có trong frame đầu tiên
         const firstFrame = frames[0];
         const ALL_CAM_FIELDS = {
             'CAM_FRONT': 'cam_front',
@@ -267,7 +296,7 @@ async function loadFrames(sceneId) {
             CAMERAS = detectedCams;
         }
 
-        // Set default camera to first available camera if current is not available
+        // Thiết lập camera mặc định là camera đầu tiên nếu cam hiện tại không nằm trong danh sách phát hiện
         if (CAMERAS.length > 0 && !CAMERAS.includes(currentCamera)) {
             currentCamera = CAMERAS[0];
         }
@@ -284,6 +313,7 @@ async function loadFrames(sceneId) {
     }
 }
 
+// Tải toàn bộ nhãn dán (annotations) của nhiệm vụ
 async function loadAllAnnotations() {
     try {
         const res = await fetch(`${BASE_URL}/tasks/${taskId}/annotations`, {
@@ -312,7 +342,7 @@ async function loadAllAnnotations() {
                 custom_name: ann.custom_name || null,
             });
         });
-        // Init frameReviews — load từ localStorage trước, sau đó fill frame mới nếu thiếu
+        // Khởi tạo các đánh giá khung hình - nạp từ bộ nhớ cache của trình duyệt trước
         loadReviewsFromStorage();
         frames.forEach(f => {
             if (!frameReviews[f.id]) frameReviews[f.id] = { status: null, feedback: '' };
@@ -320,17 +350,20 @@ async function loadAllAnnotations() {
     } catch (e) { /* silent */ }
 }
 
-// ============= NAVIGATION =============
+// ==============================================================================
+// ĐIỀU HƯỚNG VÀ PHÍM TẮT (NAVIGATION)
+// ==============================================================================
 function setupNav() {
     document.getElementById('btnFirst').addEventListener('click', () => goToFrame(0));
     document.getElementById('btnPrev').addEventListener('click', () => goToFrame(currentFrameIdx - 1));
     document.getElementById('btnNext').addEventListener('click', () => goToFrame(currentFrameIdx + 1));
     document.getElementById('btnLast').addEventListener('click', () => goToFrame(frames.length - 1));
+    
     document.addEventListener('keydown', e => {
-        // Không chạy phím tắt khi đang gõ nhận xét
+        // Không kích hoạt phím tắt khi đang gõ nhận xét (feedback)
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-        // 1. ZOOM (Ctrl + Up/Down)
+        // 1. PHÓNG TO/THU NHỎ (Ctrl + ArrowUp/ArrowDown)
         if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
             e.preventDefault();
             if (e.key === 'ArrowUp') zoomIn();
@@ -338,7 +371,7 @@ function setupNav() {
             return;
         }
 
-        // 2. CHUYỂN CAMERA (W/S hoặc Mũi tên Lên/Xuống)
+        // 2. CHUYỂN NHANH CAMERA XUNG QUANH (Phím W/S hoặc ArrowUp/ArrowDown)
         if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
             e.preventDefault();
             const idx = CAMERAS.indexOf(currentCamera);
@@ -354,28 +387,28 @@ function setupNav() {
             return;
         }
 
-        // 3. ĐIỀU HƯỚNG KHUNG HÌNH
+        // 3. DI CHUYỂN QUA LẠI KHUNG HÌNH (ArrowRight/ArrowLeft hoặc D/A)
         if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') goToFrame(currentFrameIdx + 1);
         if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') goToFrame(currentFrameIdx - 1);
         if (e.key === 'Home') goToFrame(0);
         if (e.key === 'End')  goToFrame(frames.length - 1);
 
-        // 4. CAMERA (Phím số 1-6)
+        // 4. CHỌN CAMERA NHANH BẰNG PHÍM SỐ (1-6)
         if (['1','2','3','4','5','6'].includes(e.key)) {
             switchCamera(CAMERAS[parseInt(e.key) - 1]);
         }
 
-        // 5. ĐÁNH GIÁ (REVIEW)
+        // 5. ĐÁNH GIÁ NHANH (Phím C: Đúng, Phím W hoặc X: Sai)
         if (e.key === 'c' || e.key === 'C') markFrame('correct');
         if (e.key === 'w' || e.key === 'W' || e.key === 'x' || e.key === 'X') markFrame('wrong');
 
-        // 6. ZOOM (Phím lẻ)
+        // 6. PHÓNG TO NHANH BẰNG PHÍM + / -
         if (e.key === '+' || e.key === '=') zoomIn();
         if (e.key === '-' || e.key === '_') zoomOut();
         if (e.key === '0') { zoomScale = 1; panOffset = { x: 0, y: 0 }; applyZoom(); }
     });
 
-    // Ctrl + Lăn chuột để Zoom
+    // Ctrl + Lăn chuột (wheel) để phóng to/thu nhỏ góc nhìn
     window.addEventListener('wheel', e => {
         if (e.ctrlKey) {
             e.preventDefault();
@@ -385,6 +418,7 @@ function setupNav() {
     }, { passive: false });
 }
 
+// Chuyển sang khung hình cụ thể
 async function goToFrame(idx) {
     console.log("DEBUG [goToFrame]: idx =", idx);
     if (idx < 0 || idx >= frames.length) return;
@@ -393,14 +427,17 @@ async function goToFrame(idx) {
         url.searchParams.set('frame', idx);
         window.history.replaceState(null, '', url.toString());
     } catch (e) {}
-    // Lưu feedback của frame hiện tại trước khi chuyển
+    
+    // Lưu phản hồi của frame hiện tại trước khi chuyển sang frame mới
     saveFeedbackToState();
     currentFrameIdx = idx;
     selectedAnnId = null;
-    // Reset pan khi chuyển frame, giữ nguyên zoom
+    
+    // Reset góc kéo màn hình, giữ nguyên hệ số Zoom
     panOffset = { x: 0, y: 0 };
     const container = document.querySelector('.canvas-container');
     if (container) container.style.transform = `translate(0px, 0px) scale(${zoomScale})`;
+    
     document.getElementById('pageNum').textContent = idx + 1;
     renderCamList(frames[idx]);
     await loadImage(frames[idx], currentCamera);
@@ -408,6 +445,7 @@ async function goToFrame(idx) {
     loadFrameReviewState();
 }
 
+// Chuyển camera hiển thị
 async function switchCamera(cam) {
     if (!cam || !CAMERAS.includes(cam) || cam === currentCamera) return;
     currentCamera = cam;
@@ -415,6 +453,7 @@ async function switchCamera(cam) {
     renderCamList(frames[currentFrameIdx]);
 }
 
+// Vẽ danh sách camera cùng các ảnh nhỏ (thumbnail) tương ứng
 function renderCamList(frame) {
     const list = document.getElementById('camList');
     if (!list) return;
@@ -434,10 +473,11 @@ function renderCamList(frame) {
             </div>
         </div>`;
     }).join('');
-    // Load thumbnails
+    // Nạp ngầm ảnh thumbnail
     CAMERAS.forEach(cam => loadThumb(frame, cam));
 }
 
+// Tải ảnh thumbnail góc camera của khung hình
 async function loadThumb(frame, cam) {
     const img = document.getElementById(`thumb_${cam}`);
     if (!img) return;
@@ -461,6 +501,7 @@ async function loadThumb(frame, cam) {
     }
 }
 
+// Tải ảnh camera kích thước đầy đủ lên màn hình làm việc chính
 async function loadImage(frame, cam) {
     const mainImg = document.getElementById('mainImage');
     const container = document.querySelector('.canvas-container');
@@ -483,8 +524,8 @@ async function loadImage(frame, cam) {
     }
 }
 
+// Cấu hình lại canvas vẽ đè nhãn lên ảnh
 function setupCanvas(container, img) {
-    // Remove old canvas
     container.querySelectorAll('canvas').forEach(c => c.remove());
     imgDisplayW = img.offsetWidth;
     imgDisplayH = img.offsetHeight;
@@ -497,13 +538,16 @@ function setupCanvas(container, img) {
     annCtx = annCanvas.getContext('2d');
 }
 
-// ============= ANNOTATIONS =============
+// ==============================================================================
+// XỬ LÝ VÀ HIỂN THỊ CÁC HỘP GIỚI HẠN (ANNOTATIONS / BOUNDING BOXES)
+// ==============================================================================
 function getFrameAnns(fid, cam) { return annotations[fid]?.[cam] || []; }
 function currentAnns() {
     const f = frames[currentFrameIdx];
     return f ? getFrameAnns(f.id, currentCamera) : [];
 }
 
+// Vẽ lại toàn bộ hộp giới hạn (Bounding Box) lên canvas
 function redrawAnnotations() {
     if (!annCtx) return;
     annCtx.clearRect(0, 0, annCanvas.width, annCanvas.height);
@@ -529,13 +573,12 @@ function redrawAnnotations() {
         annCtx.strokeRect(x, y, w, h);
         
         annCtx.fillStyle = color;
-        // Draw fill using globalAlpha multiplication
         const prevAlpha = annCtx.globalAlpha;
         annCtx.globalAlpha = sel ? 0.25 : (hasSelection ? 0.03 : 0.12);
         annCtx.fillRect(x, y, w, h);
         annCtx.globalAlpha = prevAlpha;
 
-        // Cờ đỏ nếu needs_review
+        // Vẽ biểu tượng cờ đỏ nhỏ nếu nhãn này được đánh dấu "cần kiểm duyệt" (needs_review)
         if (ann.needs_review) {
             annCtx.fillStyle = '#EF4444';
             annCtx.beginPath();
@@ -551,11 +594,13 @@ function redrawAnnotations() {
     });
 }
 
+// Thu gọn hoặc mở rộng nhóm nhãn theo phân lớp ở sidebar
 function toggleCategoryCollapse(category) {
     collapsedCategories[category] = !collapsedCategories[category];
     renderLabelList();
 }
 
+// Vẽ danh sách nhãn ra Sidebar
 function renderLabelList() {
     const list = document.getElementById('labelList');
     const badge = document.getElementById('labelsBadge');
@@ -567,7 +612,7 @@ function renderLabelList() {
         return;
     }
 
-    // Group annotations by category ID
+    // Nhóm các nhãn theo mã lớp tương ứng
     const grouped = {};
     CLASSES.forEach(c => grouped[c.id] = []);
     anns.forEach(ann => {
@@ -585,7 +630,7 @@ function renderLabelList() {
         const isCollapsed = collapsedCategories[cls.id] || false;
         const isCatHidden = hiddenCategories.has(cls.id);
         
-        // Render Group Header
+        // Vẽ header nhóm nhãn
         html += `
         <div class="category-group-header" onclick="toggleCategoryCollapse('${cls.id}')" 
              style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:8px 0 4px 0;cursor:pointer;background:#F1F5F9;border-radius:8px;user-select:none;transition:background 0.2s">
@@ -605,7 +650,7 @@ function renderLabelList() {
         <div class="category-group-content" style="${isCollapsed ? 'display:none' : ''}">
         `;
 
-        // Render Label Items in Group
+        // Vẽ từng nhãn cụ thể trong nhóm
         html += groupAnns.map((ann) => {
             const color = cls.color;
             const trackNum = ann.track_id ? String(ann.track_id).padStart(2, '0') : '??';
@@ -616,6 +661,7 @@ function renderLabelList() {
             const flagMark = ann.needs_review
                 ? ' <i class="fa-solid fa-flag" style="color:#EF4444;font-size:10px"></i>' : '';
             
+            // Tính toán mức độ tương đồng IoU (Intersection over Union) giữa nhãn của AI và nhãn của Labeler chỉnh sửa
             let similarityText = '';
             if (ann.is_ai_generated && ann.ai_bbox_x !== null && ann.ai_bbox_x !== undefined) {
                 const ax1 = ann.ai_bbox_x, ay1 = ann.ai_bbox_y, ax2 = ann.ai_bbox_x + ann.ai_bbox_w, ay2 = ann.ai_bbox_y + ann.ai_bbox_h;
@@ -647,23 +693,24 @@ function renderLabelList() {
             </div>`;
         }).join('');
 
-        html += `</div>`; // Close category-group-content
+        html += `</div>`; // Đóng category-group-content
     });
 
     list.innerHTML = html;
 }
 
+// Click chọn một nhãn từ sidebar hoặc canvas
 function selectAnn(id) {
     selectedAnnId = selectedAnnId === id ? null : id;
     redrawAnnotations();
     renderLabelList();
-    // Scroll to item
     setTimeout(() => {
         const el = document.querySelector('.review-label-item.active');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 50);
 }
 
+// Ẩn / Hiện nhanh một hộp giới hạn cụ thể
 function toggleHide(id) {
     if (hiddenIds.has(id)) hiddenIds.delete(id);
     else hiddenIds.add(id);
@@ -671,7 +718,9 @@ function toggleHide(id) {
     renderLabelList();
 }
 
-// ============= FRAME REVIEW STATE =============
+// ==============================================================================
+// QUẢN LÝ TRẠNG THÁI KIỂM DUYỆT TỪNG KHUNG HÌNH (FRAME REVIEW STATE)
+// ==============================================================================
 function loadFrameReviewState() {
     const frame = frames[currentFrameIdx];
     if (!frame) return;
@@ -689,32 +738,30 @@ function saveFeedbackToState() {
     saveReviewsToStorage();
 }
 
+// Đánh dấu trạng thái kiểm duyệt cho khung hình hiện hành (Đúng hoặc Sai)
 function markFrame(status) {
     const frame = frames[currentFrameIdx];
     if (!frame) return;
     if (!frameReviews[frame.id]) frameReviews[frame.id] = { status: null, feedback: '' };
 
-    // Lưu lựa chọn mới nhất (không toggle — nhấn Sai sau Đúng thì vẫn là Sai)
     frameReviews[frame.id].status = status;
     frameReviews[frame.id].feedback = document.getElementById('frameFeedback').value;
 
-    // Lưu ngay vào localStorage
     saveReviewsToStorage();
     localStorage.setItem(`review_frame_${taskId}`, currentFrameIdx);
 
-    // Nếu đến từ FrameList → đánh dấu frame này đã xử lý + lưu trạng thái đúng/sai
+    // Đồng bộ nếu đến từ giao diện FrameList
     const returnTo = new URLSearchParams(window.location.search).get('returnTo');
     if (returnTo === 'FrameList') {
         const frameNum = currentFrameIdx + 1;
         localStorage.setItem(`framelist_saved_${taskId}_${frameNum}`, 'true');
-        // Lưu trạng thái đúng/sai để FrameList hiển thị badge
         try {
             const reviewKey = `framelist_review_${taskId}`;
             const rs = JSON.parse(localStorage.getItem(reviewKey) || '{}');
-            rs[frameNum] = status; // 'correct' hoặc 'wrong'
+            rs[frameNum] = status; 
             const fb = document.getElementById('frameFeedback').value.trim();
             if (fb) rs['fb_' + frameNum] = fb;
-            else delete rs['fb_' + frameNum]; // Xóa feedback cũ nếu để trống
+            else delete rs['fb_' + frameNum];
             localStorage.setItem(reviewKey, JSON.stringify(rs));
         } catch(e) {}
     }
@@ -724,6 +771,7 @@ function markFrame(status) {
     updateProgress();
 }
 
+// Cập nhật nhãn trạng thái Đúng/Sai của khung hình trên giao diện
 function updateFrameStatusBadge(status) {
     const badge = document.getElementById('frameStatusBadge');
     if (!badge) return;
@@ -739,6 +787,7 @@ function updateFrameStatusBadge(status) {
     }
 }
 
+// Tạo hiệu ứng thu nhỏ / mờ đi cho nút Đúng / Sai không được tích chọn
 function updateActionButtons(status) {
     const btnC = document.getElementById('btnCorrect');
     const btnW = document.getElementById('btnWrong');
@@ -748,6 +797,7 @@ function updateActionButtons(status) {
     if (btnW) btnW.style.transform = status === 'wrong' ? 'scale(1.03)' : '';
 }
 
+// Cập nhật thanh tiến độ (Progress bar) đánh giá
 function updateProgress() {
     const total = frames.length;
     const done = Object.values(frameReviews).filter(r => r.status !== null).length;
@@ -755,7 +805,9 @@ function updateProgress() {
     document.getElementById('progressFill').style.width = `${total ? (done / total * 100) : 0}%`;
 }
 
-// ============= SUBMIT REVIEW =============
+// ==============================================================================
+// GỬI KẾT QUẢ ĐÁNH GIÁ (SUBMIT REVIEW)
+// ==============================================================================
 async function submitReview() {
     const total = frames.length;
     const done = Object.values(frameReviews).filter(r => r.status !== null).length;
@@ -766,8 +818,11 @@ async function submitReview() {
     _doSubmitReview();
 }
 
+// Gửi kết quả cuối cùng lên server
 async function _doSubmitReview() {
     const wrongFrames = frames.filter(f => frameReviews[f.id]?.status === 'wrong');
+    
+    // Thu thập toàn bộ các mô tả lỗi từ các khung hình bị đánh dấu "Sai"
     const allFeedbacks = wrongFrames
         .map(f => {
             const frameNum = frames.indexOf(f) + 1;
@@ -785,7 +840,8 @@ async function _doSubmitReview() {
 
     try {
         if (wrongFrames.length > 0) {
-            // Admin dùng override để reject, reviewer dùng review/reject
+            // Có lỗi cần sửa -> Reject nhiệm vụ
+            // Admin dùng ghi đè (override) để từ chối trực tiếp, Reviewer dùng review/reject chuẩn
             const url = isAdmin
                 ? `${BASE_URL}/tasks/${taskId}/admin/override`
                 : `${BASE_URL}/tasks/${taskId}/review/reject`;
@@ -802,7 +858,8 @@ async function _doSubmitReview() {
             localStorage.removeItem(`review_${taskId}`);
             localStorage.removeItem(`review_frame_${taskId}`);
         } else {
-            // Admin dùng override để approve, reviewer dùng review/approve
+            // Không có lỗi -> Duyệt nhiệm vụ
+            // Admin dùng ghi đè để đạt ngay lập thể, Reviewer chuyển trạng thái chờ duyệt cuối cùng
             const url = isAdmin
                 ? `${BASE_URL}/tasks/${taskId}/admin/override`
                 : `${BASE_URL}/tasks/${taskId}/review/approve`;
@@ -828,7 +885,9 @@ async function _doSubmitReview() {
     }
 }
 
-// ============= ZOOM =============
+// ==============================================================================
+// CHỨC NĂNG PHÓNG TO / THU NHỎ GÓC NHÌN (ZOOM)
+// ==============================================================================
 function zoomIn() {
     zoomScale = Math.min(zoomScale + 0.25, 4);
     applyZoom();
@@ -843,22 +902,24 @@ function applyZoom() {
     document.getElementById('zoomLevel').textContent = `${Math.round(zoomScale * 100)}%`;
 }
 
-// ============= PAN =============
+// ==============================================================================
+// CHỨC NĂNG KÉO THẢ DI CHUYỂN GÓC NHÌN (PAN)
+// ==============================================================================
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
 let panOffset = { x: 0, y: 0 };
 
 function togglePanReview() {
-    // Không làm gì — pan luôn hoạt động bằng nhấn giữ chuột
+    // Không làm gì - cơ chế kéo thả luôn hoạt động khi chọn đúng công cụ
 }
 
+// Xác định xem toạ độ click chuột trên ảnh có nằm trong bounding box nào không
 function selectAt(clientX, clientY) {
     const img = document.getElementById('mainImage');
     if (!img) return;
     const rect = img.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    // Convert screen coordinates to canvas space coordinates
     const px = ((clientX - rect.left) / rect.width) * imgDisplayW;
     const py = ((clientY - rect.top) / rect.height) * imgDisplayH;
 
@@ -877,7 +938,6 @@ function selectAt(clientX, clientY) {
             redrawAnnotations();
             renderLabelList();
             
-            // Scroll selected item into view in sidebar
             setTimeout(() => {
                 const activeEl = document.querySelector('.review-label-item.active');
                 if (activeEl) {
@@ -892,6 +952,7 @@ function selectAt(clientX, clientY) {
     renderLabelList();
 }
 
+// Khởi chạy cơ chế lắng nghe sự kiện kéo thả chuột trên Canvas
 function initPanReview() {
     const canvas = document.querySelector('.center-canvas');
     if (!canvas) return;
@@ -930,7 +991,9 @@ function _panEnd(e) {
     e.currentTarget.style.userSelect = '';
 }
 
-// ============= TOAST =============
+// ==============================================================================
+// THÔNG BÁO TOAST & CSS DỰ PHÒNG
+// ==============================================================================
 function showToast(msg, type = 'info') {
     const colors = { success: '#10B981', error: '#EF4444', info: '#2563EB' };
     const icons  = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
@@ -949,6 +1012,7 @@ _style.textContent = `
 `;
 document.head.appendChild(_style);
 
+// Thu gọn / mở rộng các thanh công cụ, thông tin nhãn bên Sidebar
 function toggleSectionCollapse(id) {
     const body = document.getElementById('section-body-' + id);
     const icon = document.getElementById('collapse-icon-' + id);
@@ -985,6 +1049,8 @@ function toggleSectionCollapse(id) {
     }
 }
 
-// ============= START =============
+// ==============================================================================
+// KHỞI CHẠY TẢI DỮ LIỆU
+// ==============================================================================
 document.addEventListener('DOMContentLoaded', () => initPanReview());
 init();

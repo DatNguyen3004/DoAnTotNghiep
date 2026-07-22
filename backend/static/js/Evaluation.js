@@ -6,7 +6,7 @@ if (!taskId) {
     window.location.href = 'dashboard.html';
 }
 
-// Categories map
+// Ánh xạ danh mục lớp đối tượng
 const CLASSES = [
     { id: 'vehicle.car', name: 'Xe con', icon: 'fa-car', color: '#3B82F6' },
     { id: 'vehicle.truck', name: 'Xe tải', icon: 'fa-truck', color: '#F59E0B' },
@@ -28,7 +28,7 @@ const CAM_LABELS = {
     CAM_BACK_RIGHT: 'Cam phải sau',
 };
 
-// State variables
+// Các biến quản lý trạng thái
 let evaluationData = null;
 let selectedFrameIdx = 0;
 let selectedCamera = 'CAM_FRONT';
@@ -100,11 +100,11 @@ function getToken() {
     return localStorage.getItem('access_token');
 }
 
-// Initialize Page
+// Khởi tạo trang
 async function initPage() {
     updateLabelTogglesUI();
     try {
-        // Fetch evaluation details
+        // Tải thông tin chi tiết đối chiếu và đánh giá từ máy chủ
         const res = await fetch(`${BASE_URL}/tasks/${taskId}/evaluation-details`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
@@ -118,7 +118,7 @@ async function initPage() {
         }
         evaluationData = await res.json();
 
-        // Assign a unique client-side ID to each AI box
+        // Gán một ID duy nhất ở phía client cho mỗi hộp AI
         let aiBoxIdCounter = 1000000;
         if (evaluationData && evaluationData.frames) {
             evaluationData.frames.forEach(frame => {
@@ -152,13 +152,13 @@ async function initPage() {
         }
 
 
-        // Setup user avatar placeholder
+        // Thiết lập chỗ trống hiển thị ảnh đại diện người dùng
         const avatar = document.getElementById('userAvatar');
         if (avatar) {
             avatar.textContent = 'AD';
         }
 
-        // Go to first frame
+        // Đi tới khung hình đầu tiên
         if (evaluationData.frames.length > 0) {
             await selectFrame(0);
         }
@@ -175,14 +175,14 @@ async function initPage() {
     }
 }
 
-// Frame Navigation Actions
+// Các thao tác điều hướng khung hình
 function firstFrame() {
     if (selectedFrameIdx > 0) {
         selectFrame(0);
     }
 }
 
-// Open Statistics and Evaluation dialog
+// Mở hộp thoại thống kê và đánh giá
 document.getElementById('btnNop')?.addEventListener('click', () => {
     showEvaluationStats();
 });
@@ -205,29 +205,29 @@ function nextFrame() {
     }
 }
 
-// Select active frame
+// Chọn khung hình hoạt động
 async function selectFrame(idx) {
     selectedFrameIdx = idx;
     const frame = evaluationData.frames[idx];
 
-    // Update toolbar indicator
+    // Cập nhật bộ chỉ báo trên thanh công cụ
     document.getElementById('frameIndicator').textContent = `${idx + 1}`;
 
-    // Keep selectedCamera if available, else pick first camera
+    // Giữ lại camera đã chọn nếu khả dụng, nếu không chọn camera đầu tiên
     if (frame.cameras.length > 0) {
         if (!frame.cameras.includes(selectedCamera)) {
             selectedCamera = frame.cameras[0];
         }
-        // Render camera list panel on the left
+        // Hiển thị danh sách camera ở panel bên trái
         renderCamList();
-        // Refresh image and annotations
+        // Làm mới hình ảnh và các nhãn dán tương ứng
         await loadComparisonImages();
     } else {
         alert('Không có dữ liệu camera cho khung hình này');
     }
 }
 
-// Render vertical camera thumbnails list on the left side
+// Hiển thị danh sách ảnh thu nhỏ camera theo chiều dọc ở bên trái
 function renderCamList() {
     const list = document.getElementById('camList');
     const frame = evaluationData.frames[selectedFrameIdx];
@@ -249,7 +249,7 @@ function renderCamList() {
         </div>`;
     }).join('');
 
-    // Load thumbnails for active cams
+    // Tải các ảnh thu nhỏ cho các camera đang hoạt động
     CAMERAS.forEach(cam => {
         if (frame.cameras.includes(cam)) {
             loadThumb(frame, cam);
@@ -280,25 +280,25 @@ async function loadThumb(frame, cam) {
     }
 }
 
-// Select camera
+// Chọn camera
 async function selectCamera(cam) {
     selectedCamera = cam;
     renderCamList();
     await loadComparisonImages();
 }
 
-// Load images for current frame and camera
+// Tải hình ảnh cho khung hình và camera hiện tại
 async function loadComparisonImages() {
     const frame = evaluationData.frames[selectedFrameIdx];
     const mainImg = document.getElementById('mainImage');
 
-    // Reset zoom offset and filter on camera change
+    // Đặt lại tỷ lệ thu phóng và bộ lọc khi đổi camera
     resetZoom();
 
     mainImg.src = '';
     mainImg.style.display = 'none';
 
-    // Render matched labels for current frame/camera
+    // Hiển thị các nhãn trùng khớp cho khung hình/camera hiện tại
     renderMatchedLabels();
 
     try {
@@ -322,7 +322,7 @@ async function loadComparisonImages() {
 }
 
 function setupCanvas(container, img) {
-    // Remove old canvas
+    // Loại bỏ canvas cũ
     container.querySelectorAll('canvas').forEach(c => c.remove());
 
     imgDisplayW = img.clientWidth;
@@ -336,7 +336,7 @@ function setupCanvas(container, img) {
     annCtx = annCanvas.getContext('2d');
 }
 
-// Render matched labels panel on the right side
+// Hiển thị bảng danh sách các nhãn trùng khớp ở bên phải
 function renderMatchedLabels() {
     const list = document.getElementById('matchedLabelList');
     const countBadge = document.getElementById('matchedLabelCount');
@@ -364,7 +364,7 @@ function renderMatchedLabels() {
         const iou = m.iou;
         const cls = CLASS_MAP[u.category] || { name: u.category, color: '#94A3B8', icon: 'fa-tag' };
 
-        // IoU-based similarity color
+        // Màu sắc tương đồng dựa trên tỷ lệ IoU
         const pct = Math.round(iou * 100);
         let barColor, iouTextColor;
         if (pct >= 75) { barColor = '#10B981'; iouTextColor = '#065F46'; }
@@ -379,17 +379,17 @@ function renderMatchedLabels() {
         <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;cursor:pointer;transition:border-color 0.15s;"
              onmouseover="this.style.borderColor='${cls.color}'" onmouseout="this.style.borderColor='#E2E8F0'"
              onclick="selectedAnnId=${u.id};redrawAnnotations();">
-            <!-- Header row: icon + label name + IoU badge -->
+            <!-- Dòng tiêu đề: biểu tượng + tên nhãn + huy hiệu IoU -->
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
                 <i class="fa-solid ${cls.icon}" style="color:${cls.color};font-size:12px;flex-shrink:0;"></i>
                 <span style="font-size:12px;font-weight:700;color:#1E293B;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span>
                 <span style="font-size:11px;font-weight:800;color:${iouTextColor};background:${barColor}22;border:1px solid ${barColor}55;border-radius:6px;padding:1px 6px;flex-shrink:0;">${pct}%</span>
             </div>
-            <!-- Progress bar -->
+            <!-- Thanh tiến trình -->
             <div style="height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;">
                 <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;transition:width 0.4s;"></div>
             </div>
-            <!-- Sub-info -->
+            <!-- Thông tin phụ -->
             <div style="display:flex;justify-content:space-between;margin-top:4px;">
                 <span style="font-size:10px;color:#94A3B8;">AI gốc</span>
                 <span style="font-size:10px;color:#94A3B8;">Tỉ lệ IoU</span>
@@ -399,18 +399,18 @@ function renderMatchedLabels() {
     }).join('');
 }
 
-// Canvas Redrawing logic
+// Logic vẽ lại nhãn trên Canvas
 let selectedAnnId = null;
 let currentTool = 'pointer';
 
-// Per-item AI/User visibility overrides for matched pairs. Key = user_box.id
+// Ghi đè hiển thị AI/Người dùng cho từng mục trùng khớp. Khóa = user_box.id
 // { hideAI: bool, hideUser: bool }
 let hiddenMatchedItems = new Map();
 let collapsedCategories = new Set();
 
 function resetMatchedState() {
     hiddenMatchedItems.clear();
-    // keep collapsed state across camera/frame switches
+    // Giữ trạng thái thu gọn giữa các lần chuyển đổi camera/khung hình
 }
 
 function toggleMatchedAI(userId, event) {
@@ -535,12 +535,12 @@ function toggleCategoryAI(cat, event) {
     const entries = getCurrentEntries(comp).filter(item => item.category === cat);
     if (entries.length === 0) return;
 
-    // Check if currently all entries show only AI
+    // Kiểm tra xem hiện tại tất cả các mục có chỉ hiển thị AI hay không
     const allShowOnlyAI = entries.every(item => {
         const o = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
         if (item.type === 'matched') return !o.hideAI && o.hideUser;
         if (item.type === 'missing') return !o.hideAI;
-        return true; // Extra item is ignored for "AI-only" check
+        return true; // Mục thừa (extra) được bỏ qua khi kiểm tra "chỉ AI"
     });
 
     entries.forEach(item => {
@@ -571,12 +571,12 @@ function toggleCategoryUser(cat, event) {
     const entries = getCurrentEntries(comp).filter(item => item.category === cat);
     if (entries.length === 0) return;
 
-    // Check if currently all entries show only User
+    // Kiểm tra xem hiện tại tất cả các mục có chỉ hiển thị Nhãn người dùng hay không
     const allShowOnlyUser = entries.every(item => {
         const o = hiddenMatchedItems.get(String(item.id)) || { hideAI: false, hideUser: false };
         if (item.type === 'matched') return o.hideAI && !o.hideUser;
         if (item.type === 'extra') return !o.hideUser;
-        return true; // Missing item is ignored for "User-only" check
+        return true; // Mục thiếu (missing) được bỏ qua khi kiểm tra "chỉ người dùng"
     });
 
     entries.forEach(item => {
@@ -598,7 +598,7 @@ function toggleCategoryUser(cat, event) {
     redrawAnnotations();
 }
 
-// Get all entries depending on current toggle state (AI / User / Both)
+// Lấy tất cả các nhãn tùy thuộc vào trạng thái bật/tắt hiện tại (AI / Người dùng / Cả hai)
 function getCurrentEntries(comp) {
     if (!comp) return [];
     const matched = comp.matched || [];
@@ -650,7 +650,7 @@ function getCurrentEntries(comp) {
     return entries;
 }
 
-// Render matched labels panel on the right side (renamed to Danh sách nhãn)
+// Hiển thị panel nhãn trùng khớp bên phải (đổi tên thành Danh sách nhãn)
 function renderMatchedLabels() {
     renderFrameSimilarityCharts();
 
@@ -670,7 +670,7 @@ function renderMatchedLabels() {
         return;
     }
 
-    // Group by category
+    // Nhóm theo danh mục lớp đối tượng
     const groups = {};
     entries.forEach(item => {
         const cat = item.category;
@@ -731,7 +731,7 @@ function renderMatchedLabels() {
                 `;
             }
 
-            // Buttons
+            // Các nút thao tác
             let robotBtn = '';
             if (item.type === 'matched' || item.type === 'missing') {
                 const hideAI = ov.hideAI;
@@ -843,7 +843,7 @@ function renderFrameSimilarityCharts() {
     const displayPercent = averageSimilarity;
     const strokeDashoffset = circumference - (displayPercent / 100) * circumference;
 
-    let color = '#EF4444'; // Red
+    let color = '#EF4444'; // Đỏ
     let bgCircleColor = '#FEE2E2';
     let statusText = 'Độ khớp thấp';
     let statusColor = '#EF4444';
@@ -856,13 +856,13 @@ function renderFrameSimilarityCharts() {
         statusColor = '#64748B';
         statusBg = '#F1F5F9';
     } else if (displayPercent >= 75) {
-        color = '#10B981'; // Green
+        color = '#10B981'; // Xanh lá
         bgCircleColor = '#D1FAE5';
         statusText = 'Độ khớp cao';
         statusColor = '#059669';
         statusBg = '#ECFDF5';
     } else if (displayPercent >= 50) {
-        color = '#F59E0B'; // Orange
+        color = '#F59E0B'; // Cam
         bgCircleColor = '#FEF3C7';
         statusText = 'Độ tương đồng trung bình';
         statusColor = '#D97706';
@@ -954,7 +954,7 @@ function redrawAnnotations() {
     const height = imgDisplayH;
     const hasSelection = selectedAnnId !== null;
 
-    // Build per-item hidden sets
+    // Tạo tập hợp các mục bị ẩn cho từng hộp
     const hiddenAIKeys = new Set();
     const hiddenUserIds = new Set();
 
@@ -971,7 +971,7 @@ function redrawAnnotations() {
         }
     });
 
-    // 1. Draw AI boxes (dashed)
+    // 1. Vẽ các hộp AI (nét đứt)
     if (showAILabels) {
         comp.ai_boxes.forEach(box => {
             if (hiddenAIKeys.has(`${box.bbox_x}_${box.bbox_y}`)) return;
@@ -993,7 +993,7 @@ function redrawAnnotations() {
         });
     }
 
-    // 2. Draw user boxes
+    // 2. Vẽ các hộp của người dùng
     if (showUserLabels) {
         comp.matched.forEach(m => {
             const u = m.user_box;
@@ -1031,7 +1031,7 @@ function redrawAnnotations() {
     annCtx.globalAlpha = 1.0;
 }
 
-// Zoom & Pan controls (same as label_review.js)
+// Các điều khiển Thu phóng & Di chuyển (tương tự như trong label_review.js)
 function zoomIn() {
     zoomScale = Math.min(zoomScale + 0.25, 4);
     applyZoom();
@@ -1056,7 +1056,7 @@ function applyZoom() {
     document.getElementById('zoomLevel').textContent = `${Math.round(zoomScale * 100)}%`;
 }
 
-// Panning setup
+// Thiết lập chức năng di chuyển vùng nhìn (Panning)
 function initPanReview() {
     const canvas = document.querySelector('.center-canvas');
     if (!canvas) return;
@@ -1066,7 +1066,7 @@ function initPanReview() {
     canvas.addEventListener('mouseleave', _panEnd);
     canvas.style.cursor = currentTool === 'pan' ? 'grab' : 'default';
 
-    // Zoom on Ctrl + wheel scroll
+    // Thu phóng khi nhấn Ctrl + cuộn chuột
     canvas.addEventListener('wheel', (e) => {
         if (e.ctrlKey) {
             e.preventDefault();
@@ -1106,7 +1106,7 @@ function _panEnd(e) {
     e.currentTarget.style.userSelect = '';
 }
 
-// Modals opening and image settings logic
+// Logic mở các modal và thiết lập hình ảnh
 function openTaskInfo() {
     const modal = document.getElementById('modalTaskInfo');
     if (!modal || !evaluationData) return;
@@ -1138,14 +1138,14 @@ function resetImageFilter() {
     applyImageFilter();
 }
 
-// Keyboard shortcuts listener
+// Lắng nghe các phím tắt từ bàn phím
 window.addEventListener('keydown', (e) => {
-    // Ignore keypresses inside input fields or textareas
+    // Bỏ qua các sự kiện phím bên trong các trường nhập liệu hoặc khung văn bản
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     const key = e.key.toLowerCase();
 
-    // Navigation
+    // Điều hướng khung hình
     if (key === 'arrowright' || key === 'd') {
         e.preventDefault();
         nextFrame();
@@ -1160,7 +1160,7 @@ window.addEventListener('keydown', (e) => {
         lastFrame();
     }
 
-    // Camera mapping
+    // Ánh xạ phím cho các camera
     const camShortcuts = {
         '1': 'CAM_FRONT',
         '2': 'CAM_FRONT_LEFT',
@@ -1178,7 +1178,7 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    // Camera switching with ArrowUp/ArrowDown or W/S
+    // Chuyển đổi camera bằng phím ArrowUp/ArrowDown hoặc W/S
     if ((key === 'arrowup' && !e.ctrlKey) || key === 'w') {
         e.preventDefault();
         const curIdx = CAMERAS.indexOf(selectedCamera);
@@ -1211,7 +1211,7 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    // Zoom mapping
+    // Phím tắt thu phóng
     if (key === '+' || key === '=' || (e.ctrlKey && key === 'arrowup')) {
         e.preventDefault();
         zoomIn();
@@ -1223,7 +1223,7 @@ window.addEventListener('keydown', (e) => {
         resetZoom();
     }
 
-    // Esc to close modals
+    // Nhấn phím Esc để đóng các modal
     if (key === 'escape') {
         document.getElementById('modalTaskInfo').style.display = 'none';
         document.getElementById('modalShortcuts').style.display = 'none';
@@ -1233,7 +1233,7 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// ============= CHAT & HISTORY FUNCTIONS =============
+// ============= CÁC HÀM TRÒ CHUYỆN VÀ LỊCH SỬ ĐÁNH GIÁ =============
 function getToken() { return localStorage.getItem('access_token'); }
 
 async function openEvaluationChat() {
@@ -1382,14 +1382,14 @@ async function loadEvaluationHistory() {
 
             return `
             <div style="display:flex;gap:10px;align-items:flex-start">
-                <!-- Timeline dot -->
+                <!-- Dấu chấm mốc thời gian -->
                 <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:2px;align-self:stretch">
                     <div style="width:28px;height:28px;border-radius:50%;background:${cfg.bg};color:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">
                         <i class="fa-solid ${cfg.icon}"></i>
                     </div>
                     ${idx < history.length - 1 ? `<div style="width:2px;flex:1;background:#E2E8F0;margin-top:4px;margin-bottom:4px"></div>` : ''}
                 </div>
-                <!-- Content -->
+                <!-- Nội dung lịch sử -->
                 <div style="flex:1;padding-bottom:${idx < history.length - 1 ? '16px' : '0'}">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
                         <span style="font-size:13px;font-weight:700;color:${cfg.color}">${cfg.label}</span>
@@ -1447,7 +1447,7 @@ function showEvaluationStats() {
     const container = document.getElementById('statsModalBody');
     if (!modal || !container || !evaluationData) return;
 
-    // 1. Math calculation
+    // 1. Thực hiện các phép tính toán học
     let totalAi = 0;
     let totalUser = 0;
     let totalMatched = 0;
@@ -1589,7 +1589,7 @@ function showEvaluationStats() {
         });
     });
 
-    // Quality values
+    // Tính toán các giá trị chất lượng
     let totalFrameSimSum = 0;
     evaluationData.frames.forEach(frame => {
         let frameSim = 0;
@@ -1667,7 +1667,7 @@ function showEvaluationStats() {
     const timeSpentSec = evaluationData.time_spent || 0;
     const timeSpentMin = (timeSpentSec / 60).toFixed(1);
 
-    // Helper for rendering rings
+    // Hàm hỗ trợ vẽ vòng tròn thanh tiến trình
     function makeProgressRing(percent, size, strokeWidth, strokeColor, trailColor, textColor) {
         const radius = (size - strokeWidth) / 2;
         const circumference = 2 * Math.PI * radius;
@@ -1718,7 +1718,7 @@ function showEvaluationStats() {
         ratingBg = '#FFFBEB';
     }
 
-    // Suggestions logic
+    // Logic gợi ý tự động của hệ thống
     const isTimeTooShort = (timeSpentSec > 0 && timeSpentSec < 120);
     const isSimilarityTooHigh = (overallSimilarity >= 99);
 
@@ -1760,7 +1760,7 @@ function showEvaluationStats() {
         suggestionText = `<b>Độ trùng khớp cực cao:</b> Kết quả trùng khớp gần như hoàn toàn với AI (${overallSimilarity}%). Cần rà soát xem người dùng có thực sự kiểm tra và sửa đổi các nhãn lỗi từ AI hay không.`;
     }
 
-    // Camera stats list
+    // Danh sách thống kê theo góc camera
     const cameraRows = Object.keys(cameraStats).map(camKey => {
         const c = cameraStats[camKey];
         const avg = c.count > 0 ? Math.round(c.totalSimilarity / c.count) : 0;
@@ -1778,7 +1778,7 @@ function showEvaluationStats() {
         };
     }).sort((a, b) => b.avg - a.avg);
 
-    // Confusion list
+    // Danh sách nhầm lẫn nhãn
     const confusionList = Object.keys(confusionMap).map(key => {
         const [aiCat, userCat] = key.split('::');
         const count = confusionMap[key];
@@ -1793,7 +1793,7 @@ function showEvaluationStats() {
 
 
 
-    // Render HTML content
+    // Hiển thị nội dung HTML
     container.innerHTML = `
         <!-- Overview Cards -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
@@ -1839,9 +1839,9 @@ function showEvaluationStats() {
 
         </div>
 
-        <!-- Charts and Main Metrics Row -->
+        <!-- Vùng hiển thị biểu đồ và các chỉ số chính -->
         <div style="display:grid;grid-template-columns: 1.1fr 0.9fr;gap:24px;margin-bottom:24px;align-items:stretch;">
-            <!-- Left Chart Column (Rings) -->
+            <!-- Cột biểu đồ bên trái (Các vòng tròn tiến trình) -->
             <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:24px;display:flex;flex-direction:column;">
                 <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:20px;display:flex;align-items:center;">
                     <span>Chỉ số Đánh giá Chất lượng</span>
@@ -1884,7 +1884,7 @@ function showEvaluationStats() {
 
             </div>
 
-            <!-- Right Column (Camera Performance Breakdown) -->
+            <!-- Cột bên phải (Phân tích hiệu suất theo camera) -->
             <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:24px;display:flex;flex-direction:column;">
                 <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:16px;">Hiệu năng theo Góc Camera</div>
                 <div style="flex:1;overflow-y:auto;max-height:220px;padding-right:4px;">
@@ -1914,9 +1914,9 @@ function showEvaluationStats() {
             </div>
         </div>
 
-        <!-- Class Performance & Confusion Matrix Rows -->
+        <!-- Vùng hiển thị hiệu suất theo lớp đối tượng & Ma trận nhầm lẫn -->
         <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:24px;">
-            <!-- Left: Class statistics -->
+            <!-- Bên trái: Thống kê theo lớp đối tượng -->
             <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:24px;">
                 <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:16px;">Chi tiết hiệu năng theo Lớp đối tượng</div>
                 <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
@@ -1956,7 +1956,7 @@ function showEvaluationStats() {
                 </table>
             </div>
 
-            <!-- Right: Confused Labels list -->
+            <!-- Bên phải: Danh sách các nhãn bị nhầm lẫn -->
             <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:24px;display:flex;flex-direction:column;">
                 <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px;">Phân tích Nhầm lẫn Nhãn</div>
                 <p style="font-size:11px;color:#64748B;line-height:1.4;margin:0 0 16px 0;">Đối tượng vẽ trùng vị trí nhưng gán nhầm loại nhãn (IoU > 30%):</p>
@@ -2039,7 +2039,7 @@ function showEvaluationStats() {
         </div>
     `;
 
-    // Display modal
+    // Hiển thị hộp thoại modal
     modal.style.display = 'flex';
 }
 
@@ -2152,13 +2152,13 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 3000);
 }
 
-// Initialize on load
+// Khởi tạo trang khi tải hoàn tất
 window.onload = () => {
     initPage();
     initPanReview();
 };
 
-// Resize redraw handler
+// Xử lý vẽ lại nhãn khi thay đổi kích thước cửa sổ
 window.onresize = () => {
     const mainImg = document.getElementById('mainImage');
     if (mainImg && mainImg.style.display !== 'none') {
