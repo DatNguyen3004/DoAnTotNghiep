@@ -10,10 +10,15 @@ from models.user import User
 from services.auth_service import hash_password
 
 # Import tất cả models để Base biết cần tạo bảng nào
-import models.user    # noqa
-import models.project # noqa
-import models.scene   # noqa
-import models.frame   # noqa
+import models.user
+import models.project
+import models.scene
+import models.frame
+import models.annotation
+import models.task
+import models.task_submission
+import models.task_chat
+import models.chat_message
 
 def init():
     print("Tạo bảng...")

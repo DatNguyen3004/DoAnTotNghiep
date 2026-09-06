@@ -837,7 +837,7 @@
             btn.textContent = 'Đang đăng nhập...';
 
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
+                const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -853,7 +853,7 @@
                 localStorage.setItem('access_token', data.access_token);
 
                 try {
-                    const meRes = await fetch('http://127.0.0.1:8000/api/auth/me', {
+                    const meRes = await fetch('/api/auth/me', {
                         headers: { 'Authorization': 'Bearer ' + data.access_token }
                     });
                     if (meRes.ok) {

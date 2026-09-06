@@ -12,15 +12,22 @@ from models.scene import Scene
 from models.frame import Frame
 from schemas.dataset import SceneOut, FrameOut, FrameMetadata
 from routers.auth import get_current_user
-from config import NUSCENES_ROOT as _NUSCENES_ROOT_INIT
 import config as _cfg
 from services.video_dataset import get_video_frame_path
 
-# Luôn đọc runtime để phản ánh cập nhật từ Settings
 def _get_nuscenes_root():
     return _cfg.NUSCENES_ROOT
 
 router = APIRouter()
+
+def _resolve_frame_image_path(relative_path: str):
+    if not relative_path:
+        return None
+
+    if relative_path.startswith("uploads/"):
+        return os.path.join("static", relative_path)
+
+    return os.path.join(_get_nuscenes_root(), relative_path)
 
 
 def _placeholder_response(camera_label: str) -> StreamingResponse:
@@ -208,10 +215,12 @@ def get_frame_image(
         # Xây dựng đường dẫn tuyệt đối đến file ảnh trên disk
         # nuScenes lưu filename dạng: samples/CAM_FRONT/xxx.jpg
         # Upload ảnh/video lưu dạng: uploads/images/... hoặc uploads/frames/...
-        if relative_path.startswith("uploads/"):
-            image_path = os.path.join("static", relative_path)
-        else:
-            image_path = os.path.join(_get_nuscenes_root(), relative_path)
+        image_path = _resolve_frame_image_path(relative_path)
+
+    print("ROOT:", _get_nuscenes_root())
+    print("RELATIVE:", relative_path)
+    print("FULL PATH:", image_path)
+    print("EXISTS:", os.path.isfile(image_path))
 
     if not os.path.isfile(image_path):
         return _placeholder_response(camera_upper)
@@ -257,7 +266,7 @@ def get_frame_thumbnail(
         if not relative_path:
             return _placeholder_response(camera_upper)
 
-        image_path = os.path.join(_get_nuscenes_root(), relative_path) if not relative_path.startswith("uploads/") else os.path.join("static", relative_path)
+        image_path = _resolve_frame_image_path(relative_path)
 
     # Xử lý nén bằng Pillow
     try:
@@ -277,6 +286,7 @@ def get_frame_thumbnail(
                 media_type="image/jpeg",
                 headers={"Cache-Control": "public, max-age=604800"} # Cache 7 ngày
             )
-    except Exception as e:
-        # Fallback về ảnh gốc nếu lỗi xử lý
-        return FileResponse(image_path, media_type="image/jpeg")
+    except Exception:
+        if os.path.exists(image_path):
+            return FileResponse(image_path, media_type="image/jpeg")
+        return _placeholder_response(camera_upper)

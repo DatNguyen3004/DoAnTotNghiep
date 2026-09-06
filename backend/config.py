@@ -28,7 +28,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 giờ
 
 # Dataset - thư mục gốc chứa samples/, sweeps/, v1.0-mini/
-NUSCENES_ROOT = r"D:\Dataset-image\v1.0-mini"
+NUSCENES_ROOT = r"D:\Data\Image + Video\Dataset-image\v1.0-mini"
 # Thư mục chứa các file JSON metadata
 NUSCENES_META = os.path.join(NUSCENES_ROOT, "v1.0-mini")
 
